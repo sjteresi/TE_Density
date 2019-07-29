@@ -1,0 +1,1 @@
+1. When importing the genes data, make it so that it is a function argument, lessen the amount of hard-coding
