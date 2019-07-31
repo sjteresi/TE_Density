@@ -1,1 +1,5 @@
 1. When importing the genes data, make it so that it is a function argument, lessen the amount of hard-coding
+
+2. Check + 1
+
+3. Delete Software column in TE and Gene importer
