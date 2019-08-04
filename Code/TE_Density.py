@@ -1,16 +1,14 @@
 # By Scott Teresi
 #-------------------------------------------
 # Imports
-import numpy as np
-import pandas as pd
+import numpy as np import pandas as pd
 import os
 import time
 
-from multiprocessing import Process
-import multiprocessing
-from threading import Thread
-import logging
-from collections import defaultdict
+#from multiprocessing import Process
+#import multiprocessing
+#from threading import Thread
+#import logging
 #-------------------------------------------
 # Directory Movement and Helpers 
 
@@ -48,7 +46,6 @@ def save_output(Data, Output_Name):
             sep=',')
     ch_main_path() # change to Code directory
 
-
 #-------------------------------------------
 # PandaFrame Helper Functions
 
@@ -77,6 +74,10 @@ def get_counts(my_df_col):
 def get_unique(my_df_col):
     return my_df_col.unique()
 
+def swap_columns(df, col_condition, c1, c2):
+    df.loc[col_condition, [c1, c2]] = \
+    df.loc[col_condition, [c2, c1]].values
+    return df
 
 #-------------------------------------------
 # Main Functions
@@ -86,11 +87,11 @@ def import_genes():
     my_data = 'camarosa_gtf_data.gtf' # DECLARE YOUR DATA NAME 
     ch_input_data_path()
 
-    col_names = ["Chromosome", 'Software', 'Feature', 'Start', 'Stop', \
-        'Score', 'Strand', 'Frame', 'FullName']
+    col_names = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
+                 'Score', 'Strand', 'Frame', 'FullName']
 
-    col_to_use = ["Chromosome", 'Software', 'Feature', 'Start', 'Stop', \
-        'FullName']
+    col_to_use = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
+                  'Strand', 'FullName' ]
 
     Gene_Data = pd.read_csv(my_data,
             sep='\t+',
@@ -111,10 +112,15 @@ def import_genes():
 
     Gene_Data = Gene_Data.drop(['FullName', 'Name1'], axis = 1)
         # remove extraneous rows
- 
+
+    Gene_Data.Strand = Gene_Data.Strand.astype(str)
     Gene_Data.Start = Gene_Data.Start.astype(int) # Converting to int for space
     Gene_Data.Stop = Gene_Data.Stop.astype(int) # Converting to int for space
     Gene_Data['Length'] = Gene_Data.Stop - Gene_Data.Start + 1 # check + 1
+
+
+    col_condition = Gene_Data['Strand'] == '-'
+    Gene_Data = swap_columns(Gene_Data, col_condition, 'Start', 'Stop')
     return Gene_Data
 
 
@@ -123,10 +129,11 @@ def import_transposons():
     my_data = 'camarosa_gff_data.gff' # DECLARE YOUR DATA NAME 
     ch_input_data_path()
 
-    col_names = ["Chromosome", 'Software', 'Feature', 'Start', 'Stop', \
+    col_names = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
         'Score', 'Strand', 'Frame', 'Attribute']
 
-    col_to_use = ["Chromosome", 'Software', 'Feature', 'Start', 'Stop']
+    col_to_use = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
+                 'Strand']
 
     TE_Data = pd.read_csv(my_data,
             sep='\t+',
@@ -134,7 +141,6 @@ def import_transposons():
             engine='python',
             names = col_names,
             usecols = col_to_use)
-            #dtype = {'Start':int})
 
     TE_Data[['Family', 'SubFamily']] = TE_Data.Feature.str.split('/', expand=True)
     TE_Data.SubFamily.fillna(value='Unknown', inplace=True) # replace None w U
@@ -144,13 +150,12 @@ def import_transposons():
     TE_Data = TE_Data.drop('Feature', axis=1)
 
     TE_Data = drop_nulls(TE_Data) # Dropping nulls because I checked
+    TE_Data.Strand = TE_Data.Strand.astype(str)
     TE_Data.Start = TE_Data.Start.astype(int) # Converting to int for space
     TE_Data.Stop = TE_Data.Stop.astype(int) # Converting to int for space
     TE_Data['Length'] = TE_Data.Stop - TE_Data.Start + 1 # check + 1 
     TE_Data = TE_Data[TE_Data.Family != 'Simple_repeat'] # drop s repeat
     TE_Data = replace_names(TE_Data)
-    #get_head(TE_Data)
-    #save_output(TE_Data, 'Cleaned_TEs.csv')
     return TE_Data
 
 def replace_names(my_TEs):
@@ -192,6 +197,7 @@ def replace_names(my_TEs):
     return my_TEs
 
 def density_algorithm(genes, tes, window, increment, max_window):
+    # MICHAEL SHOULD LOOK AT THIS COMMAND
     try:
         get_unique(genes.Chromosome) == get_unique(tes.Chromosome)
     except:
@@ -199,41 +205,154 @@ def density_algorithm(genes, tes, window, increment, max_window):
 
     #Genes_W_Density = genes.copy(deep=True)
 
+
+
+
     # Create subsets
     # Creates a filtered list by chromosome to iterate over
     for ind_chromosome in get_unique(genes.Chromosome):
         g_filter = genes['Chromosome'] == ind_chromosome
-        subset_genes = genes.where(g_filter)
-        subset_genes = drop_nulls(subset_genes)
+        G = genes.where(g_filter)
+        G = drop_nulls(G)
 
         t_filter = tes['Chromosome'] == ind_chromosome
-        subset_tes = tes.where(t_filter)
-        subset_tes = drop_nulls(subset_tes)
+        T = tes.where(t_filter)
+        T = drop_nulls(T)
 
+        # At this point I have a subset of genes to iterate over
+        # This subset is on a chromosome by chromosome basis
+        # I will perform my windowing operations on this subset
+        # Perhaps in the future I can add multiprocessing for each chromosome
+
+        #Genes_W_Density = subset_genes.copy(deep=True)
+        #Genes_W_Density = init_empty_densities(Genes_W_Density, tes, window)
+        #G['Inside'] = np.nan
         while window <= max_window:
-            Genes_W_Density = subset_genes.copy(deep=True)
-            Genes_W_Density = init_empty_densities(Genes_W_Density, tes, window)
-            #save_output(Genes_W_Density, 'Test_Nan.csv')
+            # Perform the windowing operations
+            # Multiple tests need to be done here for each window
+            # All the tests must be run for that window and then rerun for the
+            # next window
+            # I foresee that for each gene file we will have an output wiht all
+            # of the original gene data and the output will be 500_LTR_Upstream
+            # The TE types (LTR) are given by the TE_Dataframe.Family and
+            # TE_Dataframe.SubFamily columns
+
+            # The init_empty_densities function was to add the appropriate
+            # columns, we may not need to worry about that for now
+
+
+            # All the commented code below are my attempts to do the work
+            #-----------------------------
+
+
+
+
+
+
+            #G['Inside'] = G.apply(TEs_localization, T = T, axis=1)
+            #get_head(G)
+            #get_head(T)
+            #G['Inside'] = G.apply(lambda x: T[(T['Start'] >= x['Start']) & (T['Stop'] <= x['Stop'])]['Start'].count(), axis=1)
+            
+       
+            #G.Inside = G.apply(lambda x: T[(T.Start >= x.Start) & (T.Stop <= x.Stop)]['Start'].count(), axis=1)
+            #G.Inside = G.apply(TEs_localization, T=T, axis = 1)
+
+            #print(T[(T.Start >= G.Start) & (T.Stop <=G.Stop)]['Start'].count())
+            #print(G.equals(G2))
+
+
+            A.apply(lambda x: B[(B['Start'] >= x['Start']) & (B['Stop'] <= x['Stop'])].apply(lambda y : (y['Start'] / y['Stop']) +1), axis=1)
+            #G['Inside'] = G.apply(TEs_localization, TEs=T, axis= 1)
+            #print(type(G) = (G.apply(lambda x: T[(T['Start'] >= x['Start']) & (T['Stop'] <= x['Stop'])], axis = 1)))
+                                  #.apply(lambda y : (y['Start'] / y['Stop']) +1), axis=1)
+
+            #G.Inside = G.apply(lambda x: T[(T.Start >= x['Start']) & (T['Stop'] <= x['Stop'])]['Start'].count(), axis=1)
+            #G.Inside = G.apply(lambda x: T[(T.Start >= x['Start']) & (T['Stop'] <= x['Stop'])]['Start'].mul(1000), axis=1)
+
+
+
+            #G.Inside = G.apply(lambda x: T[T(['Start'] >= x['Start']) & (T['Stop'] <= x['Stop'])]x['Start']+x['Stop'])
+            #G.Inside = G.apply(lambda x: T[(T['Start'] >= x['Start']) & (T['Stop'] <= x['Stop'])]x['Start'] + x['Stop'], axis = 1)
+            #print(T[T(['Start'] >= G['Start']) & (T['Stop'] <= G['Stop'])]['Start'].count())
+
+
+            #for g_ind, g_row in G.iterrows():
+                #g_row.apply(lambda g_row: TEs_localization(g_row, T=T), axis=1)
+                #for t_ind, t_row in T.iterrows():
+                    #g_row['TEs_inside'] += 1
+
+
+                #print(g_row)
+                #g_row.TEs_inside[T.Start < T.Stop] += 1
+            #subset_genes.TEs_inside = subset_genes.mask(T['Start'] < 1500, subset_genes.TEs_inside += 1)
+
+
+            get_head(G)
+            save_output(G, 'Test_Inside.csv')
+            raise ValueError
+
+
+            #T.mask(subset_genes.Start < T.Start, 24)
+            #get_head(T)
+
+            #for g_ind, g_row in subset_genes.iterrows():
+                #subset_genes.where([(g_row.Start <= T.Start) & (T.Stop <= g_row.Stop), 'TEs_inside'] += 1
+            #print(subset_genes.apply(lambda row: row["Start"] + row["Stop"], axis = 1))
+            #print(subset_genes.apply(add_them, df2=subset_tes, axis=1))
             #raise NameError
-            for g_ind, g_row in subset_genes.iterrows():
-                for t_ind, t_row in subset_tes.iterrows():
-                    
+            #Genes_W_Density.loc[(subset_tes.Start.values >=
+                                 #Genes_W_Density.Start.values) &
+                                #(subset_tes.Stop.values <=
+                                 #Genes_W_Density.Stop.values), 'TEs_inside'] += 1
+            #Genes_W_Density = Genes_W_Density.apply(TEs_inside, T = subset_tes, axis = 1)
+
+            #subset_genes.loc[(T.Start >= subset_genes.Start) & (T.Stop <= subset_genes.Stop), 'TEs_inside'] += 1
+            #subset_genes = subset_genes.reset_index(drop=True)
+            #T = T.reset_index(drop=True)
+            #subset_genes.loc[(subset_genes.Start <= T.Start) & (T.Stop <= subset_genes.Stop), 'TEs_inside'] += 1
+            #get_head(subset_genes)
+            #save_output(subset_genes, 'Test_Inside.csv')
+            #print(subset_genes.apply(TEs_inside, T=subset_tes, axis=1))
 
 
 
 
-    #print(TE_Data.Family.unique())
-    #get_counts(TE_Data.Family)
-    #save_output(TE_Data, 'Test.csv')
-    #Genes_W_Density['LTR_left'] = np.nan                  
 
-            #genes.loc[g_ind, "TE_Density LTR"] = 
-
-            #g_row['Stop'] + window / 
-
-    #print(genes.where(genes['Chromosome'] == 'Fvb1-1'))
-            raise NameError
             window += increment
+
+def TEs_localization(G,TEs):
+    pass
+    # input is x
+    # TEs are y
+    #adjusted_G = TEs.apply(lambda y: y['Inside'] if (G['Stop'] >= y['Start'])else None, axis =1)
+    #adjusted_G = adjusted_G.dropna(axis=0, how='all')
+    #if adjusted_G.empty:
+        #adjusted_G = np.nan
+    #return adjusted_G
+
+   
+    #return (T[(T.Start >= G.Start) & (T.Stop <= G.Stop)]['Stop'].div(1000))
+    #return (T[(T.Start >= G.Start) & (T.Stop <= G.Stop)]['Stop'].div(1000))
+    #return (T[(T.Stop <= G.Stop)](['Stop'].div(10000) + 1))
+    #raise ValueError
+    #return (T[(T.Start >= G.Start) & (T.Stop <= G.Stop)]['Start'].count())
+
+        #count += 1
+
+    #G.loc(axis=1)[(T.Start >= G.Start) & (T.Stop <= G.Stop), 'TEs_inside'] += 1
+    #G.where((T.Start >= G.Start) & (T.Stop <= G.Stop), I
+    #G.TEs_inside = I
+
+    #(T.Start >= G.Start) & (T.Stop <= G.Stop) = G.TEs_inside += 1
+        #G.TEs_inside += 1
+    #return G
+    #df.where(m, -df) == np.where(m, df, -df)
+    #if T.Start >= G.Start and T.Stop <= G.Stop:
+        #return T.Start + T.Start
+    
+    #return df.Start + df.Stop
+
 
 def init_empty_densities(my_genes, my_tes, window):
     Family_List = my_tes.Family.unique()
@@ -249,6 +368,7 @@ def init_empty_densities(my_genes, my_tes, window):
         for direction in Directions:
             col_name = (str(window) + '_' + family + direction)
             my_genes[col_name] = np.nan
+    my_genes['TEs_inside'] = np.nan
     return my_genes
 
 
@@ -258,10 +378,8 @@ if __name__ == '__main__':
     density_algorithm(
                     Gene_Data,
                     TE_Data,
-                    window=500,
+                    window=10000,
                     increment=500,
                     max_window=10000
                     )
-
-
 

@@ -3,3 +3,7 @@
 2. Check + 1
 
 3. Delete Software column in TE and Gene importer
+
+4. Multiprocessing for each chromosome?
+
+5. Make sure the length for each gene is correct, need to make it the aggregate of all of the exons or should I just make it (stop - start + 1)???
