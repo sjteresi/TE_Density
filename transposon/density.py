@@ -26,8 +26,41 @@ class DensityConditions(IntEnum):
 
     TODO scott, pls add a one liner explanation for each test
 
+    Below, inclusive generally can be evaluated as <= or >=
+    Exclusive would be < or >
+
     Conditions deal with the transposable element (TE) position wrt gene/windows.
-        IN_GENE_ONLY: is the TE only inside the gene (not in window)?
+
+
+        IN_GENE_ONLY: The TE is only inside the gene, that includes gene start
+        and gene stop (inclusive). The density would be the total number of TE
+        bases (TE length) divided by the Gene Length.
+
+
+        IN_WINDOW_ONLY: The TE is between the window start or stop (inclusive)
+        and the gene start or stop (exclusive). The density would be the total
+        number of TE bases (TE length) divided by the size of the window.
+
+
+        IN_WINDOW_AND_GENE: The TE is within the gene (inclusive on gene edges)
+        and ends within the window (can end on window edges, inclusive). This
+        test is sort of a fusion of IN_GENE_ONLY and IN_WINDOW_ONLY, we would
+        need to calculate two values!
+        Something that we would call Intra density and either upstream or downstream
+        density. The intra value would just come from the portion that is inside,
+        divided by the length of the gene. And the window portion would just be
+        the portion that is inside the window. Reminder that a TE base that
+        overlaps with the gene start or stop is considered inside the gene,
+        where a TE base that ends on a window is considered inside the window
+
+        IN_WINDOW_FROM_OUTSIDE: A TE extends into the window, but part of it is
+        outside the window. Thus the only relevant part is the part that sits
+        inside the window. So imagine a case where the TE extends past the
+        WindowStop, the desired amount of TE Bases would be:
+        (WindowStop - TE_Start) and then we would divide that by the WindowSize
+        to get the density
+
+
 
     """
 
@@ -347,7 +380,7 @@ def density_algorithm(genes, tes, window, increment, max_window):
             #print(G.equals(G2))
 
 
-            A.apply(lambda x: B[(B['Start'] >= x['Start']) & (B['Stop'] <= x['Stop'])].apply(lambda y : (y['Start'] / y['Stop']) +1), axis=1)
+            #A.apply(lambda x: B[(B['Start'] >= x['Start']) & (B['Stop'] <= x['Stop'])].apply(lambda y : (y['Start'] / y['Stop']) +1), axis=1)
             #G['Inside'] = G.apply(TEs_localization, TEs=T, axis= 1)
             #print(type(G) = (G.apply(lambda x: T[(T['Start'] >= x['Start']) & (T['Stop'] <= x['Stop'])], axis = 1)))
                                   #.apply(lambda y : (y['Start'] / y['Stop']) +1), axis=1)
@@ -402,38 +435,6 @@ def density_algorithm(genes, tes, window, increment, max_window):
 
             window += increment
 
-def TEs_localization(G,TEs):
-    pass
-    # input is x
-    # TEs are y
-    #adjusted_G = TEs.apply(lambda y: y['Inside'] if (G['Stop'] >= y['Start'])else None, axis =1)
-    #adjusted_G = adjusted_G.dropna(axis=0, how='all')
-    #if adjusted_G.empty:
-        #adjusted_G = np.nan
-    #return adjusted_G
-
-
-    #return (T[(T.Start >= G.Start) & (T.Stop <= G.Stop)]['Stop'].div(1000))
-    #return (T[(T.Start >= G.Start) & (T.Stop <= G.Stop)]['Stop'].div(1000))
-    #return (T[(T.Stop <= G.Stop)](['Stop'].div(10000) + 1))
-    #raise ValueError
-    #return (T[(T.Start >= G.Start) & (T.Stop <= G.Stop)]['Start'].count())
-
-        #count += 1
-
-    #G.loc(axis=1)[(T.Start >= G.Start) & (T.Stop <= G.Stop), 'TEs_inside'] += 1
-    #G.where((T.Start >= G.Start) & (T.Stop <= G.Stop), I
-    #G.TEs_inside = I
-
-    #(T.Start >= G.Start) & (T.Stop <= G.Stop) = G.TEs_inside += 1
-        #G.TEs_inside += 1
-    #return G
-    #df.where(m, -df) == np.where(m, df, -df)
-    #if T.Start >= G.Start and T.Stop <= G.Stop:
-        #return T.Start + T.Start
-
-    #return df.Start + df.Stop
-
 
 def init_empty_densities(my_genes, my_tes, window):
     Family_List = my_tes.Family.unique()
@@ -479,7 +480,7 @@ if __name__ == '__main__':
     density_algorithm(
                     Gene_Data,
                     TE_Data,
-                    window=10000,
+                    window=1000,
                     increment=500,
                     max_window=10000
                     )
