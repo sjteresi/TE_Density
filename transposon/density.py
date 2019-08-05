@@ -25,9 +25,17 @@ def cwd():
     """ Prints the current working directory """
     print(os.getcwd())
 
-# def ch_main_path():  # TODO remove, not sure where this is needed anymore
-#     """ Change the path to the code data folder """
-#     os.chdir('/home/scott/Documents/Uni/Research/Projects/TE_Density/Code/')
+def ch_input_data_path():
+    """ Change the path to the input data folder """
+    os.chdir('/home/scott/Documents/Uni/Research/Raw_Strawberry/Camarosa/')
+
+def ch_output_data_path():
+    """ Change the path to the output data folder """
+    os.chdir('/home/scott/Documents/Uni/Research/Projects/TE_Density/Output_Data/')
+
+def ch_main_path():
+    """ Change the path to the code data folder """
+    os.chdir('/home/scott/Documents/Uni/Research/Projects/TE_Density/Code/')
 
 def get_head(Data):
     """ Get the heading of the Pandaframe """
@@ -41,11 +49,11 @@ def save_output(Data, Output_Name):
     if Output_Name[-4:] != '.csv':
         raise NameError('Please make sure your filename has .csv in it!')
     global OUTPUT_DIR  # TODO remove global
+    ch_output_data_path() # change to output directory
     Data.to_csv(os.path.join(OUTPUT_DIR, Output_Name),
             header=True,
             sep=',')
-    # TODO remove ch_main_path, not sure where this is needed anymore
-    #ch_main_path() # change to Code directory
+    ch_main_path() # change to Code directory
 
 #-------------------------------------------
 # PandaFrame Helper Functions
