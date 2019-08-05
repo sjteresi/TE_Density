@@ -11,12 +11,32 @@ import os
 import time
 import argparse
 import logging
+from enum import IntEnum, unique
 #from multiprocessing import Process
 #import multiprocessing
 #from threading import Thread
 
 import numpy as np
 import pandas as pd
+
+# FUTURE enum.Flag is more appropriate but let us delineate first and revisit
+@unique
+class DensityConditions(IntEnum):
+    """Enumerate the conditions where density is calculated with respect to.
+
+    TODO scott, pls add a one liner explanation for each test
+
+    Conditions deal with the transposable element (TE) position wrt gene/windows.
+        IN_GENE_ONLY: is the TE only inside the gene (not in window)?
+
+    """
+
+    IN_GENE_ONLY= 0
+    IN_WINDOW_ONLY = 1
+    IN_WINDOW_AND_GENE = 2
+    IN_WINDOW_NOT_GENE = 3
+    IN_WINDOW_AND_GENE_UP_DOWN_STREAM = 4  # TE in window or gene but start or stop is outside window?
+
 
 #-------------------------------------------
 # Directory Movement and Helpers
@@ -25,17 +45,9 @@ def cwd():
     """ Prints the current working directory """
     print(os.getcwd())
 
-def ch_input_data_path():
-    """ Change the path to the input data folder """
-    os.chdir('/home/scott/Documents/Uni/Research/Raw_Strawberry/Camarosa/')
-
-def ch_output_data_path():
-    """ Change the path to the output data folder """
-    os.chdir('/home/scott/Documents/Uni/Research/Projects/TE_Density/Output_Data/')
-
-def ch_main_path():
-    """ Change the path to the code data folder """
-    os.chdir('/home/scott/Documents/Uni/Research/Projects/TE_Density/Code/')
+# def ch_main_path():  # TODO remove, not sure where this is needed anymore
+#     """ Change the path to the code data folder """
+#     os.chdir('/home/scott/Documents/Uni/Research/Projects/TE_Density/Code/')
 
 def get_head(Data):
     """ Get the heading of the Pandaframe """
@@ -49,11 +61,11 @@ def save_output(Data, Output_Name):
     if Output_Name[-4:] != '.csv':
         raise NameError('Please make sure your filename has .csv in it!')
     global OUTPUT_DIR  # TODO remove global
-    ch_output_data_path() # change to output directory
     Data.to_csv(os.path.join(OUTPUT_DIR, Output_Name),
             header=True,
             sep=',')
-    ch_main_path() # change to Code directory
+    # TODO remove ch_main_path, not sure where this is needed anymore
+    #ch_main_path() # change to Code directory
 
 #-------------------------------------------
 # PandaFrame Helper Functions
@@ -209,13 +221,72 @@ def replace_names(my_TEs):
     my_TEs.SubFamily.replace(master_subfamily, inplace=True)
     return my_TEs
 
-def density_algorithm(genes, tes, window, increment, max_window, otuput):
+
+class DensityInputs(object):
+    """Contains data for calculating transposon density."""
+
+    # NOTE for now, just store a simplified np.array
+    # FUTURE store data frame and add properties for the different views
+    def __init__(self, genes, transposons, window):
+        """Initializer.
+
+        Args:
+            genes (numpy.array): Jx2, J # of genes, column1 start idx, column2 stop index
+            transposons (numpy.array): Kx2, K # of transposons, column1 start idx, column2 stop idx
+        """
+        self.genes = gene
+        self.transposons = transposons
+        self.window = window
+
+
+
+class DensityOutput(object):
+    """Contains data on a density result."""
+    # NOTE to scott from mike: use this to do a map/reduce strategy
+    # basically, let the caller deal with formatting the result
+    # don't collate them in the same function that calculates them
+
+    def __init__(self, density, condition):
+        self.density = density
+        self.condition = condition
+
+# NOTE we should probably just make the conditions a class b/c we are going to have
+# tons of copy paste code otherwise
+# also, although it is functional (data in, data out)
+# one can consider the window part of the state that the functions share
+# maybe contain the genes, transposons, write the conditions / rho as clasmethods
+# then provide helpers to glue it together (e.g. loop over conditions w/ same interface)
+
+def is_inside_only(genes, transposon):
+    """Return where the TE is only inside the gene.
+
+    Args:
+
+    """
+
+    # NOTE just use a loop for now above this for multiple TE
+    # use np.newaxis in the future to broadcast
+    # or can we load a matrix that size in ram?
+
+    t_0 = transposon[0]
+    t_1 = transposon[1]
+    down = t_0 >= genes[:,0]
+    up = t_1 <= genes[:,1]
+    return np.logical_and(up, down)
+
+def rho(genes, transposons, passed_condition, window_start, window_stop):
+    """Calculate the density where it passed the conditional test."""
+    pass
+
+
+def density_algorithm(genes, tes, window, increment, max_window):
     """
     te data frame has columns: SEE import_transposons
     te data frame has rows: each row is a temp
 
 
     """
+    # NOTE create 2 structs to hold files / param & result
 
     # MICHAEL SHOULD LOOK AT THIS COMMAND
     try:
@@ -245,6 +316,8 @@ def density_algorithm(genes, tes, window, increment, max_window, otuput):
         #Genes_W_Density = init_empty_densities(Genes_W_Density, tes, window)
         #G['Inside'] = np.nan
         while window <= max_window:
+            logging.debug(" gene shape:  {}".format(genes.values.shape))
+            logging.debug(" te   shape:  {}".format(tes.values.shape))
             # Perform the windowing operations
             # Multiple tests need to be done here for each window
             # All the tests must be run for that window and then rerun for the
@@ -382,7 +455,7 @@ def init_empty_densities(my_genes, my_tes, window):
 
 if __name__ == '__main__':
 
-    logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
+    logging.basicConfig(level=os.environ.get("LOGLEVEL", "DEBUG"))
     parser = argparse.ArgumentParser(description="calculate TE density")
     parser.add_argument('input_dir', type=str,
                         help='parent directory of gene & transposon files')
@@ -402,11 +475,11 @@ if __name__ == '__main__':
     TE_Data = import_transposons()
     get_head(TE_Data)
 
-    #
-    # density_algorithm(
-    #                 Gene_Data,
-    #                 TE_Data,
-    #                 window=10000,
-    #                 increment=500,
-    #                 max_window=10000
-    #                 )
+
+    density_algorithm(
+                    Gene_Data,
+                    TE_Data,
+                    window=10000,
+                    increment=500,
+                    max_window=10000
+                    )
