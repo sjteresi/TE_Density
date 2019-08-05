@@ -59,8 +59,15 @@ def test_rho_only_inside_congruent():
 
 def test_rho_only_inside_subset():
     """Does ONLY INSIDE work when TE is a subset of gene?"""
+    genes = gene_array()
+    transposons = np.array([(3,9), (13,18), (22, 27), (35,37)])
 
-    pass
+    for t_i in range(transposons.shape[0]):
+        hit = is_inside_only(genes, transposons[t_i, :])
+        assert hit[t_i]
+        hit[t_i] = False
+        assert np.all(np.invert(hit))
+
 
 def test_rho_only_inside_on_window():
     """Does ONLY INSIDE work when TE is on window?"""
