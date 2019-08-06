@@ -302,10 +302,15 @@ def is_inside_only(genes, transposon):
     # use np.newaxis in the future to broadcast
     # or can we load a matrix that size in ram?
 
-    t_0 = transposon[0]
-    t_1 = transposon[1]
-    down = t_0 >= genes[:,0]
-    up = t_1 <= genes[:,1]
+    # TODO use min / max on transposon before this to be faster
+    t_min = np.min(transposon)
+    t_max = np.max(transposon)
+
+    g_min = np.min(genes)
+    g_max = np.max(genes)
+
+    up = t_min >= g_min  # TE start is upstream of gene start
+    down = t_max <= g_max  # TE stop is downstream of gene stop
     return np.logical_and(up, down)
 
 def rho(genes, transposons, passed_condition, window_start, window_stop):
