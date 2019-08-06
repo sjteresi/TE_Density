@@ -1,33 +1,86 @@
-# By Scott Teresi
-#-------------------------------------------
-# Imports
-import numpy as np import pandas as pd
+#!/usr/bin/env python3
+
+"""
+Calculate transposable element density.
+
+"""
+
+__author__ = "Scott Teresi, Michael Teresi"
+
 import os
 import time
-
+import argparse
+import logging
+from enum import IntEnum, unique
 #from multiprocessing import Process
 #import multiprocessing
 #from threading import Thread
-#import logging
+
+import numpy as np
+import pandas as pd
+
+# FUTURE enum.Flag is more appropriate but let us delineate first and revisit
+@unique
+class DensityConditions(IntEnum):
+    """Enumerate the conditions where density is calculated with respect to.
+
+    TODO scott, pls add a one liner explanation for each test
+
+    Below, inclusive generally can be evaluated as <= or >=
+    Exclusive would be < or >
+
+    Conditions deal with the transposable element (TE) position wrt gene/windows.
+
+
+        IN_GENE_ONLY: The TE is only inside the gene, that includes gene start
+        and gene stop (inclusive). The density would be the total number of TE
+        bases (TE length) divided by the Gene Length.
+
+
+        IN_WINDOW_ONLY: The TE is between the window start or stop (inclusive)
+        and the gene start or stop (exclusive). The density would be the total
+        number of TE bases (TE length) divided by the size of the window.
+
+
+        IN_WINDOW_AND_GENE: The TE is within the gene (inclusive on gene edges)
+        and ends within the window (can end on window edges, inclusive). This
+        test is sort of a fusion of IN_GENE_ONLY and IN_WINDOW_ONLY, we would
+        need to calculate two values!
+        Something that we would call Intra density and either upstream or downstream
+        density. The intra value would just come from the portion that is inside,
+        divided by the length of the gene. And the window portion would just be
+        the portion that is inside the window. Reminder that a TE base that
+        overlaps with the gene start or stop is considered inside the gene,
+        where a TE base that ends on a window is considered inside the window
+
+        IN_WINDOW_FROM_OUTSIDE: A TE extends into the window, but part of it is
+        outside the window. Thus the only relevant part is the part that sits
+        inside the window. So imagine a case where the TE extends past the
+        WindowStop, the desired amount of TE Bases would be:
+        (WindowStop - TE_Start) and then we would divide that by the WindowSize
+        to get the density
+
+
+
+    """
+
+    IN_GENE_ONLY= 0
+    IN_WINDOW_ONLY = 1
+    IN_WINDOW_AND_GENE = 2
+    IN_WINDOW_NOT_GENE = 3
+    IN_WINDOW_AND_GENE_UP_DOWN_STREAM = 4  # TE in window or gene but start or stop is outside window?
+
+
 #-------------------------------------------
-# Directory Movement and Helpers 
+# Directory Movement and Helpers
 
 def cwd():
     """ Prints the current working directory """
     print(os.getcwd())
 
-def ch_input_data_path():
-    """ Change the path to the input data folder """
-    os.chdir('/home/scott/Documents/Uni/Research/Raw_Strawberry/Camarosa/')
-
-def ch_output_data_path():
-    """ Change the path to the output data folder """
-    os.chdir('/home/scott/Documents/Uni/Research/Projects/TE_Density/Output_Data/')
-
-
-def ch_main_path():
-    """ Change the path to the code data folder """
-    os.chdir('/home/scott/Documents/Uni/Research/Projects/TE_Density/Code/')
+# def ch_main_path():  # TODO remove, not sure where this is needed anymore
+#     """ Change the path to the code data folder """
+#     os.chdir('/home/scott/Documents/Uni/Research/Projects/TE_Density/Code/')
 
 def get_head(Data):
     """ Get the heading of the Pandaframe """
@@ -40,11 +93,12 @@ def save_output(Data, Output_Name):
     """ Save the output of the Pandaframe """
     if Output_Name[-4:] != '.csv':
         raise NameError('Please make sure your filename has .csv in it!')
-    ch_output_data_path() # change to output directory
-    Data.to_csv(Output_Name,
+    global OUTPUT_DIR  # TODO remove global
+    Data.to_csv(os.path.join(OUTPUT_DIR, Output_Name),
             header=True,
             sep=',')
-    ch_main_path() # change to Code directory
+    # TODO remove ch_main_path, not sure where this is needed anymore
+    #ch_main_path() # change to Code directory
 
 #-------------------------------------------
 # PandaFrame Helper Functions
@@ -84,8 +138,10 @@ def swap_columns(df, col_condition, c1, c2):
 
 def import_genes():
     """ Import Genes File """
-    my_data = 'camarosa_gtf_data.gtf' # DECLARE YOUR DATA NAME 
-    ch_input_data_path()
+
+    # TODO remove MAGIC NUMBER (perhaps just search by extension (gtf)?)
+    gtf_filename = 'camarosa_gtf_data.gtf' # DECLARE YOUR DATA NAME
+    #ch_input_data_path()
 
     col_names = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
                  'Score', 'Strand', 'Frame', 'FullName']
@@ -93,13 +149,14 @@ def import_genes():
     col_to_use = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
                   'Strand', 'FullName' ]
 
-    Gene_Data = pd.read_csv(my_data,
+    global INPUT_DIR  # TODO remove global
+    Gene_Data = pd.read_csv(
+            os.path.join(INPUT_DIR, gtf_filename),
             sep='\t+',
             header=None,
             engine='python',
             names = col_names,
             usecols = col_to_use)
-
 
     Gene_Data = Gene_Data[Gene_Data.Feature == 'gene']
         # drop non-gene rows
@@ -118,7 +175,6 @@ def import_genes():
     Gene_Data.Stop = Gene_Data.Stop.astype(int) # Converting to int for space
     Gene_Data['Length'] = Gene_Data.Stop - Gene_Data.Start + 1 # check + 1
 
-
     col_condition = Gene_Data['Strand'] == '-'
     Gene_Data = swap_columns(Gene_Data, col_condition, 'Start', 'Stop')
     return Gene_Data
@@ -126,8 +182,9 @@ def import_genes():
 
 def import_transposons():
     """ Import the TEs """
-    my_data = 'camarosa_gff_data.gff' # DECLARE YOUR DATA NAME 
-    ch_input_data_path()
+    # TODO remove MAGIC NUMBER (perhaps just search by extension (gtf)?)
+    gff_filename = 'camarosa_gff_data.gff' # DECLARE YOUR DATA NAME
+    #ch_input_data_path()
 
     col_names = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
         'Score', 'Strand', 'Frame', 'Attribute']
@@ -135,7 +192,9 @@ def import_transposons():
     col_to_use = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
                  'Strand']
 
-    TE_Data = pd.read_csv(my_data,
+    global INPUT_DIR  # TODO remove global
+    TE_Data = pd.read_csv(
+            os.path.join(INPUT_DIR, gff_filename),
             sep='\t+',
             header=None,
             engine='python',
@@ -146,14 +205,13 @@ def import_transposons():
     TE_Data.SubFamily.fillna(value='Unknown', inplace=True) # replace None w U
         # step to fix TE names
 
-
     TE_Data = TE_Data.drop('Feature', axis=1)
 
     TE_Data = drop_nulls(TE_Data) # Dropping nulls because I checked
     TE_Data.Strand = TE_Data.Strand.astype(str)
     TE_Data.Start = TE_Data.Start.astype(int) # Converting to int for space
     TE_Data.Stop = TE_Data.Stop.astype(int) # Converting to int for space
-    TE_Data['Length'] = TE_Data.Stop - TE_Data.Start + 1 # check + 1 
+    TE_Data['Length'] = TE_Data.Stop - TE_Data.Start + 1 # check + 1
     TE_Data = TE_Data[TE_Data.Family != 'Simple_repeat'] # drop s repeat
     TE_Data = replace_names(TE_Data)
     return TE_Data
@@ -196,7 +254,73 @@ def replace_names(my_TEs):
     my_TEs.SubFamily.replace(master_subfamily, inplace=True)
     return my_TEs
 
+
+class DensityInputs(object):
+    """Contains data for calculating transposon density."""
+
+    # NOTE for now, just store a simplified np.array
+    # FUTURE store data frame and add properties for the different views
+    def __init__(self, genes, transposons, window):
+        """Initializer.
+
+        Args:
+            genes (numpy.array): Jx2, J # of genes, column1 start idx, column2 stop index
+            transposons (numpy.array): Kx2, K # of transposons, column1 start idx, column2 stop idx
+        """
+        self.genes = gene
+        self.transposons = transposons
+        self.window = window
+
+
+
+class DensityOutput(object):
+    """Contains data on a density result."""
+    # NOTE to scott from mike: use this to do a map/reduce strategy
+    # basically, let the caller deal with formatting the result
+    # don't collate them in the same function that calculates them
+
+    def __init__(self, density, condition):
+        self.density = density
+        self.condition = condition
+
+# NOTE we should probably just make the conditions a class b/c we are going to have
+# tons of copy paste code otherwise
+# also, although it is functional (data in, data out)
+# one can consider the window part of the state that the functions share
+# maybe contain the genes, transposons, write the conditions / rho as clasmethods
+# then provide helpers to glue it together (e.g. loop over conditions w/ same interface)
+
+def is_inside_only(genes, transposon):
+    """Return where the TE is only inside the gene.
+
+    Args:
+
+    """
+
+    # NOTE just use a loop for now above this for multiple TE
+    # use np.newaxis in the future to broadcast
+    # or can we load a matrix that size in ram?
+
+    t_0 = transposon[0]
+    t_1 = transposon[1]
+    down = t_0 >= genes[:,0]
+    up = t_1 <= genes[:,1]
+    return np.logical_and(up, down)
+
+def rho(genes, transposons, passed_condition, window_start, window_stop):
+    """Calculate the density where it passed the conditional test."""
+    pass
+
+
 def density_algorithm(genes, tes, window, increment, max_window):
+    """
+    te data frame has columns: SEE import_transposons
+    te data frame has rows: each row is a temp
+
+
+    """
+    # NOTE create 2 structs to hold files / param & result
+
     # MICHAEL SHOULD LOOK AT THIS COMMAND
     try:
         get_unique(genes.Chromosome) == get_unique(tes.Chromosome)
@@ -204,9 +328,6 @@ def density_algorithm(genes, tes, window, increment, max_window):
         raise ValueError("You do not have the same chromosomes in your files")
 
     #Genes_W_Density = genes.copy(deep=True)
-
-
-
 
     # Create subsets
     # Creates a filtered list by chromosome to iterate over
@@ -228,6 +349,8 @@ def density_algorithm(genes, tes, window, increment, max_window):
         #Genes_W_Density = init_empty_densities(Genes_W_Density, tes, window)
         #G['Inside'] = np.nan
         while window <= max_window:
+            logging.debug(" gene shape:  {}".format(genes.values.shape))
+            logging.debug(" te   shape:  {}".format(tes.values.shape))
             # Perform the windowing operations
             # Multiple tests need to be done here for each window
             # All the tests must be run for that window and then rerun for the
@@ -244,17 +367,12 @@ def density_algorithm(genes, tes, window, increment, max_window):
             # All the commented code below are my attempts to do the work
             #-----------------------------
 
-
-
-
-
-
             #G['Inside'] = G.apply(TEs_localization, T = T, axis=1)
             #get_head(G)
             #get_head(T)
             #G['Inside'] = G.apply(lambda x: T[(T['Start'] >= x['Start']) & (T['Stop'] <= x['Stop'])]['Start'].count(), axis=1)
-            
-       
+
+
             #G.Inside = G.apply(lambda x: T[(T.Start >= x.Start) & (T.Stop <= x.Stop)]['Start'].count(), axis=1)
             #G.Inside = G.apply(TEs_localization, T=T, axis = 1)
 
@@ -262,7 +380,7 @@ def density_algorithm(genes, tes, window, increment, max_window):
             #print(G.equals(G2))
 
 
-            A.apply(lambda x: B[(B['Start'] >= x['Start']) & (B['Stop'] <= x['Stop'])].apply(lambda y : (y['Start'] / y['Stop']) +1), axis=1)
+            #A.apply(lambda x: B[(B['Start'] >= x['Start']) & (B['Stop'] <= x['Stop'])].apply(lambda y : (y['Start'] / y['Stop']) +1), axis=1)
             #G['Inside'] = G.apply(TEs_localization, TEs=T, axis= 1)
             #print(type(G) = (G.apply(lambda x: T[(T['Start'] >= x['Start']) & (T['Stop'] <= x['Stop'])], axis = 1)))
                                   #.apply(lambda y : (y['Start'] / y['Stop']) +1), axis=1)
@@ -315,43 +433,7 @@ def density_algorithm(genes, tes, window, increment, max_window):
             #save_output(subset_genes, 'Test_Inside.csv')
             #print(subset_genes.apply(TEs_inside, T=subset_tes, axis=1))
 
-
-
-
-
             window += increment
-
-def TEs_localization(G,TEs):
-    pass
-    # input is x
-    # TEs are y
-    #adjusted_G = TEs.apply(lambda y: y['Inside'] if (G['Stop'] >= y['Start'])else None, axis =1)
-    #adjusted_G = adjusted_G.dropna(axis=0, how='all')
-    #if adjusted_G.empty:
-        #adjusted_G = np.nan
-    #return adjusted_G
-
-   
-    #return (T[(T.Start >= G.Start) & (T.Stop <= G.Stop)]['Stop'].div(1000))
-    #return (T[(T.Start >= G.Start) & (T.Stop <= G.Stop)]['Stop'].div(1000))
-    #return (T[(T.Stop <= G.Stop)](['Stop'].div(10000) + 1))
-    #raise ValueError
-    #return (T[(T.Start >= G.Start) & (T.Stop <= G.Stop)]['Start'].count())
-
-        #count += 1
-
-    #G.loc(axis=1)[(T.Start >= G.Start) & (T.Stop <= G.Stop), 'TEs_inside'] += 1
-    #G.where((T.Start >= G.Start) & (T.Stop <= G.Stop), I
-    #G.TEs_inside = I
-
-    #(T.Start >= G.Start) & (T.Stop <= G.Stop) = G.TEs_inside += 1
-        #G.TEs_inside += 1
-    #return G
-    #df.where(m, -df) == np.where(m, df, -df)
-    #if T.Start >= G.Start and T.Stop <= G.Stop:
-        #return T.Start + T.Start
-    
-    #return df.Start + df.Stop
 
 
 def init_empty_densities(my_genes, my_tes, window):
@@ -373,13 +455,32 @@ def init_empty_densities(my_genes, my_tes, window):
 
 
 if __name__ == '__main__':
+
+    logging.basicConfig(level=os.environ.get("LOGLEVEL", "DEBUG"))
+    parser = argparse.ArgumentParser(description="calculate TE density")
+    parser.add_argument('input_dir', type=str,
+                        help='parent directory of gene & transposon files')
+    parser.add_argument('--output_dir', '-o', type=str,
+                        default=os.path.abspath(__file__) + 'Output_Data',
+                        help='parent directory to output results')
+    args = parser.parse_args()
+
+    global OUTPUT_DIR  # TODO remove global
+    OUTPUT_DIR = args.output_dir
+    global INPUT_DIR  # TODO remove global
+    INPUT_DIR = args.input_dir
+
     Gene_Data = import_genes()
+    get_head(Gene_Data)
+
     TE_Data = import_transposons()
+    get_head(TE_Data)
+
+
     density_algorithm(
                     Gene_Data,
                     TE_Data,
-                    window=10000,
+                    window=1000,
                     increment=500,
                     max_window=10000
                     )
-
