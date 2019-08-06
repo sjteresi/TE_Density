@@ -341,6 +341,12 @@ def rho(genes, transposons, passed_condition, window_start, window_stop):
     """Calculate the density where it passed the conditional test."""
     pass
 
+    # TODO need to account for in window and intra density
+    # not necessarily in this function
+    # anything that overlaps the gene it has an intra density
+    # anything that overlaps the window it has a window density
+    # some can have both of these
+
 
 def density_algorithm(genes, tes, window, increment, max_window):
     """
