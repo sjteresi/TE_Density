@@ -294,7 +294,8 @@ def is_inside_only(genes, transposon):
     """Return where the TE is only inside the gene.
 
     Args:
-
+        genes (numpy.array): Jx2, J # of genes, column1 start idx, column2 stop index
+        transposons (numpy.array): array of 2, start idx, stop idx
     """
 
     # NOTE just use a loop for now above this for multiple TE
