@@ -29,27 +29,26 @@ def import_genes():
             names = col_names,
             usecols = col_to_use)
 
-    Gene_Data = Gene_Data[Gene_Data.Feature == 'gene']
-        # drop non-gene rows
+    # NOTE
+    # The below criteria language is used to appropriately get around the:
+    # SettingWithCopy Warning
+    criteria = Gene_Data['Feature'] == 'exon'
+    criteria_row_indices = Gene_Data[criteria].index
+    Gene_Exons = Gene_Data.loc[criteria_row_indices, :]
+    Gene_Exons['Gene_Name'] = Gene_Exons.FullName.str.split('-mRNA').str.get(0).str.split('ID=').str.get(1)
+    Gene_Exons.drop('FullName', axis = 1, inplace = True)
 
-    Gene_Data[['Name1', 'Gene_Name']] = Gene_Data.FullName.str.split(';Name=', expand=True)
-        # first step to fix names
+    del Gene_Data
 
-    Gene_Data = Gene_Data.set_index('Gene_Name')
-        # set new names as index
+    Gene_Exons = Gene_Exons.set_index('Gene_Name')
+    Gene_Exons.Start = Gene_Exons.Start.astype(int) # Converting to int for space
+    Gene_Exons.Stop = Gene_Exons.Stop.astype(int) # Converting to int for space
+    Gene_Exons['Exon_Length'] = Gene_Exons.Stop - Gene_Exons.Start + 1 # NOTE check
+    Gene_Exons = Gene_Exons.groupby(Gene_Exons.index)['Exon_Length'].sum()
+    Gene_Exons.to_csv('Gene_Exons.csv', header=['Exon_Length'])
 
-    Gene_Data = Gene_Data.drop(['FullName', 'Name1'], axis = 1)
-        # remove extraneous rows
-
-    Gene_Data.Strand = Gene_Data.Strand.astype(str)
-    Gene_Data.Start = Gene_Data.Start.astype(int) # Converting to int for space
-    Gene_Data.Stop = Gene_Data.Stop.astype(int) # Converting to int for space
-    Gene_Data['Length'] = Gene_Data.Stop - Gene_Data.Start + 1 # check + 1
-    #col_condition = Gene_Data['Strand'] == '-' # do not swap, missing function
-    #Gene_Data = swap_columns(Gene_Data, col_condition, 'Start', 'Stop')
-
-    # NOTE Gene_Data now complete
-    return Gene_Data
+    # NOTE Gene_Exons now complete
+    return Gene_Exons
 
 def import_exp_counts():
     os.chdir('/home/scott/Documents/Uni/Research/Raw_Strawberry/Camarosa/Expression')
@@ -94,6 +93,6 @@ if __name__ == '__main__':
     Gene_Data = import_genes()
     expression_full = import_exp_counts()
     All_Data = merge_all(Gene_Data,expression_full)
-    All_Data.to_csv('Camarosa_GenesWExpression.csv')
+    All_Data.to_csv('Camarosa_GenesW_Expression.csv')
 
     #-----------------------------
