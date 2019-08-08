@@ -6,7 +6,6 @@ expression data to create a unified table for data statistics
 """
 
 __author__ = "Scott Teresi"
-import argparse
 import os
 import pandas as pd
 import numpy as np
@@ -32,6 +31,7 @@ def import_genes():
     # NOTE
     # The below criteria language is used to appropriately get around the:
     # SettingWithCopy Warning
+
     criteria = Gene_Data['Feature'] == 'exon'
     criteria_row_indices = Gene_Data[criteria].index
     Gene_Exons = Gene_Data.loc[criteria_row_indices, :]
@@ -47,7 +47,6 @@ def import_genes():
     Gene_Exons = Gene_Exons.groupby(Gene_Exons.index)['Exon_Length'].sum()
     Gene_Exons.to_csv('Gene_Exons.csv', header=['Exon_Length'])
 
-    # NOTE Gene_Exons now complete
     return Gene_Exons
 
 def import_exp_counts():
@@ -75,24 +74,45 @@ def import_exp_counts():
     return df
 
 def merge_all(genes,expression):
-    All_Data = pd.merge(left=genes,right=expression, how='left', \
+    df_merged = pd.merge(left=genes,right=expression, how='left', \
                              left_on='Gene_Name', right_on='Gene_Name')
-    return All_Data
+    return df_merged
+
+
+def TPM(Genes_W_Exp):
+    """
+    Transcripts Per Million
+    First make sure gene length is in KB
+
+    Next normalize by gene length, divide each read count by gene length, that
+    is RPK
+
+    Following that, normalize for sequencing depth. Add up the read counts,
+    already normalized for gene length, and get the total for each replicate
+    (tissue).
+
+    Then divide that total by 1000000. That gives us the Scaling Factor.
+
+    Finally divide the read counts (that are already divided by the gene length) by the
+    Scaling Factor
+    """
+    Genes_W_Exp['Exon_Length'] = Genes_W_Exp['Exon_Length'] / 1000
+    # put exon length in kb
+
+    f = lambda x : x / Genes_W_Exp['Exon_Length'] if x.name != 'Exon_Length' else x
+    Genes_W_Exp = Genes_W_Exp.apply(f)
+    # normalize by gene length 
+
+    f = lambda x : x / (x.sum() / 1000000) if x.name != 'Exon_Length' else x
+    Genes_W_Exp = Genes_W_Exp.apply(f)
+    # divide the read counts by the scaling factor
+
+    return Genes_W_Exp
 
 if __name__ == '__main__':
-    parser = False # NOTE change this line as desired for input data
-    if parser:
-        parser = argparse.ArgumentParser(description='CSV to PD_Dataframe')
-        parser.add_argument('indir', type=str, help='Input dir for data')
-        parser.add_argument('--outdir', type=str, help='Output dir for data')
-        args = parser.parse_args()
-        print(args.indir)
-    else:
-        pass
-
     Gene_Data = import_genes()
     expression_full = import_exp_counts()
-    All_Data = merge_all(Gene_Data,expression_full)
-    All_Data.to_csv('Camarosa_GenesW_Expression.csv')
-
+    Genes_Exp = merge_all(Gene_Data,expression_full)
+    Genes_Exp_Full = TPM(Genes_Exp)
+    Genes_Exp_Full.to_csv('All_Genes_TPM.csv')
     #-----------------------------
