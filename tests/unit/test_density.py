@@ -42,20 +42,20 @@ def gene_array(n_genes=4, width=10, seperation=0):
     return genes
 
 
-
-#@pytest.mark.parametrize("window", WINDOWS)
 def test_rho_only_inside_congruent():
     """Does ONLY INSIDE work when TE is the same size as gene?"""
-    genes = gene_array()
-    transposons = genes
+
+    genes = np.array([[0, 9], [10, 19], [20, 29]])
+    transposons = genes  # the TEs start stop at the same places
+    n_genes = genes.shape[0]  # MAGIC NUMBER each row is a gene
 
     for t_i in range(transposons.shape[0]):
         #print(transposons[t_i, :])
         hit = is_inside_only(genes, transposons[t_i, :])
-        assert hit[t_i]
-        hit[t_i] = False
-        assert np.all(np.invert(hit))
-
+        expected_hit = np.zeros((n_genes))
+        # MAGIC NUMBER since TE == gene, only the curent TE should overlap
+        expected_hit[t_i] = True
+        assert np.all(expected_hit == hit)
 
 
 def test_rho_only_inside_subset():
@@ -85,7 +85,7 @@ def test_rho_in_left_window_only():
     """Does ONLY INSIDE work when TE is on window?"""
     genes = gene_array()
     transposons = np.copy(genes)
-    transposons[:,1] = np.subtract(transposons[:,1], 11) # put TEs in left 
+    transposons[:,1] = np.subtract(transposons[:,1], 11) # put TEs in left
     transposons[:,0] = np.subtract(transposons[:,0], 2)
     window = 5
 
