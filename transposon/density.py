@@ -173,7 +173,9 @@ def import_genes():
     Gene_Data.Strand = Gene_Data.Strand.astype(str)
     Gene_Data.Start = Gene_Data.Start.astype(int) # Converting to int for space
     Gene_Data.Stop = Gene_Data.Stop.astype(int) # Converting to int for space
+    # MAGIC NUMBER NOTE
     Gene_Data['Length'] = Gene_Data.Stop - Gene_Data.Start + 1 # check + 1
+    # Scott thinks we should delete the + 1 for length
 
     # We will not swap Start and Stop for Antisense strands. We will do this
     # post-processing
@@ -364,17 +366,14 @@ def rho_intra(genes_start, genes_stop, genes_length, transposon_start, transposo
     Args:
 
     """
-
     assert genes_start.shape == genes_stop.shape
     assert genes_start.shape == genes_length.shape
 
     lower = np.minimum(genes_stop, transposon_stop)
     upper = np.maximum(genes_start, transposon_start)
-    # MAGIC NUMBER stop is inclusive so add one
-    # TODO scott, would you confirm, you are using 1 indexing for base pairs?
-    # we should consider moving to zero indexing
-    te_overlaps =  np.maximum(0, lower - upper + 1)
-
+    # MAGIC NUMBER stop is inclusive so add one, scott thinks no
+    # NOTE we are using 0 indexing I believe. 
+    te_overlaps =  np.maximum(0, lower - upper)
     densities = np.divide(
         te_overlaps,
         genes_length,
@@ -383,9 +382,73 @@ def rho_intra(genes_start, genes_stop, genes_length, transposon_start, transposo
     )
 
     assert densities.shape == genes_start.shape
-
     return densities
 
+def rho_left_window(genes_start, genes_stop, window, transposon_start, transposon_stop, transposon_length):
+
+    """Density to the left (downstream) of a gene.
+    When TE is between gene and window
+
+    Relevant things: No. TE bases / window
+    GeneStart so that we may calculate the WindowStart
+    WindowStart is unique to each gene. Calculated via Gstart - Window
+    WindowStart is the leftmost window
+
+
+    Args:
+        window (int): integer value of the current window
+    """
+    # TODO make sure the edge cases work when the window should be negative and
+    # reset to 0 for that instance
+    # so far I can reset the window start for that instance, but I cannot fix
+    # the window for the sake of division later when you try to check values.
+
+    assert genes_start.shape == genes_stop.shape
+
+    window_start = np.subtract(genes_start, window)
+    window_start[window_start < 0] = 0 # this might be an effective way to force 0 
+
+    lower_bound = np.maximum(window_start, transposon_start)
+    upper_bound = np.minimum(genes_start, transposon_stop)
+    te_overlaps =  np.maximum(0, upper_bound - lower_bound)
+    densities = np.divide(
+        te_overlaps,
+        window,
+        out=np.zeros_like(te_overlaps, dtype='float')
+    )
+
+    assert densities.shape == genes_start.shape
+    return densities
+
+def rho_right_window(genes_start, genes_stop, window, transposon_start, transposon_stop, transposon_length):
+
+    """Density to the right (upstream) of a gene.
+    When TE is between gene and window
+
+    Relevant things: No. TE bases / window
+    GeneStop so that we may calculate the WindowStop
+    WindowStop is unique to each gene. Calculated via Gstop + Window
+    WindowStop is the rightmost window
+
+    Args:
+
+    """
+    assert genes_start.shape == genes_stop.shape
+
+    window_stop = np.add(genes_stop, window)
+    lower_bound = np.maximum(genes_stop, transposon_start)
+    # lower bound gets TE starts to the right of gene stops
+    upper_bound = np.minimum(window_stop, transposon_stop)
+    # upper bound gets TE stops to the left of window stops
+    te_overlaps =  np.maximum(0, upper_bound - lower_bound)
+    densities = np.divide(
+        te_overlaps,
+        window,
+        out=np.zeros_like(te_overlaps, dtype='float')
+    )
+
+    assert densities.shape == genes_start.shape
+    return densities
 
 def density_algorithm(genes, tes, window, increment, max_window):
     """
@@ -441,44 +504,6 @@ def density_algorithm(genes, tes, window, increment, max_window):
 
             # All the commented code below are my attempts to do the work
             #-----------------------------
-
-            #G['Inside'] = G.apply(TEs_localization, T = T, axis=1)
-            #get_head(G)
-            #get_head(T)
-            #G['Inside'] = G.apply(lambda x: T[(T['Start'] >= x['Start']) & (T['Stop'] <= x['Stop'])]['Start'].count(), axis=1)
-
-
-            #G.Inside = G.apply(lambda x: T[(T.Start >= x.Start) & (T.Stop <= x.Stop)]['Start'].count(), axis=1)
-            #G.Inside = G.apply(TEs_localization, T=T, axis = 1)
-
-            #print(T[(T.Start >= G.Start) & (T.Stop <=G.Stop)]['Start'].count())
-            #print(G.equals(G2))
-
-
-            #A.apply(lambda x: B[(B['Start'] >= x['Start']) & (B['Stop'] <= x['Stop'])].apply(lambda y : (y['Start'] / y['Stop']) +1), axis=1)
-            #G['Inside'] = G.apply(TEs_localization, TEs=T, axis= 1)
-            #print(type(G) = (G.apply(lambda x: T[(T['Start'] >= x['Start']) & (T['Stop'] <= x['Stop'])], axis = 1)))
-                                  #.apply(lambda y : (y['Start'] / y['Stop']) +1), axis=1)
-
-            #G.Inside = G.apply(lambda x: T[(T.Start >= x['Start']) & (T['Stop'] <= x['Stop'])]['Start'].count(), axis=1)
-            #G.Inside = G.apply(lambda x: T[(T.Start >= x['Start']) & (T['Stop'] <= x['Stop'])]['Start'].mul(1000), axis=1)
-
-
-
-            #G.Inside = G.apply(lambda x: T[T(['Start'] >= x['Start']) & (T['Stop'] <= x['Stop'])]x['Start']+x['Stop'])
-            #G.Inside = G.apply(lambda x: T[(T['Start'] >= x['Start']) & (T['Stop'] <= x['Stop'])]x['Start'] + x['Stop'], axis = 1)
-            #print(T[T(['Start'] >= G['Start']) & (T['Stop'] <= G['Stop'])]['Start'].count())
-
-
-            #for g_ind, g_row in G.iterrows():
-                #g_row.apply(lambda g_row: TEs_localization(g_row, T=T), axis=1)
-                #for t_ind, t_row in T.iterrows():
-                    #g_row['TEs_inside'] += 1
-
-
-                #print(g_row)
-                #g_row.TEs_inside[T.Start < T.Stop] += 1
-            #subset_genes.TEs_inside = subset_genes.mask(T['Start'] < 1500, subset_genes.TEs_inside += 1)
 
 
             get_head(G)
