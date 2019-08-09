@@ -167,7 +167,7 @@ def import_genes():
     Gene_Data = Gene_Data.set_index('Gene_Name')
         # set new names as index
 
-    Gene_Data = Gene_Data.drop(['FullName', 'Name1'], axis = 1)
+    Gene_Data = Gene_Data.drop(['FullName', 'Name1', 'Software'], axis = 1)
         # remove extraneous rows
 
     Gene_Data.Strand = Gene_Data.Strand.astype(str)
@@ -175,8 +175,10 @@ def import_genes():
     Gene_Data.Stop = Gene_Data.Stop.astype(int) # Converting to int for space
     Gene_Data['Length'] = Gene_Data.Stop - Gene_Data.Start + 1 # check + 1
 
-    col_condition = Gene_Data['Strand'] == '-'
-    Gene_Data = swap_columns(Gene_Data, col_condition, 'Start', 'Stop')
+    # We will not swap Start and Stop for Antisense strands. We will do this
+    # post-processing
+    #col_condition = Gene_Data['Strand'] == '-'
+    #Gene_Data = swap_columns(Gene_Data, col_condition, 'Start', 'Stop')
     return Gene_Data
 
 
@@ -205,7 +207,7 @@ def import_transposons():
     TE_Data.SubFamily.fillna(value='Unknown', inplace=True) # replace None w U
         # step to fix TE names
 
-    TE_Data = TE_Data.drop('Feature', axis=1)
+    TE_Data = TE_Data.drop(['Feature', 'Software'], axis=1)
 
     TE_Data = drop_nulls(TE_Data) # Dropping nulls because I checked
     TE_Data.Strand = TE_Data.Strand.astype(str)
@@ -302,16 +304,38 @@ def is_inside_only(genes, transposon):
     # use np.newaxis in the future to broadcast
     # or can we load a matrix that size in ram?
 
-    # TODO use min / max on transposon before this to be faster
-    t_min = np.min(transposon)
-    t_max = np.max(transposon)
+    t_start = transposon[0]
+    t_stop = transposon[1]
 
-    g_min = np.min(genes)
-    g_max = np.max(genes)
+    #g_start = genes[0]
+    #g_stop = genes[1]
 
-    up = t_min >= g_min  # TE start is upstream of gene start
-    down = t_max <= g_max  # TE stop is downstream of gene stop
+    down = t_start >= genes[:,0]
+    up = t_stop <= genes[:,1]
+
     return np.logical_and(up, down)
+
+
+def in_left_window_only(genes, transposon, window):
+    """ Return where the TE is only inside the window (no overlap with gene)
+        On the left side
+
+    Args:
+        genes (numpy.array): Jx2, J # of genes, column1 start idx, column2 stop index
+        transposons (numpy.array): array of 2, start idx, stop idx
+        window (int): integer value of the current window
+    """
+    t_start = transposon[0]
+    t_stop = transposon[1]
+
+    #np.where(genes - window < 0, genes, 0)
+
+    # NOTE no check for window < 0 being set to 0
+    down = t_start >= genes[:,0] - window # test still passes
+    up = t_stop < genes[:,0] # not inclusive
+
+    return np.logical_and(up, down)
+
 
 def rho(genes, transposons, passed_condition, window_start, window_stop):
     """Calculate the density where it passed the conditional test."""
@@ -355,8 +379,8 @@ def density_algorithm(genes, tes, window, increment, max_window):
         #Genes_W_Density = init_empty_densities(Genes_W_Density, tes, window)
         #G['Inside'] = np.nan
         while window <= max_window:
-            logging.debug(" gene shape:  {}".format(genes.values.shape))
-            logging.debug(" te   shape:  {}".format(tes.values.shape))
+            logging.debug(" Gene df shape:  {}".format(genes.values.shape))
+            logging.debug(" TE df shape:  {}".format(tes.values.shape))
             # Perform the windowing operations
             # Multiple tests need to be done here for each window
             # All the tests must be run for that window and then rerun for the
@@ -416,28 +440,6 @@ def density_algorithm(genes, tes, window, increment, max_window):
             save_output(G, 'Test_Inside.csv')
             raise ValueError
 
-
-            #T.mask(subset_genes.Start < T.Start, 24)
-            #get_head(T)
-
-            #for g_ind, g_row in subset_genes.iterrows():
-                #subset_genes.where([(g_row.Start <= T.Start) & (T.Stop <= g_row.Stop), 'TEs_inside'] += 1
-            #print(subset_genes.apply(lambda row: row["Start"] + row["Stop"], axis = 1))
-            #print(subset_genes.apply(add_them, df2=subset_tes, axis=1))
-            #raise NameError
-            #Genes_W_Density.loc[(subset_tes.Start.values >=
-                                 #Genes_W_Density.Start.values) &
-                                #(subset_tes.Stop.values <=
-                                 #Genes_W_Density.Stop.values), 'TEs_inside'] += 1
-            #Genes_W_Density = Genes_W_Density.apply(TEs_inside, T = subset_tes, axis = 1)
-
-            #subset_genes.loc[(T.Start >= subset_genes.Start) & (T.Stop <= subset_genes.Stop), 'TEs_inside'] += 1
-            #subset_genes = subset_genes.reset_index(drop=True)
-            #T = T.reset_index(drop=True)
-            #subset_genes.loc[(subset_genes.Start <= T.Start) & (T.Stop <= subset_genes.Stop), 'TEs_inside'] += 1
-            #get_head(subset_genes)
-            #save_output(subset_genes, 'Test_Inside.csv')
-            #print(subset_genes.apply(TEs_inside, T=subset_tes, axis=1))
 
             window += increment
 
