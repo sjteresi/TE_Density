@@ -347,6 +347,45 @@ def rho(genes, transposons, passed_condition, window_start, window_stop):
     # anything that overlaps the window it has a window density
     # some can have both of these
 
+    # no. bases / no. relevant bases
+
+    # window density
+    # no. bases of TE / window  (when TE is between gene / window)
+
+    # intra (the relevant ares is the gene)
+    # no. bases of TE / gene (when TE is inside gene)
+
+def line_overlap(min_a, max_a, min_b, max_b):
+    pass
+
+def rho_intra(genes_start, genes_stop, genes_length, transposon_start, transposon_stop):
+    """Intra density of a transposon wrt genes.
+
+    Args:
+
+    """
+
+    assert genes_start.shape == genes_stop.shape
+    assert genes_start.shape == genes_length.shape
+
+    lower = np.minimum(genes_stop, transposon_stop)
+    upper = np.maximum(genes_start, transposon_start)
+    # MAGIC NUMBER stop is inclusive so add one
+    # TODO scott, would you confirm, you are using 1 indexing for base pairs?
+    # we should consider moving to zero indexing
+    te_overlaps =  np.maximum(0, lower - upper + 1)
+
+    densities = np.divide(
+        te_overlaps,
+        genes_length,
+        out=np.zeros_like(te_overlaps, dtype='float'),
+        where=genes_length!=0
+    )
+
+    assert densities.shape == genes_start.shape
+
+    return densities
+
 
 def density_algorithm(genes, tes, window, increment, max_window):
     """

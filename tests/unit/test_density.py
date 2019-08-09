@@ -20,6 +20,7 @@ import logging
 import numpy as np
 import pandas as pd
 
+from transposon.density import rho_intra
 from transposon.density import is_inside_only
 from transposon.density import in_left_window_only
 
@@ -97,6 +98,19 @@ def test_rho_in_left_window_only():
         hit[t_i] = False
         assert np.all(np.invert(hit))
 
+def test_intra_density_congruent():
+    """Does the intra density return 1 when the TE is the same as gene?"""
+
+    genes = np.array([[0, 9], [10, 19], [20, 29]])
+    transposon = genes[1, :]
+    g0 = genes[:,0]
+    g1 = genes[:,1]
+    gl = g1 - g0 + 1  # MAGIC NUMBER the data uses an inclusive stop
+    t0 = transposon[0]
+    t1 = transposon[1]
+    rhos = rho_intra(g0, g1, gl, t0, t1)
+    expected_rhos = np.array([0, 1.0, 0])
+    assert np.all(rhos == expected_rhos)
 
 if __name__ == "__main__":
 
