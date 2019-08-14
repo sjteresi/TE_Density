@@ -133,6 +133,15 @@ def swap_columns(df, col_condition, c1, c2):
     df.loc[col_condition, [c2, c1]].values
     return df
 
+def split(df, group):
+    """
+    Returns a list of the dataframe with each element being a subset of the df.
+    I use this function to split by chromosome so that we may later do
+    chromosome element-wise operations.
+    """
+    gb = df.groupby(group)
+    return [gb.get_group(x) for x in gb.groups]
+
 #-------------------------------------------
 # Main Functions
 
@@ -550,10 +559,12 @@ if __name__ == '__main__':
 
     Gene_Data = import_genes()
     get_head(Gene_Data)
+    grouped_genes = split(Gene_Data, 'Chromosome') # check docstring for my split func
+
 
     TE_Data = import_transposons()
     get_head(TE_Data)
-
+    grouped_TEs = split(TE_Data, 'Chromosome') # check docstring for my split func
 
     density_algorithm(
                     Gene_Data,
