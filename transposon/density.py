@@ -468,33 +468,12 @@ def density_algorithm(genes, tes, window, increment, max_window):
     """
     # NOTE create 2 structs to hold files / param & result
 
-    # MICHAEL SHOULD LOOK AT THIS COMMAND
     try:
         get_unique(genes.Chromosome) == get_unique(tes.Chromosome)
     except:
         raise ValueError("You do not have the same chromosomes in your files")
 
-    #Genes_W_Density = genes.copy(deep=True)
-
-    # Create subsets
-    # Creates a filtered list by chromosome to iterate over
-    for ind_chromosome in get_unique(genes.Chromosome):
-        g_filter = genes['Chromosome'] == ind_chromosome
-        G = genes.where(g_filter)
-        G = drop_nulls(G)
-
-        t_filter = tes['Chromosome'] == ind_chromosome
-        T = tes.where(t_filter)
-        T = drop_nulls(T)
-
-        # At this point I have a subset of genes to iterate over
-        # This subset is on a chromosome by chromosome basis
-        # I will perform my windowing operations on this subset
-        # Perhaps in the future I can add multiprocessing for each chromosome
-
-        #Genes_W_Density = subset_genes.copy(deep=True)
-        #Genes_W_Density = init_empty_densities(Genes_W_Density, tes, window)
-        #G['Inside'] = np.nan
+        # Use the subsets in main?
         while window <= max_window:
             logging.debug(" Gene df shape:  {}".format(genes.values.shape))
             logging.debug(" TE df shape:  {}".format(tes.values.shape))
@@ -515,18 +494,17 @@ def density_algorithm(genes, tes, window, increment, max_window):
             #-----------------------------
 
 
-            get_head(G)
-            save_output(G, 'Test_Inside.csv')
-            raise ValueError
-
-
+            get_head(genes)
+            save_output(genes, 'Test_Output.csv')
             window += increment
 
 
 def init_empty_densities(my_genes, my_tes, window):
+    """ This function initializes all of the empty columns we need in the gene file. """
     Family_List = my_tes.Family.unique()
     SubFamily_List = my_tes.SubFamily.unique()
-    Directions = ['_upstream', '_intra', '_downstream']
+    Directions = ['_downstream', '_intra', '_upstream']
+    # left, center, right
 
     for family in Family_List:
         for direction in Directions:
@@ -565,6 +543,26 @@ if __name__ == '__main__':
     TE_Data = import_transposons()
     get_head(TE_Data)
     grouped_TEs = split(TE_Data, 'Chromosome') # check docstring for my split func
+
+    # At this point I have a subset of genes to iterate over
+    # This subset is on a chromosome by chromosome basis
+    # I will perform my windowing operations on this subset
+    # Perhaps in the future I can add multiprocessing for each chromosome
+    # These groupings are denoted by grouped_genes and grouped_TEs
+
+
+    # Algorithm time, I guess call the workers on the subsets. May have to
+    # check the list of subsets to make sure the appropriate subgenome is
+    # working with the matching subgenome, because they may not be in order in
+    # the list.
+
+    # Think of the 7 main "chromosomes" as "meta-chromosomes" in reality there
+    # are 4 actual chromosomes per "meta-chromosome" label. So Fvb1 is
+    # meta-chromosome 1, and within that Fvb1-1 of genes should only be
+    # matching with Fvb1-1 of TEs, not Fvb1-2. The first number, what I am
+    # calling the "meta-chromosome" is just denoting that it is the first
+    # chromosome, where the second number is the actual physical chromosome,
+    # and we use the number to denote which subgenome it is assigned to. 
 
     density_algorithm(
                     Gene_Data,
