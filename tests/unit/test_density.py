@@ -5,7 +5,7 @@ Unit test density calculations.
 
 """
 
-__author__ = "Michael Teresi"
+__author__ = "Michael Teresi, Scott Teresi"
 
 import pytest
 
