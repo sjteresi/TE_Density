@@ -3,10 +3,16 @@
 """
 Calculate transposable element density.
 
+TODO
+    - refactor rho funcs input to data.GeneData / data.TransposableElementsData
+    - refactor rho funcs asserts to exceptions
+    - refactor rho funcs to use one gene & multple TEs (and the tests)
+
 """
 
 __author__ = "Scott Teresi, Michael Teresi"
 
+import pdb
 import os
 import time
 import argparse
@@ -180,16 +186,23 @@ def import_genes():
         # remove extraneous rows
 
     Gene_Data.Strand = Gene_Data.Strand.astype(str)
-    Gene_Data.Start = Gene_Data.Start.astype(int) # Converting to int for space
-    Gene_Data.Stop = Gene_Data.Stop.astype(int) # Converting to int for space
-    # MAGIC NUMBER NOTE
-    Gene_Data['Length'] = Gene_Data.Stop - Gene_Data.Start + 1 # check + 1
+    # NOTE Scott, this astype(int) defaulted to int64, can you use uint32?
+    # SEE numpy.iinfo
+    # probably not a big deal but could help out
+    # the first sub gene frame 169,792 bytes (int64) vs 133,408 bytes (uint32)
+    # are you going to have negative indices?
+    # are you going to have indices greater than 4,294,967,295?
+    Gene_Data.Start = Gene_Data.Start.astype('uint32')
+    Gene_Data.Stop = Gene_Data.Stop.astype('uint32')
+    # NOTE is the gene index a closed | open interval?
     # Scott thinks we should delete the + 1 for length
+    Gene_Data['Length'] = Gene_Data.Stop - Gene_Data.Start
 
     # We will not swap Start and Stop for Antisense strands. We will do this
     # post-processing
     #col_condition = Gene_Data['Strand'] == '-'
     #Gene_Data = swap_columns(Gene_Data, col_condition, 'Start', 'Stop')
+
     return Gene_Data
 
 
@@ -222,9 +235,11 @@ def import_transposons():
 
     TE_Data = drop_nulls(TE_Data) # Dropping nulls because I checked
     TE_Data.Strand = TE_Data.Strand.astype(str)
-    TE_Data.Start = TE_Data.Start.astype(int) # Converting to int for space
-    TE_Data.Stop = TE_Data.Stop.astype(int) # Converting to int for space
-    TE_Data['Length'] = TE_Data.Stop - TE_Data.Start + 1 # check + 1
+    # NOTE see same comment on gene data types
+    TE_Data.Start = TE_Data.Start.astype('uint32')
+    TE_Data.Stop = TE_Data.Stop.astype('uint32')
+    # NOTE see same comment on gene intervals / off-by-one
+    TE_Data['Length'] = TE_Data.Stop - TE_Data.Start
     TE_Data = TE_Data[TE_Data.Family != 'Simple_repeat'] # drop s repeat
     TE_Data = replace_names(TE_Data)
     return TE_Data
@@ -267,41 +282,18 @@ def replace_names(my_TEs):
     my_TEs.SubFamily.replace(master_subfamily, inplace=True)
     return my_TEs
 
+def window_sweep(min, step, max):
+    """Return the windows values to calculate density on."""
 
-class DensityInputs(object):
-    """Contains data for calculating transposon density."""
+    return list(range(min, max, step))
 
-    # NOTE for now, just store a simplified np.array
-    # FUTURE store data frame and add properties for the different views
-    def __init__(self, genes, transposons, window):
-        """Initializer.
+def gene_names(sub_gene_data):
+    """Return unique gene names for the input gene data (e.g. one chromosome)."""
 
-        Args:
-            genes (numpy.array): Jx2, J # of genes, column1 start idx, column2 stop index
-            transposons (numpy.array): Kx2, K # of transposons, column1 start idx, column2 stop idx
-        """
-        self.genes = gene
-        self.transposons = transposons
-        self.window = window
-
-
-
-class DensityOutput(object):
-    """Contains data on a density result."""
-    # NOTE to scott from mike: use this to do a map/reduce strategy
-    # basically, let the caller deal with formatting the result
-    # don't collate them in the same function that calculates them
-
-    def __init__(self, density, condition):
-        self.density = density
-        self.condition = condition
-
-# NOTE we should probably just make the conditions a class b/c we are going to have
-# tons of copy paste code otherwise
-# also, although it is functional (data in, data out)
-# one can consider the window part of the state that the functions share
-# maybe contain the genes, transposons, write the conditions / rho as clasmethods
-# then provide helpers to glue it together (e.g. loop over conditions w/ same interface)
+    # MAGIC_NUMBER the gene name column is 'Gene_Name'
+    gene_name_id = 'Gene_Name'
+    names = sub_gene_data[gene_name_id].unique()
+    return names
 
 def is_inside_only(genes, transposon):
     """Return where the TE is only inside the gene.
@@ -348,40 +340,32 @@ def in_left_window_only(genes, transposon, window):
     return np.logical_and(up, down)
 
 
-def rho(genes, transposons, passed_condition, window_start, window_stop):
-    """Calculate the density where it passed the conditional test."""
-    pass
-
-    # TODO need to account for in window and intra density
-    # not necessarily in this function
-    # anything that overlaps the gene it has an intra density
-    # anything that overlaps the window it has a window density
-    # some can have both of these
-
-    # no. bases / no. relevant bases
-
-    # window density
-    # no. bases of TE / window  (when TE is between gene / window)
-
-    # intra (the relevant ares is the gene)
-    # no. bases of TE / gene (when TE is inside gene)
-
 def line_overlap(min_a, max_a, min_b, max_b):
     pass
 
+
+# NOTE Scott, shall we refactor inputs to data.GeneData & data.TransposableElementsData?
 def rho_intra(genes_start, genes_stop, genes_length, transposon_start, transposon_stop):
     """Intra density of a transposon wrt genes.
 
-    Args:
+    The relevant ares is the gene for intra density.
 
+    Args:
+        genes_start (numpy.uint): gene base pair start
+        genes_stop (numpy.uint): base pair start
+        genes_length (numpy.ndarray): base pair start
+        transposon_start (numpy.ndarray): base pair start
+        transposon_stop (numpy.ndarray): base pair start
     """
     assert genes_start.shape == genes_stop.shape
     assert genes_start.shape == genes_length.shape
 
     lower = np.minimum(genes_stop, transposon_stop)
     upper = np.maximum(genes_start, transposon_start)
-    # MAGIC NUMBER stop is inclusive so add one, scott thinks no
-    # NOTE we are using 0 indexing I believe. 
+    # TODO SCOTT, check in/exclusive stop indices, check zero based indices
+    # NOTE we are using 0 indexing, need to double check
+    # NOTE is the stop value inclusive or exclusive? the length values imply inclusive
+    # and this code works for exclusive...
     te_overlaps =  np.maximum(0, lower - upper)
     densities = np.divide(
         te_overlaps,
@@ -415,7 +399,7 @@ def rho_left_window(genes_start, genes_stop, window, transposon_start, transposo
     assert genes_start.shape == genes_stop.shape
 
     window_start = np.subtract(genes_start, window)
-    window_start[window_start < 0] = 0 # this might be an effective way to force 0 
+    window_start[window_start < 0] = 0 # this might be an effective way to force 0
 
     lower_bound = np.maximum(window_start, transposon_start)
     upper_bound = np.minimum(genes_start, transposon_stop)
@@ -473,34 +457,39 @@ def density_algorithm(genes, tes, window, increment, max_window):
     except:
         raise ValueError("You do not have the same chromosomes in your files")
 
-        # Use the subsets in main?
-        while window <= max_window:
-            logging.debug(" Gene df shape:  {}".format(genes.values.shape))
-            logging.debug(" TE df shape:  {}".format(tes.values.shape))
-            # Perform the windowing operations
-            # Multiple tests need to be done here for each window
-            # All the tests must be run for that window and then rerun for the
-            # next window
-            # I foresee that for each gene file we will have an output wiht all
-            # of the original gene data and the output will be 500_LTR_Upstream
-            # The TE types (LTR) are given by the TE_Dataframe.Family and
-            # TE_Dataframe.SubFamily columns
 
-            # The init_empty_densities function was to add the appropriate
-            # columns, we may not need to worry about that for now
+    windows = list(range(window, max_window, increment))
+    logging.info(" windows are {}:{}:{}  -->  {}"
+                 .format(window, increment, max_window, windows))
+
+    # Use the subsets in main?
+    while window <= max_window:
+        logging.debug(" Gene df shape:  {}".format(genes.values.shape))
+        logging.debug(" TE df shape:  {}".format(tes.values.shape))
+        # Perform the windowing operations
+        # Multiple tests need to be done here for each window
+        # All the tests must be run for that window and then rerun for the
+        # next window
+        # I foresee that for each gene file we will have an output wiht all
+        # of the original gene data and the output will be 500_LTR_Upstream
+        # The TE types (LTR) are given by the TE_Dataframe.Family and
+        # TE_Dataframe.SubFamily columns
+
+        # The init_empty_densities function was to add the appropriate
+        # columns, we may not need to worry about that for now
 
 
-            # All the commented code below are my attempts to do the work
-            #-----------------------------
+        # All the commented code below are my attempts to do the work
+        #-----------------------------
 
 
-            get_head(genes)
-            save_output(genes, 'Test_Output.csv')
-            window += increment
+        get_head(genes)
+        save_output(genes, 'Test_Output.csv')
+        window += increment
 
 
 def init_empty_densities(my_genes, my_tes, window):
-    """ This function initializes all of the empty columns we need in the gene file. """
+    """Initializes all of the empty columns we need in the gene file. """
     Family_List = my_tes.Family.unique()
     SubFamily_List = my_tes.SubFamily.unique()
     Directions = ['_downstream', '_intra', '_upstream']
@@ -536,13 +525,37 @@ if __name__ == '__main__':
     INPUT_DIR = args.input_dir
 
     Gene_Data = import_genes()
+    print("\ngene data...")
     get_head(Gene_Data)
+    # NOTE grouped_genes is a list of all the data frames
     grouped_genes = split(Gene_Data, 'Chromosome') # check docstring for my split func
 
 
     TE_Data = import_transposons()
+    print("\nTE data...")
     get_head(TE_Data)
     grouped_TEs = split(TE_Data, 'Chromosome') # check docstring for my split func
+
+    # TODO SCOTT write func to verify grouped_genes / grouped_TEs are in the same order
+
+    # MAGIC NUMBER defaults
+    # FUTURE parameterize
+
+    for g, t in zip(grouped_genes, grouped_TEs):
+        print(" sub family values...")
+        pdb.set_trace()
+        print(g.SubFamily.values)
+        break
+
+    # windows = window_sweep(1000, 10000, 500)
+    # for sub_gene, sub_transposons in sub_pairs:
+    #     sub_gene_names = gene_names(sub_gene)
+    #     for input in input_sweep(windows, gene_names):
+    #         pass
+    #         #output =
+
+
+
 
     # At this point I have a subset of genes to iterate over
     # This subset is on a chromosome by chromosome basis
@@ -562,7 +575,7 @@ if __name__ == '__main__':
     # matching with Fvb1-1 of TEs, not Fvb1-2. The first number, what I am
     # calling the "meta-chromosome" is just denoting that it is the first
     # chromosome, where the second number is the actual physical chromosome,
-    # and we use the number to denote which subgenome it is assigned to. 
+    # and we use the number to denote which subgenome it is assigned to.
 
     density_algorithm(
                     Gene_Data,

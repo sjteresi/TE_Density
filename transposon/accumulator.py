@@ -15,7 +15,14 @@ from multiprocessing import Process, Queue
 
 class LoggerAccumulator(object):
     """Collates logs from the workers."""
+
+    # SEE https://gist.github.com/JesseBuesking/10674086
     pass
+
+class SubDensityAccumulator(Process):
+    """Sums density results for a subset of transposable elements."""
+
+
 
 class DensityAccumulator(object):
     """Sums density values provided results."""
