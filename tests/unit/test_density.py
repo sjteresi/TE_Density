@@ -26,24 +26,58 @@ from transposon.density import in_left_window_only
 from transposon.density import rho_left_window
 from transposon.density import rho_right_window
 
+from transposon.data import GeneData, TransposonData
+
 WINDOWS = [2, 4, 8]
 
-def gene_array(n_genes=4, width=10, seperation=0):
-    """Return an Nx2 (N x (start, stop)) dummy gene.
 
+def mock_gene_data(start_stop=np.array([[0, 9], [10, 19], [20, 29]]) ):
+    """Gene data for given the start/stop indices.
 
+    Args:
+        start_stop (np.array): N gene x (start_idx, stop_idx).
     """
 
-    genes = np.zeros((n_genes, 2))
-    g0 = 0
-    g1 = 0
+    n_genes = start_stop.shape[0]
+    data = []
     for gi in range(n_genes):
-        g0 = g1 + seperation
-        g1 = g0 + width
-        #print(g0, g1)
-        genes[gi, :] = [g0, g1]
-    return genes
+        g0 = start_stop[gi, 0]
+        g1 = start_stop[gi, 1]
+        gL = g1 - g0
+        name = "gene_{}".format(gi)
+        datum = [name, g0, g1, gL]
+        data.append(datum)
 
+    frame = pd.DataFrame(data, columns=['Gene_Name', 'Start', 'Stop', 'Length'])
+    frame.set_index('Gene_Name', inplace=True)
+    return GeneData(frame)
+
+def mock_te_data(start_stop):
+    """Transposon data for given the start/stop indices.
+
+    Creates one
+
+    Args:
+        start_stop (np.array): N gene x (start_idx, stop_idx).
+    """
+
+    n_genes = start_stop.shape[0]
+    data = []
+    family = "Family_0"  # FUTURE may want to parametrize family name later
+    # NB overall order is not important but the names are
+    columns = ['Start', 'Stop', 'Length', 'Family', 'SubFamily']
+    for gi in range(n_genes):
+        g0 = start_stop[gi, 0]
+        g1 = start_stop[gi, 1]
+        gL = g1 - g0
+        # FUTURE may want to parametrize sub family name later
+        subfam_suffix = "A" if gi%2 else "B"
+        subfamily = "SubFamily_{}".format(subfam_suffix)
+        datum = [g0, g1, gL, family, subfamily]
+        data.append(datum)
+
+    frame = pd.DataFrame(data, columns=columns)
+    return TransposonData(frame)
 
 def test_rho_only_inside_congruent():
     """Does ONLY INSIDE work when TE is the same size as gene?"""
@@ -151,7 +185,9 @@ def test_rho_left_window():
     expected_rhos = np.array([100/500, 0, 0])
     assert np.all(rhos == expected_rhos)
 
-def test_rho_right_window():
+@pytest.mark.parametrize("window", [100, 200])
+@pytest.mark.parametrize("extend", [50, 150, 250])
+def test_rho_right_window(window, extend):
     """
     Does the correct window density return when TE is in window?
     SCOTT: I have tested this and it works with TEs that are:
@@ -160,17 +196,17 @@ def test_rho_right_window():
         Only in the window
         It successfully captures just the part in the window
         I am pretty sure this test and function is fully working
+    MIKE: Scott, you can use a pytest fixture to parametrize these multiple
+        conditions rather than (presumably) changing the inputs by hand
     """
-    genes = np.array([[1000, 2000], [5000, 6500], [2225, 3000]])
-    transposon = np.array([1000,2100])
-    g_start = genes[:,0]
-    g_stop = genes[:,1]
-    t_start = transposon[0]
-    t_stop = transposon[1]
-    t_length = t_stop - t_start
-    window = 500
-    rhos = rho_right_window(g_start, g_stop, window, t_start, t_stop, t_length)
-    expected_rhos = np.array([0.2, 0, 0])
+
+    start_stop = np.array([[1000, 2000], [5000, 6500], [2225, 3000]])
+    genes = mock_gene_data(start_stop)
+    transposons = mock_te_data(start_stop[0,:] + np.array([[0, extend]]))
+    gene_name = list(genes.names)[0]  # MAGIC NUMBER just use the first one
+    rhos = rho_right_window(genes, gene_name, transposons, window)
+    expected = min(extend / window, 1)
+    expected_rhos = np.array([expected])
     assert np.all(rhos == expected_rhos)
 
 

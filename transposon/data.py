@@ -31,12 +31,12 @@ class GeneData(object):
         """
 
         self.data_frame = gene_dataframe
-        self.names = self.data_frame.index
+        self._names = self.data_frame.index
 
     def start(self, gene_id):
         """The start index for the given gene."""
 
-        return self.data_frame.Start[str(gen_id)]
+        return self.data_frame.Start[str(gene_id)]
 
     def stop(self, gene_id):
         """The stop index for the given gene."""
@@ -58,10 +58,11 @@ class GeneData(object):
 
         return self.data_frame.Chromosome[str(gene_id)]
 
+    @property
     def names(self):
         """Yields the names for each gene."""
 
-        raise NotImplementedError()
+        return (name for name in self._names)
 
 
 class TransposonData(object):
@@ -83,9 +84,18 @@ class TransposonData(object):
         self.indices = self.data_frame.index.to_numpy(copy=False)
         self.starts = self.data_frame.Start.to_numpy(copy=False)
         self.stops = self.data_frame.Stop.to_numpy(copy=False)
-        self.lenghts = self.data_frame.Length.to_numpy(copy=False)
+        self.lengths = self.data_frame.Length.to_numpy(copy=False)
         self.families = self.data_frame.Family.to_numpy(copy=False)
         self.sub_families = self.data_frame.SubFamily.to_numpy(copy=False)
+
+    def __add__(self, other):
+        """Combine transposon data."""
+
+        # SCOTT this may be useful for testing, would you take a look?
+        # for example, it's easy to make a mocked TE data for a specific family
+        # so if we wanted to handle multiple sub/families we could parametrize
+        # the function to produce one TE wrt sub/family and combine them after
+        raise NotImplementedError()
 
 
 class DensityGeneData(object):  # NOTE should this be wrt TE sub/family?

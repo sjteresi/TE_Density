@@ -25,7 +25,7 @@ from enum import IntEnum, unique
 import numpy as np
 import pandas as pd
 
-from transposon.data import GeneData, TransposableElementsData
+from transposon.data import GeneData, TransposonData
 
 # FUTURE enum.Flag is more appropriate but let us delineate first and revisit
 @unique
@@ -175,17 +175,12 @@ def import_genes():
             names = col_names,
             usecols = col_to_use)
 
-    Gene_Data = Gene_Data[Gene_Data.Feature == 'gene']
-        # drop non-gene rows
+    Gene_Data = Gene_Data[Gene_Data.Feature == 'gene']  # drop non-gene rows
 
+    # clean the names and set as the index (get row wrt name c.f. idx)
     Gene_Data[['Name1', 'Gene_Name']] = Gene_Data.FullName.str.split(';Name=', expand=True)
-        # first step to fix names
-
-    Gene_Data = Gene_Data.set_index('Gene_Name')
-        # set new names as index
-
+    Gene_Data.set_index('Gene_Name', inplace=True)
     Gene_Data = Gene_Data.drop(['FullName', 'Name1', 'Software'], axis = 1)
-        # remove extraneous rows
 
     Gene_Data.Strand = Gene_Data.Strand.astype(str)
     # NOTE Scott, this astype(int) defaulted to int64, can you use uint32?
@@ -427,7 +422,7 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
     assert densities.shape == transpons_data.starts.shape
     return densities
 
-def rho_left_window(gene_data, gene_name, transposon_data, window):
+def rho_right_window(gene_data, gene_name, transposon_data, window):
 
     """Density to the right (upstream) of a gene.
     When TE is between gene and window
@@ -446,6 +441,7 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
     # this is so the worker can fail gracefully rather than crashing
     # at the very least there should be a custom string for what was wrong
     # a better solution could be to subclass ValueError for the particular problem
+    assert g0.shape == ()  # NOTE it's one np.uint32, is there a better way to check?
     assert transposon_data.starts.shape == transposon_data.stops.shape
     assert transposon_data.starts.shape == transposon_data.lengths.shape
 
@@ -461,7 +457,7 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
         out=np.zeros_like(te_overlaps, dtype='float')
     )
 
-    assert densities.shape == transpons_data.starts.shape
+    assert densities.shape == transposon_data.starts.shape
     return densities
 
 
