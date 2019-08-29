@@ -48,14 +48,24 @@ class GeneData(object):
 
         return self.data_frame.Length[str(gene_id)]
 
+    def start_stop_len(self, gene_id):
+        """Helper to return start, stop, and length for the given gene."""
+
+        return (self.start(gene_id), self.stop(gene_id), self.length(gene_id))
+
     def chromosome(self, gene_id):
         """The chromosome identifier for the given gene."""
 
         return self.data_frame.Chromosome[str(gene_id)]
 
+    def names(self):
+        """Yields the names for each gene."""
 
-class TransposableElementsData(object):
-    """Wrapper for the transposable elements.
+        raise NotImplementedError()
+
+
+class TransposonData(object):
+    """Wraps a transposable elements data frame.
 
     Provides attribute access for the transposons as a whole.
     Returns numpy arrays to the underlying data, intended to be views.
@@ -76,3 +86,14 @@ class TransposableElementsData(object):
         self.lenghts = self.data_frame.Length.to_numpy(copy=False)
         self.families = self.data_frame.Family.to_numpy(copy=False)
         self.sub_families = self.data_frame.SubFamily.to_numpy(copy=False)
+
+
+class DensityGeneData(object):  # NOTE should this be wrt TE sub/family?
+    """Wraps density results wrt one gene.
+
+    """
+
+    def __init__(self, gene_id, transposon_family):
+        """."""
+
+        pass

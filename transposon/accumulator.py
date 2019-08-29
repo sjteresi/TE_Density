@@ -22,9 +22,19 @@ class LoggerAccumulator(object):
 class SubDensityAccumulator(Process):
     """Sums density results for a subset of transposable elements."""
 
+    pass
+
+
+class DensityAccumulatorMap(dict):
+    """Maps a gene name to the accumulated density results."""
+
+    pass
 
 
 class DensityAccumulator(object):
     """Sums density values provided results."""
+
+    # NOTE maybe use a multiprocessing manager to do the merging?
+    # https://stackoverflow.com/questions/8640367/python-manager-dict-in-multiprocessing
 
     def __init__(self, )

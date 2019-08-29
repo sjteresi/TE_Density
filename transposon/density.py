@@ -25,6 +25,8 @@ from enum import IntEnum, unique
 import numpy as np
 import pandas as pd
 
+from transposon.data import GeneData, TransposableElementsData
+
 # FUTURE enum.Flag is more appropriate but let us delineate first and revisit
 @unique
 class DensityConditions(IntEnum):
@@ -344,29 +346,34 @@ def line_overlap(min_a, max_a, min_b, max_b):
     pass
 
 
-# NOTE Scott, shall we refactor inputs to data.GeneData & data.TransposableElementsData?
-def rho_intra(genes_start, genes_stop, genes_length, transposon_start, transposon_stop):
-    """Intra density of a transposon wrt genes.
+def rho_intra(gene_data, gene_name, transposon_data):
+    """Intra density for one gene wrt transposable elements.
 
     The relevant ares is the gene for intra density.
 
     Args:
-        genes_start (numpy.uint): gene base pair start
-        genes_stop (numpy.uint): base pair start
-        genes_length (numpy.ndarray): base pair start
-        transposon_start (numpy.ndarray): base pair start
-        transposon_stop (numpy.ndarray): base pair start
+        gene_data (transponson.data.GeneData): gene container
+        gene_name (hashable): name of gene to use
+        transposon_data (transponson.data.TransposonData): transposon container
     """
-    assert genes_start.shape == genes_stop.shape
-    assert genes_start.shape == genes_length.shape
 
-    lower = np.minimum(genes_stop, transposon_stop)
-    upper = np.maximum(genes_start, transposon_start)
+    g0, g1, gL = gene_data.start_stop_len(gene_name)
+    # SCOTT pls replace asserts with `raise ValueError`
+    # this is so the worker can fail gracefully rather than crashing
+    # at the very least there should be a custom string for what was wrong
+    # a better solution could be to subclass ValueError for the particular problem
+    assert transposon_data.starts.shape == transposon_data.stops.shape
+    assert transposon_data.starts.shape == transposon_data.lengths.shape
+
+    # SOTT shouldn't the lower be the start and the upper use the stops?
+    lower = np.minimum(g1, transposon_data.stops)
+    upper = np.maximum(g0, transposon_data.starts)
     # TODO SCOTT, check in/exclusive stop indices, check zero based indices
     # NOTE we are using 0 indexing, need to double check
     # NOTE is the stop value inclusive or exclusive? the length values imply inclusive
     # and this code works for exclusive...
     te_overlaps =  np.maximum(0, lower - upper)
+
     densities = np.divide(
         te_overlaps,
         genes_length,
@@ -374,11 +381,12 @@ def rho_intra(genes_start, genes_stop, genes_length, transposon_start, transposo
         where=genes_length!=0
     )
 
-    assert densities.shape == genes_start.shape
+    # SCOTT pls replace asserts with `raise ValueError`
+    # this is so the worker can fail gracefully rather than crashing
+    assert densities.shape == transposon_data.starts.shape
     return densities
 
-def rho_left_window(genes_start, genes_stop, window, transposon_start, transposon_stop, transposon_length):
-
+def rho_left_window(gene_data, gene_name, transposon_data, window):
     """Density to the left (downstream) of a gene.
     When TE is between gene and window
 
@@ -396,13 +404,19 @@ def rho_left_window(genes_start, genes_stop, window, transposon_start, transposo
     # so far I can reset the window start for that instance, but I cannot fix
     # the window for the sake of division later when you try to check values.
 
-    assert genes_start.shape == genes_stop.shape
+    g0, g1, gL = gene_data.start_stop_len(gene_name)
+    # SCOTT pls replace asserts with `raise ValueError`
+    # this is so the worker can fail gracefully rather than crashing
+    # at the very least there should be a custom string for what was wrong
+    # a better solution could be to subclass ValueError for the particular problem
+    assert transposon_data.starts.shape == transposon_data.stops.shape
+    assert transposon_data.starts.shape == transposon_data.lengths.shape
 
-    window_start = np.subtract(genes_start, window)
+    window_start = np.subtract(g0, window)
     window_start[window_start < 0] = 0 # this might be an effective way to force 0
 
-    lower_bound = np.maximum(window_start, transposon_start)
-    upper_bound = np.minimum(genes_start, transposon_stop)
+    lower_bound = np.maximum(window_start, transposon_data.starts)
+    upper_bound = np.minimum(g0, transposon_data.stops)
     te_overlaps =  np.maximum(0, upper_bound - lower_bound)
     densities = np.divide(
         te_overlaps,
@@ -410,10 +424,10 @@ def rho_left_window(genes_start, genes_stop, window, transposon_start, transposo
         out=np.zeros_like(te_overlaps, dtype='float')
     )
 
-    assert densities.shape == genes_start.shape
+    assert densities.shape == transpons_data.starts.shape
     return densities
 
-def rho_right_window(genes_start, genes_stop, window, transposon_start, transposon_stop, transposon_length):
+def rho_left_window(gene_data, gene_name, transposon_data, window):
 
     """Density to the right (upstream) of a gene.
     When TE is between gene and window
@@ -426,12 +440,19 @@ def rho_right_window(genes_start, genes_stop, window, transposon_start, transpos
     Args:
 
     """
-    assert genes_start.shape == genes_stop.shape
 
-    window_stop = np.add(genes_stop, window)
-    lower_bound = np.maximum(genes_stop, transposon_start)
+    g0, g1, gL = gene_data.start_stop_len(gene_name)
+    # SCOTT pls replace asserts with `raise ValueError`
+    # this is so the worker can fail gracefully rather than crashing
+    # at the very least there should be a custom string for what was wrong
+    # a better solution could be to subclass ValueError for the particular problem
+    assert transposon_data.starts.shape == transposon_data.stops.shape
+    assert transposon_data.starts.shape == transposon_data.lengths.shape
+
+    window_stop = np.add(g1, window)
+    lower_bound = np.maximum(g1, transposon_data.starts)
     # lower bound gets TE starts to the right of gene stops
-    upper_bound = np.minimum(window_stop, transposon_stop)
+    upper_bound = np.minimum(window_stop, transposon_data.stops)
     # upper bound gets TE stops to the left of window stops
     te_overlaps =  np.maximum(0, upper_bound - lower_bound)
     densities = np.divide(
@@ -440,8 +461,9 @@ def rho_right_window(genes_start, genes_stop, window, transposon_start, transpos
         out=np.zeros_like(te_overlaps, dtype='float')
     )
 
-    assert densities.shape == genes_start.shape
+    assert densities.shape == transpons_data.starts.shape
     return densities
+
 
 def density_algorithm(genes, tes, window, increment, max_window):
     """
