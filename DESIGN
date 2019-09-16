@@ -1,0 +1,20 @@
+# Densities
+
+
+# Pipeline
+Design for processing the gene / transposon files.
+
+Input gene / transposon files, output density files.
+Calculate the multiple TE densities for each gene, with a sweep of window values.
+
+## Steps
+The pipeline is a generic split / apply / combine.
+Each density is independent, however, the densities are accumulated (summed) at the end.
+
+
+0. Input gene / TE files; input window length
+1. Preprocess
+  - chunkify gene / TE based on chromosome
+  - list sub-gene / sub-TE pairs
+2. For each sub-gene / sub-TE
+  -
