@@ -284,6 +284,23 @@ def window_sweep(min, step, max):
 
     return list(range(min, max, step))
 
+def check_shape(transposon_data):
+    """ Checks to make sure the columns of the TE data are the same size"""
+    try:
+        assert transposon_data.starts.shape == transposon_data.stops.shape
+        assert transposon_data.starts.shape == transposon_data.lengths.shape
+    except AssertionError as error:
+        raise ValueError('Error at making sure the TE dataframe has similar
+                         column sizes')
+def check_density_shape(densities, transposon_data):
+    # TODO Check that this is an appropriate check
+    """ Checks to make sure the density output and the TE column are jiving well"""
+    try:
+        assert densities.shape == transposon_data.starts.shape
+    except AssertionError as error:
+        raise ValueError('Density dataframe shape not the same size as the TE
+                         dataframe')
+
 def gene_names(sub_gene_data):
     """Return unique gene names for the input gene data (e.g. one chromosome)."""
 
@@ -357,8 +374,9 @@ def rho_intra(gene_data, gene_name, transposon_data):
     # this is so the worker can fail gracefully rather than crashing
     # at the very least there should be a custom string for what was wrong
     # a better solution could be to subclass ValueError for the particular problem
-    assert transposon_data.starts.shape == transposon_data.stops.shape
-    assert transposon_data.starts.shape == transposon_data.lengths.shape
+    #assert transposon_data.starts.shape == transposon_data.stops.shape
+    #assert transposon_data.starts.shape == transposon_data.lengths.shape
+    check_shape(transposon_data)
 
     # SOTT shouldn't the lower be the start and the upper use the stops?
     lower = np.minimum(g1, transposon_data.stops)
@@ -378,7 +396,8 @@ def rho_intra(gene_data, gene_name, transposon_data):
 
     # SCOTT pls replace asserts with `raise ValueError`
     # this is so the worker can fail gracefully rather than crashing
-    assert densities.shape == transposon_data.starts.shape
+    #assert densities.shape == transposon_data.starts.shape
+    check_density_shape(densities,transposon_data)
     return densities
 
 def rho_left_window(gene_data, gene_name, transposon_data, window):
@@ -404,8 +423,9 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
     # this is so the worker can fail gracefully rather than crashing
     # at the very least there should be a custom string for what was wrong
     # a better solution could be to subclass ValueError for the particular problem
-    assert transposon_data.starts.shape == transposon_data.stops.shape
-    assert transposon_data.starts.shape == transposon_data.lengths.shape
+    #assert transposon_data.starts.shape == transposon_data.stops.shape
+    #assert transposon_data.starts.shape == transposon_data.lengths.shape
+    check_shape(transposon_data)
 
     window_start = np.subtract(g0, window)
     window_start[window_start < 0] = 0 # this might be an effective way to force 0
@@ -418,8 +438,9 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
         window,
         out=np.zeros_like(te_overlaps, dtype='float')
     )
-
-    assert densities.shape == transpons_data.starts.shape
+    check_density_shape(densities,transposon_data)
+    #assert densities.shape == transpons_data.starts.shape # misspelled, wrote
+    #check
     return densities
 
 def rho_right_window(gene_data, gene_name, transposon_data, window):
@@ -442,8 +463,9 @@ def rho_right_window(gene_data, gene_name, transposon_data, window):
     # at the very least there should be a custom string for what was wrong
     # a better solution could be to subclass ValueError for the particular problem
     assert g0.shape == ()  # NOTE it's one np.uint32, is there a better way to check?
-    assert transposon_data.starts.shape == transposon_data.stops.shape
-    assert transposon_data.starts.shape == transposon_data.lengths.shape
+    check_shape(transposon_data)
+    #assert transposon_data.starts.shape == transposon_data.stops.shape
+    #assert transposon_data.starts.shape == transposon_data.lengths.shape
 
     window_stop = np.add(g1, window)
     lower_bound = np.maximum(g1, transposon_data.starts)
@@ -457,7 +479,9 @@ def rho_right_window(gene_data, gene_name, transposon_data, window):
         out=np.zeros_like(te_overlaps, dtype='float')
     )
 
-    assert densities.shape == transposon_data.starts.shape
+    #assert densities.shape == transposon_data.starts.shape
+
+    check_density_shape(densities,transposon_data)
     return densities
 
 
@@ -525,6 +549,24 @@ def init_empty_densities(my_genes, my_tes, window):
     my_genes['TEs_inside'] = np.nan
     return my_genes
 
+def check_groupings(grouped_genes, grouped_TEs):
+    """
+    Function to make sure the chromosome pairs of the genes and the TEs are
+    in correct. Checks the first 10 lines of each pair. This is just to make
+    sure that each pair of chromosomes are right. Correct subsetting would be
+    managed by my custom split command, which has been tested.
+
+    Args:
+        grouped_genes (list of pandaframes): Gene dataframes separated by chromosome
+        grouped_TEs (list of pandaframes): TE dataframes separated by chromosome
+    """
+    try:
+        for g_element, t_element in zip(grouped_genes, grouped_TEs):
+            assert g_element.Chromosome.iloc[0:10].values[0] == \
+            t_element.Chromosome.iloc[0:10].values[0]
+    except AssertionError as error:
+        raise ValueError('Chromosomes do not match for the grouped_genes or
+                         grouped_TEs')
 
 if __name__ == '__main__':
 
@@ -555,6 +597,7 @@ if __name__ == '__main__':
     grouped_TEs = split(TE_Data, 'Chromosome') # check docstring for my split func
 
     # TODO SCOTT write func to verify grouped_genes / grouped_TEs are in the same order
+    check_groupings(grouped_genes, grouped_TEs)
 
     # MAGIC NUMBER defaults
     # FUTURE parameterize
