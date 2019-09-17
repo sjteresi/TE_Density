@@ -560,13 +560,13 @@ def check_groupings(grouped_genes, grouped_TEs):
         grouped_genes (list of pandaframes): Gene dataframes separated by chromosome
         grouped_TEs (list of pandaframes): TE dataframes separated by chromosome
     """
+    zipped_set = zip(grouped_genes, grouped_TEs)
     try:
-        for g_element, t_element in zip(grouped_genes, grouped_TEs):
+        for g_element, t_element in zipped_set:
             assert g_element.Chromosome.iloc[0:10].values[0] == \
             t_element.Chromosome.iloc[0:10].values[0]
     except AssertionError as error:
-        raise ValueError('Chromosomes do not match for the grouped_genes or
-                         grouped_TEs')
+        raise ValueError('Chromosomes do not match for the grouped_genes or grouped_TEs')
 
 if __name__ == '__main__':
 
