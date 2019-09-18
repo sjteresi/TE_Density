@@ -225,7 +225,7 @@ def import_transposons():
             usecols = col_to_use)
 
     TE_Data[['Family', 'SubFamily']] = TE_Data.Feature.str.split('/', expand=True)
-    TE_Data.SubFamily.fillna(value='Unknown', inplace=True) # replace None w U
+    TE_Data.SubFamily.fillna(value='Unknown_SubFam', inplace=True) # replace None w U
         # step to fix TE names
 
     TE_Data = TE_Data.drop(['Feature', 'Software'], axis=1)
