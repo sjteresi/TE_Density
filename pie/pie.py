@@ -96,6 +96,7 @@ def import_genes():
 
     # TODO remove MAGIC NUMBER (perhaps just search by extension (gtf)?)
     gtf_filename = 'camarosa_gtf_data.gtf' # DECLARE YOUR DATA NAME
+    #gtf_filename = 'H4_Genes.gtf' # DECLARE YOUR DATA NAME
     #ch_input_data_path()
 
     col_names = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
@@ -114,6 +115,12 @@ def import_genes():
             usecols = col_to_use)
 
     Gene_Data = Gene_Data[Gene_Data.Feature == 'gene']  # drop non-gene rows
+
+    # NOTE
+    patterndel = "contig*"
+    my_filter = Gene_Data.Chromosome.str.contains(patterndel)
+    Gene_Data = Gene_Data[~my_filter]
+    #--------------------------------------
 
     # clean the names and set as the index (get row wrt name c.f. idx)
     Gene_Data[['Name1', 'Gene_Name']] = Gene_Data.FullName.str.split(';Name=', expand=True)
@@ -139,6 +146,8 @@ def import_transposons():
     """ Import the TEs """
     # TODO remove MAGIC NUMBER (perhaps just search by extension (gtf)?)
     gff_filename = 'camarosa_gff_data.gff' # DECLARE YOUR DATA NAME
+    #gff_filename = 'H4_TEs.gff' # DECLARE YOUR DATA NAME
+    #gff_filename = 'test_TEs.gff' # DECLARE YOUR DATA NAME
     #ch_input_data_path()
 
     col_names = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
@@ -157,8 +166,15 @@ def import_transposons():
             usecols = col_to_use)
 
     TE_Data[['Family', 'SubFamily']] = TE_Data.Feature.str.split('/', expand=True)
-    TE_Data.SubFamily.fillna(value='Unknown', inplace=True) # replace None w U
+    TE_Data.SubFamily.fillna(value='Unknown_SubFam', inplace=True) # replace None w U
         # step to fix TE names
+
+    # NOTE
+    patterndel = "contig*"
+    my_filter = TE_Data.Chromosome.str.contains(patterndel)
+    TE_Data = TE_Data[~my_filter]
+    #--------------------------------------
+
 
     TE_Data = TE_Data.drop(['Feature', 'Software'], axis=1)
 
@@ -444,19 +460,22 @@ if __name__ == '__main__':
     INPUT_DIR = args.input_dir
 
     Gene_Data = import_genes()
-    #print("\ngene data...")
-    #get_head(Gene_Data)
+    print("\ngene data...")
+    get_head(Gene_Data)
     # NOTE grouped_genes is a list of all the data frames
     grouped_genes = split(Gene_Data, 'Chromosome') # check docstring for my split func
 
 
     TE_Data = import_transposons()
-    #print("\nTE data...")
-    #get_head(TE_Data)
+    print("\nTE data...")
+    get_head(TE_Data)
+    save_output(TE_Data, 'Saved_Test.csv')
+
+
     grouped_TEs = split(TE_Data, 'Chromosome') # check docstring for my split func
 
 
-    #check_groupings(grouped_genes, grouped_TEs)
+    check_groupings(grouped_genes, grouped_TEs)
 
     main_fig(TE_Data)
 
