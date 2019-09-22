@@ -26,9 +26,23 @@ class DensityInput(object):
         """
 
         assert window >= 0
-
         self.gene_name = str(gene_name)
         self.window = int(window)
+
+class OverlapOutput(object):
+    """Contains a density result, prior to division by relevant area."""
+
+    def __init__(self):
+        """Initializer.
+
+        Args:
+
+        """
+        self.gene_name = str(gene_name)
+        self.window = int(window)
+        self.te_family = str(te_family)
+        self.n_basepairs = int(relevant_basepairs)
+
 
 
 class DensityOutput(object):
@@ -49,16 +63,29 @@ class DensityOutput(object):
 
 
 class DensityWorker(Process):
-    """Worker to produce density values provided gene / transposon data."""
+    """Calculates TE densities provided gene / transposon data.
 
-    def __init__(self, input_queue, output_queue, genes, transposons, **kwargs):
+    Density values are summed with respect to the TE sub/family.
+    The final output is the accumulated densities.
+    If a density cannot be completed, the request is put on the error queue.
+
+    Design:
+        The worker accumulates densities as it progresses.
+        This reduces interprocess communication compared to the case where
+            another process(es) would sum each individual density result.
+        In said case, the accumulation would need to lock the entry for each
+            gene, subfamily combo prior to making the sum.
+        The increase in memory is preferred over simplifyin
+    """
+
+    def __init__(self, genes, transposons, request_queue, error_queue, **kwargs):
         """Initializer.
 
         Args:
-            input_queue (multiprocessing.Queue): queue of DensityInput.
-            output_queue (multiprocessing.Queue): queue of DensityOutput.
             genes (data.GeneData): genes.
             transposons (data.TransposableElementsData): transposons.
+            input_queue (multiprocessing.Queue): queue of DensityInput.
+            output_queue (multiprocessing.Queue): queue of DensityOutput.
             kwargs: keyword arguments for multiprocessing.Process.
         """
 

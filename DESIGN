@@ -16,5 +16,10 @@ Each density is independent, however, the densities are accumulated (summed) at 
 1. Preprocess
   - chunkify gene / TE based on chromosome
   - list sub-gene / sub-TE pairs
-2. For each sub-gene / sub-TE
-  -
+2. Split wrt gene names / Merge wrt TE overlap
+  - for each sub-gene / sub-TE pair
+    - for each window
+      - start workers
+      - request overlap for each gene name (handling failed requests!)
+      - merge worker results (sums of overlaps )
+      - calculate densities, write to file

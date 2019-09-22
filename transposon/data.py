@@ -97,13 +97,20 @@ class TransposonData(object):
         # the function to produce one TE wrt sub/family and combine them after
         raise NotImplementedError()
 
+class OverlapData(object):
+    """Stores the number of base pairs that overlap the gene name / TE.
 
-class DensityGeneData(object):  # NOTE should this be wrt TE sub/family?
-    """Wraps density results wrt one gene.
-
+    This data is used to calculate density.
+    First, the number of base pairs that overlap the gene name / TE accumulates.
+    Second, the accumulated overlaps are divided by the relevant area,
+        the window size for left/right and the gene length for intra.
     """
 
-    def __init__(self, gene_id, transposon_family):
-        """."""
+    def __init__(self, genes, transposons, window):
+        """Initialize.
 
-        pass
+        Args:
+            genes (GeneData): the gene data container.
+            transposons (TransposonData): the transposon data container.
+            window (int): the window to accumulate to.
+        """
