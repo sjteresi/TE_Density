@@ -162,7 +162,9 @@ def test_intra_density_partial():
     expected_rhos = np.array([0, 0.5, 0])
     assert np.all(rhos == expected_rhos)
 
-def test_rho_left_window():
+@pytest.mark.parametrize("window", [100, 200])
+@pytest.mark.parametrize("extend", [50, 150, 250])
+def test_rho_left_window(window, extend):
     """
     Does the correct window density return when TE is in window?
     SCOTT: I have tested this and it works with TEs that are:
@@ -171,18 +173,21 @@ def test_rho_left_window():
         Only in the window
         It successfully captures just the part in the window
     """
+
+    # TODO SCOTT, good job testing the different cases
+    # pls encode that into pytest parameterizations to automate it (pytest.mar.parametrize)
     # TODO make sure the edge cases work when the window should be negative and
     # reset to 0 for that instance
-    genes = np.array([[1000, 2000], [5000, 6500], [2225, 3000]])
-    transposon = np.array([600,700])
-    g_start = genes[:,0]
-    g_stop = genes[:,1]
-    t_start = transposon[0]
-    t_stop = transposon[1]
-    t_length = t_stop - t_start # MAGIC NUMBER the data uses an inclusive stop
-    window = 500
-    rhos = rho_left_window(g_start, g_stop, window, t_start, t_stop, t_length)
-    expected_rhos = np.array([100/500, 0, 0])
+    start_stop = np.array([[1000, 2000], [5000, 6500], [2225, 3000]])
+    genes = mock_gene_data(start_stop)
+    # move the TE start to the left using the 'extend' param
+    transposons = mock_te_data(start_stop[0,:] - np.array([[extend, 0]]))
+    gene_name = list(genes.names)[0]  # MAGIC NUMBER just use the first one
+    rhos = rho_left_window(genes, gene_name, transposons, window)
+    expected = min(extend / window, 1)
+    expected_rhos = np.array([expected])
+    print(" expected {}".format(expected_rhos))
+    print(" rhos {}".format(rhos))
     assert np.all(rhos == expected_rhos)
 
 @pytest.mark.parametrize("window", [100, 200])
@@ -200,8 +205,11 @@ def test_rho_right_window(window, extend):
         conditions rather than (presumably) changing the inputs by hand
     """
 
+    # TODO SCOTT, good job testing the different cases
+    # pls encode that into pytest parameterizations to automate it (pytest.mar.parametrize)
     start_stop = np.array([[1000, 2000], [5000, 6500], [2225, 3000]])
     genes = mock_gene_data(start_stop)
+    # move the TE start to the right using the 'extend' param
     transposons = mock_te_data(start_stop[0,:] + np.array([[0, extend]]))
     gene_name = list(genes.names)[0]  # MAGIC NUMBER just use the first one
     rhos = rho_right_window(genes, gene_name, transposons, window)
