@@ -285,21 +285,33 @@ def window_sweep(min, step, max):
     return list(range(min, max, step))
 
 def check_shape(transposon_data):
-    """ Checks to make sure the columns of the TE data are the same size"""
-    try:
-        assert transposon_data.starts.shape == transposon_data.stops.shape
-        assert transposon_data.starts.shape == transposon_data.lengths.shape
-    except AssertionError as error:
-        raise ValueError('Error at making sure the TE dataframe has similar
-                         column sizes')
+    """Checks to make sure the columns of the TE data are the same size.
+
+    If the shapes don't match then there are records that are incomplete,
+        as in an entry (row) does have all the expected fields (column).
+    """
+
+    start = transposon_data.starts.shape
+    stop = transposon_data.stops.shape
+    if start != stop:
+        msg = (" input TE missing fields: starts.shape {}  != stops.shape {}"
+               .format(start, stop))
+        raise ValueError(msg)
+
+    length = transposon_data.lengths.shape
+    if start != length:
+        msg = (" input TE missing fields: starts.shape {}  != lengths.shape {}"
+               .format(start, stop))
+        raise ValueError(msg)
+
 def check_density_shape(densities, transposon_data):
-    # TODO Check that this is an appropriate check
     """ Checks to make sure the density output and the TE column are jiving well"""
-    try:
-        assert densities.shape == transposon_data.starts.shape
-    except AssertionError as error:
-        raise ValueError('Density dataframe shape not the same size as the TE
-                         dataframe')
+
+    # SCOTT, rather than try / assert / catch AssertionError / raise,
+    # just do an if / raise.  -MT
+    if densities.shape != transposon_data.starts.shape:
+        msg = ("Density dataframe shape not the same size as the TE dataframe")
+        raise ValueError(msg)
 
 def gene_names(sub_gene_data):
     """Return unique gene names for the input gene data (e.g. one chromosome)."""
@@ -473,6 +485,9 @@ def rho_right_window(gene_data, gene_name, transposon_data, window):
     upper_bound = np.minimum(window_stop, transposon_data.stops)
     # upper bound gets TE stops to the left of window stops
     te_overlaps =  np.maximum(0, upper_bound - lower_bound)
+    # NOTE it isn't necessary to divide here, right?
+    # the relevant area is constant, keep track of it
+    # sum the overlaps *then* calculate using the division
     densities = np.divide(
         te_overlaps,
         window,
