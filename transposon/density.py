@@ -440,7 +440,7 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
     check_shape(transposon_data)
 
     window_start = np.subtract(g0, window)
-    window_start[window_start < 0] = 0 # this might be an effective way to force 0
+    window_start = np.clip(window_start, 0, None)  # clamp to [0...inf)
 
     lower_bound = np.maximum(window_start, transposon_data.starts)
     upper_bound = np.minimum(g0, transposon_data.stops)
