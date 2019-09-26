@@ -95,8 +95,8 @@ def import_genes():
     """ Import Genes File """
 
     # TODO remove MAGIC NUMBER (perhaps just search by extension (gtf)?)
-    gtf_filename = 'camarosa_gtf_data.gtf' # DECLARE YOUR DATA NAME
-    #gtf_filename = 'H4_Genes.gtf' # DECLARE YOUR DATA NAME
+    #gtf_filename = 'camarosa_gtf_data.gtf' # DECLARE YOUR DATA NAME
+    gtf_filename = 'H4_Genes.gtf' # DECLARE YOUR DATA NAME
     #ch_input_data_path()
 
     col_names = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
@@ -145,8 +145,8 @@ def import_genes():
 def import_transposons():
     """ Import the TEs """
     # TODO remove MAGIC NUMBER (perhaps just search by extension (gtf)?)
-    gff_filename = 'camarosa_gff_data.gff' # DECLARE YOUR DATA NAME
-    #gff_filename = 'H4_TEs.gff' # DECLARE YOUR DATA NAME
+    #gff_filename = 'camarosa_gff_data.gff' # DECLARE YOUR DATA NAME
+    gff_filename = 'H4_TEs.gff' # DECLARE YOUR DATA NAME
     #gff_filename = 'test_TEs.gff' # DECLARE YOUR DATA NAME
     #ch_input_data_path()
 
@@ -194,7 +194,9 @@ def replace_names(my_TEs):
     master_family = {
         'RC?':'DNA',
         'RC':'DNA',
-        'SINE?':U
+        'SINE?':U,
+        'tandem':'Tandem',
+        'No_hits':U
     }
 
     U = 'Unknown_SubFam'
@@ -202,6 +204,8 @@ def replace_names(my_TEs):
         'Uknown':U,
         'MuDr':'MULE',
         'MULE-MuDR':'MULE',
+        'Mutator|cleanup':'MULE',
+        'TcMar':U,
         'Pao':U,
         'Caulimovirus':U,
         'hAT-Tag1':'hAT',
@@ -220,7 +224,19 @@ def replace_names(my_TEs):
         'MuLE-MuDR':'MULE',
         'MuDR':'MULE',
         'Mutator':'MULE',
-        'Micro_like':U
+        'Micro_like':U,
+        'Micro-like-sequence':U,
+        'Micro-like-sequence|cleanup':U,
+        'Unclassified':U,
+        'L1-Tx1':'Line',
+        'CRE':'Line',
+        'CACTA':'CMC-EnSpm',
+        'Tad1':U,
+        'hAT|cleanup':'hAT',
+        '':U,
+        'Line':'LINE'
+
+
     }
 
     my_TEs.Family.replace(master_family, inplace=True)
@@ -238,7 +254,8 @@ def gene_names(sub_gene_data):
 
 def sum_genes_and_TEs(Gene_Data, TE_Data):
     # The Genome Size is: 0.805489 gigabasepair
-    genome_size = 0.805489
+    #genome_size = 0.805489 # Cam
+    genome_size = 0.24
     my_lengths = []
     gene_lengths = Gene_Data.Length.sum()
     TE_lengths = TE_Data.Length.sum()
@@ -259,6 +276,11 @@ def sum_genes_and_TEs(Gene_Data, TE_Data):
 def main_fig(TE_Data):
     family_labels = get_unique(TE_Data.Family) # list
     subfamily_labels = get_unique(TE_Data.SubFamily) # list
+
+    print(family_labels)
+    print(subfamily_labels)
+
+
     sizes = sum_genes_and_TEs(Gene_Data, TE_Data)
     total_num_TEs = len(TE_Data.index)
     #print(f"Total Rows of TEs: {total_num_TEs}")
@@ -272,7 +294,7 @@ def main_fig(TE_Data):
         for size in sizes:
             new_sizes.append(size * 100)
         colors = ['forestgreen', 'cornflowerblue', 'crimson']
-        explode = (0, 0, 0.1) # explode 3rd slice
+        explode = (0, 0, 0.1)# explode 3rd slice
         patches, texts, autotext = plt.pie(new_sizes, colors=colors, shadow=True,
                                     startangle=120, explode=explode,
                                     autopct='%1.1f%%', labels=labels)
@@ -280,7 +302,7 @@ def main_fig(TE_Data):
         plt.title('Contribution to Genome Size')
         plt.axis('equal')
         plt.tight_layout()
-        plt.savefig('Genome_Content.png')
+        plt.savefig('H4_Genome_Content.png')
         plt.close()
         #plt.show()
 
@@ -298,7 +320,7 @@ def main_fig(TE_Data):
 
         labels = my_family_counts.keys()
         colors = ['seagreen', 'deepskyblue', 'lightcoral', 'darkviolet']
-        explode = (0.1, 0, 0, 0) # explode
+        explode = (0.1, 0, 0, 0, 0) # explode
         patches, texts, autotext = plt.pie(new_sizes, colors=colors, shadow=True,
                                     startangle=150, explode=explode,
                                     autopct='%1.1f%%', labels=labels)
@@ -306,7 +328,7 @@ def main_fig(TE_Data):
         plt.title('Percentage of Number of TEs Compared to Total Number of TEs (Family)')
         plt.axis('equal')
         plt.tight_layout()
-        plt.savefig('Family.png')
+        plt.savefig('H4_Family.png')
         plt.close()
         #plt.show()
 
@@ -319,7 +341,7 @@ def main_fig(TE_Data):
         subfamily_sum = 0
 
 
-        my_subfamily_counts['Pure Unknown'] = my_subfamily_counts.pop('Unknown')
+        my_subfamily_counts['Pure Unknown'] = my_subfamily_counts.pop('Unknown_SubFam')
 
 
         for key,val in my_subfamily_counts.items():
@@ -340,7 +362,7 @@ def main_fig(TE_Data):
         plt.title('Percentage of Number of TEs Compared to Total Number of TEs (Subfamily)')
         plt.axis('equal')
         plt.tight_layout()
-        plt.savefig('Subfamily.png')
+        plt.savefig('H4_Subfamily.png')
         plt.close()
         #plt.show()
 
@@ -398,7 +420,7 @@ def main_fig(TE_Data):
                       borderaxespad=0.1)
             n = 0.9
             plt.subplots_adjust(right=0.75, hspace = n)
-            plt.savefig(all_c[xi]+'_All.png')
+            plt.savefig(all_c[xi]+'_Cam_All.png')
             #plt.show()
 
 
@@ -417,7 +439,7 @@ def main_fig(TE_Data):
     genome_content()
     te_fam_content()
     te_subfam_content()
-    graphs_chromosomes()
+    #graphs_chromosomes()
 
 def check_groupings(grouped_genes,grouped_TEs):
     """
@@ -469,7 +491,7 @@ if __name__ == '__main__':
     TE_Data = import_transposons()
     print("\nTE data...")
     get_head(TE_Data)
-    save_output(TE_Data, 'Saved_Test.csv')
+    #save_output(TE_Data, 'Saved_Test.csv')
 
 
     grouped_TEs = split(TE_Data, 'Chromosome') # check docstring for my split func
