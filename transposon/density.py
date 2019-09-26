@@ -246,7 +246,9 @@ def replace_names(my_TEs):
     master_family = {
         'RC?':'DNA',
         'RC':'DNA',
-        'SINE?':U
+        'SINE?':U,
+        'tandem':'Tandem',
+        'No_hits':U
     }
 
     U = 'Unknown_SubFam'
@@ -254,6 +256,8 @@ def replace_names(my_TEs):
         'Uknown':U,
         'MuDr':'MULE',
         'MULE-MuDR':'MULE',
+        'Mutator|cleanup':'MULE',
+        'TcMar':U,
         'Pao':U,
         'Caulimovirus':U,
         'hAT-Tag1':'hAT',
@@ -272,7 +276,18 @@ def replace_names(my_TEs):
         'MuLE-MuDR':'MULE',
         'MuDR':'MULE',
         'Mutator':'MULE',
-        'Micro_like':U
+        'Micro_like':U,
+        'Micro-like-sequence':U,
+        'Micro-like-sequence|cleanup':U,
+        'Unclassified':U,
+        'L1-Tx1':'Line',
+        'CRE':'Line',
+        'CACTA':'CMC-EnSpm',
+        'Tad1':U,
+        'hAT|cleanup':'hAT',
+        '':U,
+        'Line':'LINE'
+
     }
 
     my_TEs.Family.replace(master_family, inplace=True)
