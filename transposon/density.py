@@ -2,12 +2,6 @@
 
 """
 Calculate transposable element density.
-
-TODO
-    - refactor rho funcs input to data.GeneData / data.TransposableElementsData
-    - refactor rho funcs asserts to exceptions
-    - refactor rho funcs to use one gene & multple TEs (and the tests)
-
 """
 
 __author__ = "Scott Teresi, Michael Teresi"
@@ -16,23 +10,26 @@ import pdb
 import os
 import time
 import argparse
+import coloredlogs
 import logging
 from enum import IntEnum, unique
+import time
+
 #from multiprocessing import Process
 #import multiprocessing
 #from threading import Thread
 
+from tqdm import tqdm
 import numpy as np
 import pandas as pd
 
 from transposon.data import GeneData, TransposonData
 
 # FUTURE enum.Flag is more appropriate but let us delineate first and revisit
+# TODO SCOTT is the DensityConditions still required since we moved the numpy stuff?
 @unique
 class DensityConditions(IntEnum):
     """Enumerate the conditions where density is calculated with respect to.
-
-    TODO scott, pls add a one liner explanation for each test
 
     Below, inclusive generally can be evaluated as <= or >=
     Exclusive would be < or >
@@ -67,9 +64,6 @@ class DensityConditions(IntEnum):
         WindowStop, the desired amount of TE Bases would be:
         (WindowStop - TE_Start) and then we would divide that by the WindowSize
         to get the density
-
-
-
     """
 
     IN_GENE_ONLY= 0
@@ -77,18 +71,6 @@ class DensityConditions(IntEnum):
     IN_WINDOW_AND_GENE = 2
     IN_WINDOW_NOT_GENE = 3
     IN_WINDOW_AND_GENE_UP_DOWN_STREAM = 4  # TE in window or gene but start or stop is outside window?
-
-
-#-------------------------------------------
-# Directory Movement and Helpers
-
-def cwd():
-    """ Prints the current working directory """
-    print(os.getcwd())
-
-# def ch_main_path():  # TODO remove, not sure where this is needed anymore
-#     """ Change the path to the code data folder """
-#     os.chdir('/home/scott/Documents/Uni/Research/Projects/TE_Density/Code/')
 
 def get_head(Data):
     """ Get the heading of the Pandaframe """
@@ -107,9 +89,6 @@ def save_output(Data, Output_Name):
             sep=',')
     # TODO remove ch_main_path, not sure where this is needed anymore
     #ch_main_path() # change to Code directory
-
-#-------------------------------------------
-# PandaFrame Helper Functions
 
 def get_dtypes(my_df):
     print(my_df.dtypes)
@@ -150,10 +129,7 @@ def split(df, group):
     gb = df.groupby(group)
     return [gb.get_group(x) for x in gb.groups]
 
-#-------------------------------------------
-# Main Functions
-
-def import_genes():
+def import_genes(input_dir):
     """ Import Genes File """
 
     # TODO remove MAGIC NUMBER (perhaps just search by extension (gtf)?)
@@ -166,9 +142,8 @@ def import_genes():
     col_to_use = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
                   'Strand', 'FullName' ]
 
-    global INPUT_DIR  # TODO remove global
     Gene_Data = pd.read_csv(
-            os.path.join(INPUT_DIR, gtf_filename),
+            os.path.join(input_dir, gtf_filename),
             sep='\t+',
             header=None,
             engine='python',
@@ -199,15 +174,13 @@ def import_genes():
     # post-processing
     #col_condition = Gene_Data['Strand'] == '-'
     #Gene_Data = swap_columns(Gene_Data, col_condition, 'Start', 'Stop')
-
     return Gene_Data
 
-
-def import_transposons():
+def import_transposons(input_dir):
     """ Import the TEs """
+
     # TODO remove MAGIC NUMBER (perhaps just search by extension (gtf)?)
     gff_filename = 'camarosa_gff_data.gff' # DECLARE YOUR DATA NAME
-    #ch_input_data_path()
 
     col_names = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
         'Score', 'Strand', 'Frame', 'Attribute']
@@ -215,9 +188,8 @@ def import_transposons():
     col_to_use = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
                  'Strand']
 
-    global INPUT_DIR  # TODO remove global
     TE_Data = pd.read_csv(
-            os.path.join(INPUT_DIR, gff_filename),
+            os.path.join(input_dir, gff_filename),
             sep='\t+',
             header=None,
             engine='python',
@@ -294,11 +266,6 @@ def replace_names(my_TEs):
     my_TEs.SubFamily.replace(master_subfamily, inplace=True)
     return my_TEs
 
-def window_sweep(min, step, max):
-    """Return the windows values to calculate density on."""
-
-    return list(range(min, max, step))
-
 def check_shape(transposon_data):
     """Checks to make sure the columns of the TE data are the same size.
 
@@ -335,55 +302,6 @@ def gene_names(sub_gene_data):
     gene_name_id = 'Gene_Name'
     names = sub_gene_data[gene_name_id].unique()
     return names
-
-def is_inside_only(genes, transposon):
-    """Return where the TE is only inside the gene.
-
-    Args:
-        genes (numpy.array): Jx2, J # of genes, column1 start idx, column2 stop index
-        transposons (numpy.array): array of 2, start idx, stop idx
-    """
-
-    # NOTE just use a loop for now above this for multiple TE
-    # use np.newaxis in the future to broadcast
-    # or can we load a matrix that size in ram?
-
-    t_start = transposon[0]
-    t_stop = transposon[1]
-
-    #g_start = genes[0]
-    #g_stop = genes[1]
-
-    down = t_start >= genes[:,0]
-    up = t_stop <= genes[:,1]
-
-    return np.logical_and(up, down)
-
-
-def in_left_window_only(genes, transposon, window):
-    """ Return where the TE is only inside the window (no overlap with gene)
-        On the left side
-
-    Args:
-        genes (numpy.array): Jx2, J # of genes, column1 start idx, column2 stop index
-        transposons (numpy.array): array of 2, start idx, stop idx
-        window (int): integer value of the current window
-    """
-    t_start = transposon[0]
-    t_stop = transposon[1]
-
-    #np.where(genes - window < 0, genes, 0)
-
-    # NOTE no check for window < 0 being set to 0
-    down = t_start >= genes[:,0] - window # test still passes
-    up = t_stop < genes[:,0] # not inclusive
-
-    return np.logical_and(up, down)
-
-
-def line_overlap(min_a, max_a, min_b, max_b):
-    pass
-
 
 def rho_intra(gene_data, gene_name, transposon_data):
     """Intra density for one gene wrt transposable elements.
@@ -435,7 +353,6 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
     GeneStart so that we may calculate the WindowStart
     WindowStart is unique to each gene. Calculated via Gstart - Window
     WindowStart is the leftmost window
-
 
     Args:
         window (int): integer value of the current window
@@ -553,15 +470,13 @@ def density_algorithm(genes, tes, window, increment, max_window):
 
         # All the commented code below are my attempts to do the work
         #-----------------------------
-
-
         get_head(genes)
         save_output(genes, 'Test_Output.csv')
         window += increment
 
-
 def init_empty_densities(my_genes, my_tes, window):
     """Initializes all of the empty columns we need in the gene file. """
+
     Family_List = my_tes.Family.unique()
     SubFamily_List = my_tes.SubFamily.unique()
     Directions = ['_downstream', '_intra', '_upstream']
@@ -579,87 +494,75 @@ def init_empty_densities(my_genes, my_tes, window):
     my_genes['TEs_inside'] = np.nan
     return my_genes
 
-def check_groupings(grouped_genes, grouped_TEs):
-    """
-    Function to make sure the chromosome pairs of the genes and the TEs are
-    in correct. Checks the first 10 lines of each pair. This is just to make
-    sure that each pair of chromosomes are right. Correct subsetting would be
-    managed by my custom split command, which has been tested.
+def check_groupings(grouped_genes, grouped_TEs, logger):
+    """Validates the gene / TE pairs.
+
+    This is just to make sure that each pair of chromosomes are right.
+    Correct subsetting would be managed by the custom split command.
 
     Args:
         grouped_genes (list of pandaframes): Gene dataframes separated by chromosome
         grouped_TEs (list of pandaframes): TE dataframes separated by chromosome
     """
-    zipped_set = zip(grouped_genes, grouped_TEs)
-    try:
-        for g_element, t_element in zipped_set:
+
+    try:  # TODO SCOTT, pls replace with an if / raise as it is much more concise, -M
+        for g_element, t_element in zip(grouped_genes, grouped_TEs):
             assert g_element.Chromosome.iloc[0:10].values[0] == \
             t_element.Chromosome.iloc[0:10].values[0]
     except AssertionError as error:
-        raise ValueError('Chromosomes do not match for the grouped_genes or grouped_TEs')
+        msg = 'Chromosomes do not match for the grouped_genes or grouped_TEs'
+        logger.critical(msg)
+        raise ValueError(msg)
+
+def validate_args(args, logger):
+    """Raise if an input argument is invalid."""
+
+    if not os.path.isdir(args.input_dir):
+        logger.critical("argument 'input_dir' is not a directory")
+        raise ValueError("%s is not a directory"%(abs_path))
+    if not os.path.isdir(args.output_dir):
+        logger.critical("argument 'output_dir' is not a directory")
+        raise ValueError("%s is not a directory"%(abs_path))
 
 if __name__ == '__main__':
+    """Command line interface to calculate density."""
 
-    logging.basicConfig(level=os.environ.get("LOGLEVEL", "DEBUG"))
     parser = argparse.ArgumentParser(description="calculate TE density")
+    path_main = os.path.abspath(__file__)
     parser.add_argument('input_dir', type=str,
                         help='parent directory of gene & transposon files')
     parser.add_argument('--output_dir', '-o', type=str,
-                        default=os.path.abspath(__file__) + 'Output_Data',
+                        default=os.path.join(path_main, '../..', 'results'),
                         help='parent directory to output results')
+    parser.add_argument('-v', '--verbose',
+                        action='store_true',
+                        help='set debugging level to DEBUG')
     args = parser.parse_args()
+    args.output_dir = os.path.abspath(args.output_dir)
+    args.input_dir = os.path.abspath(args.input_dir)
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    logger = logging.getLogger(__name__)
+    coloredlogs.install(level=log_level)
+    logger.info("start processing directory '%s'"%(args.input_dir))
+    for argname, argval in vars(args).items():
+        logger.debug("%-12s: %s"%(argname, argval))
+    validate_args(args, logger)
 
-    global OUTPUT_DIR  # TODO remove global
-    OUTPUT_DIR = args.output_dir
-    global INPUT_DIR  # TODO remove global
-    INPUT_DIR = args.input_dir
-
-    Gene_Data = import_genes()
+    # FUTURE move this preprocessing to it's object
+    logger.info("importing genes, this may take a moment...")
+    Gene_Data = import_genes(args.input_dir)
     print("\ngene data...")
     get_head(Gene_Data)
     # NOTE grouped_genes is a list of all the data frames
     grouped_genes = split(Gene_Data, 'Chromosome') # check docstring for my split func
 
-
-    TE_Data = import_transposons()
+    logger.info("importing transposons, this may take a moment...")
+    TE_Data = import_transposons(args.input_dir)
     print("\nTE data...")
     get_head(TE_Data)
     grouped_TEs = split(TE_Data, 'Chromosome') # check docstring for my split func
 
-    # TODO SCOTT write func to verify grouped_genes / grouped_TEs are in the same order
-    check_groupings(grouped_genes, grouped_TEs)
-
-    # MAGIC NUMBER defaults
-    # FUTURE parameterize
-
-    for g, t in zip(grouped_genes, grouped_TEs):
-        print(" sub family values...")
-        pdb.set_trace()
-        print(g.SubFamily.values)
-        break
-
-    # windows = window_sweep(1000, 10000, 500)
-    # for sub_gene, sub_transposons in sub_pairs:
-    #     sub_gene_names = gene_names(sub_gene)
-    #     for input in input_sweep(windows, gene_names):
-    #         pass
-    #         #output =
-
-
-
-
-    # At this point I have a subset of genes to iterate over
-    # This subset is on a chromosome by chromosome basis
-    # I will perform my windowing operations on this subset
-    # Perhaps in the future I can add multiprocessing for each chromosome
-    # These groupings are denoted by grouped_genes and grouped_TEs
-
-
-    # Algorithm time, I guess call the workers on the subsets. May have to
-    # check the list of subsets to make sure the appropriate subgenome is
-    # working with the matching subgenome, because they may not be in order in
-    # the list.
-
+    check_groupings(grouped_genes, grouped_TEs, logger)
     # Think of the 7 main "chromosomes" as "meta-chromosomes" in reality there
     # are 4 actual chromosomes per "meta-chromosome" label. So Fvb1 is
     # meta-chromosome 1, and within that Fvb1-1 of genes should only be
@@ -668,10 +571,35 @@ if __name__ == '__main__':
     # chromosome, where the second number is the actual physical chromosome,
     # and we use the number to denote which subgenome it is assigned to.
 
-    density_algorithm(
-                    Gene_Data,
-                    TE_Data,
-                    window=1000,
-                    increment=500,
-                    max_window=10000
-                    )
+    gene_progress = tqdm(total=len(grouped_genes), desc="sub genes", position=0)
+    for sub_gene, sub_te in zip(grouped_genes, grouped_TEs):
+        gene_data = GeneData(sub_gene)
+        te_data = TransposonData(sub_te)
+        # TODO validate the gene / te pair
+
+        # This subset if genes is on a chromosome by chromosome basis
+        # I will perform my windowing operations on this subset
+
+        # FUTURE multiprocess starting here
+        # create workers
+        # create accumulators
+        window_it = lambda : range(100, 1000, 100)  # TODO remove magic numbers, parametrize
+        window_progress = tqdm(total=len(window_it()), desc="windows", position=1)
+        for window in range(100, 4000, 100):
+            # create density request, push
+
+            # density_algorithm(
+            #                 Gene_Data,
+            #                 TE_Data,
+            #                 window=1000,
+            #                 increment=500,
+            #                 max_window=10000
+            #                 )
+
+            time.sleep(0.025)
+            window_progress.update(1)
+        # collapse accumulated results (i.e. do the division)
+        # combine all the results
+        # write to disk
+        gene_progress.update(1)
+        logging.debug("iterate...")
