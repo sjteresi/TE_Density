@@ -12,22 +12,13 @@ __author__ = "Michael Teresi, Scott Teresi"
 
 from multiprocessing import Process, Queue
 
+import numpy as np
+
 
 class LoggerAccumulator(object):
     """Collates logs from the workers."""
 
     # SEE https://gist.github.com/JesseBuesking/10674086
-    pass
-
-class SubDensityAccumulator(Process):
-    """Sums density results for a subset of transposable elements."""
-
-    pass
-
-
-class DensityAccumulatorMap(dict):
-    """Maps a gene name to the accumulated density results."""
-
     pass
 
 
@@ -37,4 +28,22 @@ class DensityAccumulator(object):
     # NOTE maybe use a multiprocessing manager to do the merging?
     # https://stackoverflow.com/questions/8640367/python-manager-dict-in-multiprocessing
 
-    def __init__(self, )
+    def __init__(self, genes, transposons, window):
+        """Initialize.
+
+        Args:
+            genes (transposon.GeneData): gene container.
+            transposons (transposon.TransposonData): transposon container.
+            windows (list(int)): the windows to accumulate.
+
+        """
+
+        self.gene_data = genes
+        n_genes = sum(1 for n in genes.names)
+        self.te_data = transposons
+        self.window = window
+        self.left_overlap = np.zeros()
+
+
+    def accumulate(self, density_result):
+        pass
