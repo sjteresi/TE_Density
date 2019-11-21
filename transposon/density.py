@@ -345,6 +345,12 @@ def rho_intra(gene_data, gene_name, transposon_data):
     check_density_shape(densities,transposon_data)
     return densities
 
+def validate_window(window_start, g0, window):
+    if window_start == 0:
+        window = g0 - window_start
+    return window
+
+
 def rho_left_window(gene_data, gene_name, transposon_data, window):
     """Density to the left (downstream) of a gene.
     When TE is between gene and window
@@ -373,6 +379,7 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
 
     window_start = np.subtract(g0, window)
     window_start = np.clip(window_start, 0, None)  # clamp to [0...inf)
+    window = validate_window(window_start, g0, window)
 
     lower_bound = np.maximum(window_start, transposon_data.starts)
     upper_bound = np.minimum(g0, transposon_data.stops)
@@ -383,6 +390,7 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
         out=np.zeros_like(te_overlaps, dtype='float')
     )
     check_density_shape(densities,transposon_data)
+    #print(densities)
     #assert densities.shape == transpons_data.starts.shape # misspelled, wrote
     #check
     return densities
