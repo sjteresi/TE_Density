@@ -606,8 +606,8 @@ if __name__ == '__main__':
 
             time.sleep(0.025)
             window_progress.update(1)
+            gene_progress.refresh()
         # collapse accumulated results (i.e. do the division)
         # combine all the results
         # write to disk
         gene_progress.update(1)
-        logging.debug("iterate...")
