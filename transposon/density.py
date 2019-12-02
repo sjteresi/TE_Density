@@ -527,10 +527,10 @@ def validate_args(args, logger):
 
     if not os.path.isdir(args.input_dir):
         logger.critical("argument 'input_dir' is not a directory")
-        raise ValueError("%s is not a directory"%(abs_path))
+        raise ValueError("%s is not a directory"%(args.input_dir))
     if not os.path.isdir(args.output_dir):
         logger.critical("argument 'output_dir' is not a directory")
-        raise ValueError("%s is not a directory"%(abs_path))
+        raise ValueError("%s is not a directory"%(args.input_dir))
 
 if __name__ == '__main__':
     """Command line interface to calculate density."""

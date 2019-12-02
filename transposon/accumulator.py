@@ -1,7 +1,19 @@
 #!/usr/bin/env python3
 
 """
-Collates density results.
+Reduces Transposable Element overlaps in order to calculate density.
+
+This module performs the reduce step of a split/merge strategy.
+Density is calculated by 1) finding base pair overlap 2) dividing by relevant area.
+The number of base pair overlap is summed wrt gene/window pairs.
+The density is calculated 
+This optimizes tracking density for many gene/window pairs by
+    summing many overlaps prior to making the division.
+
+    delaying the division call until all overlaps are received.
+The 
+The division call can be delayed for speed until all overlaps are summed.
+Th
 
 Each density is independent, so the processing order is not important.
 Densities are summed for one gene/window pair wrt one TE type.

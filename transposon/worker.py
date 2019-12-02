@@ -99,7 +99,7 @@ class DensityWorker(Process):
         self._logger = logging.getLogger(__name__)
 
         self._families = self._extract_families()
-        self._sub_families = self._exxtract_sub_families()
+        self._sub_families = self._extract_sub_families()
 
     def stop(self):
         """End calculations."""
