@@ -85,8 +85,9 @@ class TransposonData(object):
         self.starts = self.data_frame.Start.to_numpy(copy=False)
         self.stops = self.data_frame.Stop.to_numpy(copy=False)
         self.lengths = self.data_frame.Length.to_numpy(copy=False)
-        self.families = self.data_frame.Family.to_numpy(copy=False)
-        self.sub_families = self.data_frame.SubFamily.to_numpy(copy=False)
+        self.orders = self.data_frame.Family.to_numpy(copy=False)
+        self.superfamilies = self.data_frame.SubFamily.to_numpy(copy=False)
+        # TODO: change input data frame names, Family-->Order, SubFamily-->SuperFamily
 
     def __add__(self, other):
         """Combine transposon data."""
