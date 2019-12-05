@@ -69,7 +69,7 @@ class TransposonData(object):
     """Wraps a transposable elements data frame.
 
     Provides attribute access for the transposons as a whole.
-    Returns numpy arrays to the underlying data, intended to be views.
+    Returns numpy arrays to the underlying data, intended to be read-only views.
     NB: the 'copy' flag of pandas.DataFrame.to_numpy does not necessarily
         ensure that the output is a (no-copy) view.
     """
@@ -80,38 +80,25 @@ class TransposonData(object):
         Args:
             gene_dataframe (DataFrame): transposable element data frame.
         """
-        self.data_frame = transposable_elements_dataframe
-        self.indices = self.data_frame.index.to_numpy(copy=False)
-        self.starts = self.data_frame.Start.to_numpy(copy=False)
-        self.stops = self.data_frame.Stop.to_numpy(copy=False)
-        self.lengths = self.data_frame.Length.to_numpy(copy=False)
-        self.orders = self.data_frame.Family.to_numpy(copy=False)
-        self.superfamilies = self.data_frame.SubFamily.to_numpy(copy=False)
+        self._data_frame = transposable_elements_dataframe
+        self.indices = self._data_frame.index.to_numpy(copy=False)
+        self.starts = self._data_frame.Start.to_numpy(copy=False)
+        self.stops = self._data_frame.Stop.to_numpy(copy=False)
+        self.lengths = self._data_frame.Length.to_numpy(copy=False)
+        self.orders = self._data_frame.Family.to_numpy(copy=False)
+        self.superfamilies = self._data_frame.SubFamily.to_numpy(copy=False)
         # TODO: change input data frame names, Family-->Order, SubFamily-->SuperFamily
 
-    def __add__(self, other):
-        """Combine transposon data."""
+        # TODO run the validate_chromosome
+        self.chromosome_unique_id = ""  # TODO get the 'Chromosome' entry
+        self.order_superfamily_set = set()  # TODO get the set
 
-        # SCOTT this may be useful for testing, would you take a look?
-        # for example, it's easy to make a mocked TE data for a specific family
-        # so if we wanted to handle multiple sub/families we could parametrize
-        # the function to produce one TE wrt sub/family and combine them after
+    def validate_chromosome(self):
+        """Checks if the given data is specific to one chromosome."""
+
         raise NotImplementedError()
 
-class OverlapData(object):
-    """Stores the number of base pairs that overlap the gene name / TE.
+    def scrape_order_superfamily_set(self):
+        """Set of order / superfamilies for the transposable elements."""
 
-    This data is used to calculate density.
-    First, the number of base pairs that overlap the gene name / TE accumulates.
-    Second, the accumulated overlaps are divided by the relevant area,
-        the window size for left/right and the gene length for intra.
-    """
-
-    def __init__(self, genes, transposons, window):
-        """Initialize.
-
-        Args:
-            genes (GeneData): the gene data container.
-            transposons (TransposonData): the transposon data container.
-            window (int): the window to accumulate to.
-        """
+        raise NotImplementedError()

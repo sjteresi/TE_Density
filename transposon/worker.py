@@ -12,38 +12,19 @@ from queue import Empty, Full
 
 from transposon.density import rho_left_window, rho_intra, rho_right_window
 
-from transposon.density import
+class OverlapSplit(object):
+    """Specifies a subset of genes / windows to calculate the overlap for."""
 
-class DensityInput(object):
-    """Contains data to request a density calculation."""
-
-    def __init__(self, gene_name, window):
+    def __init__(self, gene_names, windows):
         """Initializer.
 
         Args:
-            gene_name (str): the gene to calculate density on.
-            window (int): the window size to calculate density on.
+            gene_name (list(str)): names of the genes to use.
+            windows (list(int)): list of window sizes in base pairs.
         """
 
-        assert window >= 0
-        self.gene_name = str(gene_name)
-        self.window = int(window)
-
-class OverlapOutput(object):
-    """Contains a density result, prior to division by relevant area."""
-
-    def __init__(self):
-        """Initializer.
-
-        Args:
-
-        """
-        self.gene_name = str(gene_name)
-        self.window = int(window)
-        self.te_family = str(te_family)
-        self.n_basepairs = int(relevant_basepairs)
-
-
+        self.gene_names = list(gene_names)
+        self.windows = list(windows)
 
 class DensityOutput(object):
     """Contains data on a density result."""
@@ -99,7 +80,7 @@ class DensityWorker(Process):
         self._logger = logging.getLogger(__name__)
 
         self._families = self._extract_families()
-        self._sub_families = self._exxtract_sub_families()
+        self._sub_families = self._extract_sub_families()
 
     def stop(self):
         """End calculations."""

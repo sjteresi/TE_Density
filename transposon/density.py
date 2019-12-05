@@ -424,7 +424,7 @@ def rho_right_window(gene_data, gene_name, transposon_data, window):
     # lower bound gets TE starts to the right of gene stops
     upper_bound = np.minimum(window_stop, transposon_data.stops)
     # upper bound gets TE stops to the left of window stops
-    te_overlaps =  np.maximum(0, upper_bound - lower_bound)
+    te_overlas =  np.maximum(0, upper_bound - lower_bound)
     # NOTE it isn't necessary to divide here, right?
     # the relevant area is constant, keep track of it
     # sum the overlaps *then* calculate using the division
@@ -563,12 +563,15 @@ if __name__ == '__main__':
     get_head(Gene_Data)
     # NOTE grouped_genes is a list of all the data frames
     grouped_genes = split(Gene_Data, 'Chromosome') # check docstring for my split func
+    # TODO cast each item in 'grouped_genes' to a GeneData, check validity
+
 
     logger.info("importing transposons, this may take a moment...")
     TE_Data = import_transposons(args.input_dir)
     print("\nTE data...")
     get_head(TE_Data)
     grouped_TEs = split(TE_Data, 'Chromosome') # check docstring for my split func
+    # TODO cast each item in 'grouped_TEs' to a TransposonData, check validity
 
     check_groupings(grouped_genes, grouped_TEs, logger)
     # Think of the 7 main "chromosomes" as "meta-chromosomes" in reality there
@@ -583,18 +586,23 @@ if __name__ == '__main__':
     for sub_gene, sub_te in zip(grouped_genes, grouped_TEs):
         gene_data = GeneData(sub_gene)
         te_data = TransposonData(sub_te)
+
+        logger.info("there are {} transposable elements".format(te_data.indices.size))
+        logger.info("there are {} orders".format(te_data.orders.size))
+        logger.info("there are {} superfamilies".format(te_data.superfamilies.size))
         # TODO validate the gene / te pair
 
         # This subset if genes is on a chromosome by chromosome basis
         # I will perform my windowing operations on this subset
 
-        # FUTURE multiprocess starting here
-        # create workers
-        # create accumulators
-        window_it = lambda : range(100, 1000, 100)  # TODO remove magic numbers, parametrize
+        window_it = lambda : range(100, 2000, 100)
         window_progress = tqdm(total=len(window_it()), desc="windows", position=1)
-        for window in range(100, 4000, 100):
+        for window in window_it():
             # create density request, push
+
+            # FUTURE multiprocess starting here
+            # create workers
+            # create accumulators
 
             # density_algorithm(
             #                 Gene_Data,
