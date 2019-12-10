@@ -23,25 +23,30 @@ class Overlap(object):
     """Functions for calculating overlap."""
 
     @static_method
-    def left_intra_right(gene_data, gene_name, transposon_data, window):
-        """The three overlap values."""
-
-        raise NotImplementedError()
-
-    @static_method
     def left(gene_data, gene_name, transposon_data, window):
         """Overlap to the left (aka downstream) of the gene.
 
-        Number base pair overlap of the TE to the given gene and window.
+        Number base pair overlap between the TE / gene on the relevant distance.
+
+        Args:
+            gene_data (GeneData): the genes.
+            gene_name (str): gene the calculate with respect to.
+            transposon_data (TransposonData): the transposons.
+            window (int): no. base pairs from gene to calculate overlap.
         """
 
         raise NotImplementedError()
 
     @static_method
-    def intra(gene_data, gene_name, transposon_data, window):
+    def intra(gene_data, gene_name, transposon_data):
         """Overlap to the gene itself.
 
-        Number base pair overlap of the TE to the given gene and window.
+        Number base pair overlap between the TE / gene on the relevant distance.
+
+        Args:
+            gene_data (GeneData): the genes.
+            gene_name (str): gene the calculate with respect to.
+            transposon_data (TransposonData): the transposons.
         """
 
         raise NotImplementedError()
@@ -50,7 +55,13 @@ class Overlap(object):
     def left(gene_data, gene_name, transposon_data, window):
         """Overlap to the right (aka upstream) of the gene.
 
-        Number base pair overlap of the TE to the given gene and window.
+        Number base pair overlap between the TE / gene on the relevant distance.
+
+        Args:
+            gene_data (GeneData): the genes.
+            gene_name (str): gene the calculate with respect to.
+            transposon_data (TransposonData): the transposons.
+            window (int): no. base pairs from gene to calculate overlap.
         """
 
         raise NotImplementedError()
@@ -60,6 +71,7 @@ class OverlapData(object):
     """Contains no. of base pairs overlapping between the TEs and a gene.
 
     Tracks overlap for one *and only one* gene on one *and only one* chromosome.
+    Designed for one split of the gene data: one gene, all TE, all windows.
     """
 
     def __init__(self, chromosome, gene, transposons, windows):
@@ -72,18 +84,36 @@ class OverlapData(object):
 
         """
 
-        self._chromosome = str(chromosome)
-        self._gene = str(gene)
+        self._chromosome_name = str(chromosome)
+        self._gene_name = str(gene)
         self._te_categories = []  # TODO get from TransposonData
         self._te_category_to_idx = {}  # TODO get from TransposonData
-        self._data = None
+        self._left = None
+        self._intra = None
+        self._right = None
+
+    @property
+    def chromosome_name(self):
+        """The name of the chromosome that the gene / TEs were on."""
+
+        return self._chromosome_name
+
+    @property
+    def gene_name(self):
+        """The name of the gene the TEs were compared to."""
+
+        return self._gene_name
 
     @class_method
-    def calculate(self, transposons, genes, gene_name, windows)
+    def calculate(self, transposons, genes, gene_name, windows):
+
+
 
     def __add__(self, other):
         """Sum overlapped counters with another instance."""
 
+        # NOTE may want to remove this in order to simplify
+        # leave it to the reducer?
         raise NotImplementedError()
 
     def write(self):
@@ -96,7 +126,7 @@ class OverlapData(object):
 
         raise NotImplementedError()
 
-    @statc
+    @static_method
     def _zero_array(te_categories, window_list):
         """Return an empty array for storing the overlap."""
 

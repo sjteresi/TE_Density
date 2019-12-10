@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Wrappers for the data.
+Wrappers for the input data.
 
 Design:
     Downstream work operates with one gene combined with many TEs, so:
@@ -15,6 +15,9 @@ Future:
 """
 
 __author__ = "Michael Teresi"
+
+
+import logging
 
 
 class GeneData(object):
@@ -74,29 +77,59 @@ class TransposonData(object):
         ensure that the output is a (no-copy) view.
     """
 
-    def __init__(self, transposable_elements_dataframe):
+    def __init__(self, transposable_elements_dataframe, logger=None):
         """Initialize.
 
         Args:
             gene_dataframe (DataFrame): transposable element data frame.
         """
         self._data_frame = transposable_elements_dataframe
-        self.indices = self._data_frame.index.to_numpy(copy=False)
-        self.starts = self._data_frame.Start.to_numpy(copy=False)
-        self.stops = self._data_frame.Stop.to_numpy(copy=False)
-        self.lengths = self._data_frame.Length.to_numpy(copy=False)
-        self.orders = self._data_frame.Family.to_numpy(copy=False)
-        self.superfamilies = self._data_frame.SubFamily.to_numpy(copy=False)
-        # TODO: change input data frame names, Family-->Order, SubFamily-->SuperFamily
+        self._logger = logger or logging.getLogger(__name__)
+        try:
+            self.indices = self._data_frame.index.to_numpy(copy=False)
+            self.starts = self._data_frame.Start.to_numpy(copy=False)
+            self.stops = self._data_frame.Stop.to_numpy(copy=False)
+            self.lengths = self._data_frame.Length.to_numpy(copy=False)
+            self.orders = self._data_frame.Family.to_numpy(copy=False)
+            self.superfamilies = self._data_frame.SubFamily.to_numpy(copy=False)
+        except AttributeError as aerr:
+            self._logger.crtical("missing expected data frame column in TE")
+            raise aerr
 
-        # TODO run the validate_chromosome
+        # TODO: change input data frame names, Family-->Order, SubFamily-->SuperFamily
         self.chromosome_unique_id = ""  # TODO get the 'Chromosome' entry
         self.order_superfamily_set = set()  # TODO get the set
+
+        # self.validate_chromosome()  # TODO implement this func
+        self.validate_shape()
 
     def validate_chromosome(self):
         """Checks if the given data is specific to one chromosome."""
 
         raise NotImplementedError()
+
+    def validate_shape(self):
+        """Raises if the dimensions of the data are invalid.
+
+        If the shapes don't match then there are records that are incomplete,
+            as in an entry (row) does have all the expected fields (column).
+        """
+
+        start = self.starts.shape
+        stop = self.stops.shape
+        base_msg = "incomplete records in input TE data"
+        if start != stop:
+            self._logger.critical(base_msg)
+            raise ValueError("input shape mismatch: start {} != stop {}"
+                             .format(start, stop))
+
+        length = self.lengths.shape
+        if start != length:
+            self._logger.critical(base_msg)
+            raise ValueError("input shape mismatch: start {} != length {}"
+                             .format(start, length))
+
+        # TODO add other checks, e.g. orders, superfamilies
 
     def scrape_order_superfamily_set(self):
         """Set of order / superfamilies for the transposable elements."""

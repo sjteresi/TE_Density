@@ -315,13 +315,7 @@ def rho_intra(gene_data, gene_name, transposon_data):
     """
 
     g0, g1, gL = gene_data.start_stop_len(gene_name)
-    # SCOTT pls replace asserts with `raise ValueError`
-    # this is so the worker can fail gracefully rather than crashing
-    # at the very least there should be a custom string for what was wrong
-    # a better solution could be to subclass ValueError for the particular problem
-    #assert transposon_data.starts.shape == transposon_data.stops.shape
-    #assert transposon_data.starts.shape == transposon_data.lengths.shape
-    check_shape(transposon_data)
+    transposon_data.validate_shape()  # TODO remove once this is definately called in the initalizer
 
     # SOTT shouldn't the lower be the start and the upper use the stops?
     lower = np.minimum(g1, transposon_data.stops)
@@ -369,13 +363,7 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
     # the window for the sake of division later when you try to check values.
 
     g0, g1, gL = gene_data.start_stop_len(gene_name)
-    # SCOTT pls replace asserts with `raise ValueError`
-    # this is so the worker can fail gracefully rather than crashing
-    # at the very least there should be a custom string for what was wrong
-    # a better solution could be to subclass ValueError for the particular problem
-    #assert transposon_data.starts.shape == transposon_data.stops.shape
-    #assert transposon_data.starts.shape == transposon_data.lengths.shape
-    check_shape(transposon_data)
+    transposon_data.validate_shape()  # TODO remove once this is definately called in the initalizer
 
     window_start = np.subtract(g0, window)
     window_start = np.clip(window_start, 0, None)  # clamp to [0...inf)
@@ -410,14 +398,9 @@ def rho_right_window(gene_data, gene_name, transposon_data, window):
     """
 
     g0, g1, gL = gene_data.start_stop_len(gene_name)
-    # SCOTT pls replace asserts with `raise ValueError`
-    # this is so the worker can fail gracefully rather than crashing
-    # at the very least there should be a custom string for what was wrong
-    # a better solution could be to subclass ValueError for the particular problem
+    transposon_data.validate_shape()  # TODO remove once this is definately called in the initalizer
+
     assert g0.shape == ()  # NOTE it's one np.uint32, is there a better way to check?
-    check_shape(transposon_data)
-    #assert transposon_data.starts.shape == transposon_data.stops.shape
-    #assert transposon_data.starts.shape == transposon_data.lengths.shape
 
     window_stop = np.add(g1, window)
     lower_bound = np.maximum(g1, transposon_data.starts)
