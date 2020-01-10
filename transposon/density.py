@@ -323,6 +323,9 @@ def rho_intra(gene_data, gene_name, transposon_data):
     #assert transposon_data.starts.shape == transposon_data.lengths.shape
     check_shape(transposon_data)
 
+
+
+
     # SOTT shouldn't the lower be the start and the upper use the stops?
     lower = np.minimum(g1, transposon_data.stops)
     upper = np.maximum(g0, transposon_data.starts)
@@ -331,7 +334,10 @@ def rho_intra(gene_data, gene_name, transposon_data):
     # NOTE is the stop value inclusive or exclusive? the length values imply inclusive
     # and this code works for exclusive...
     te_overlaps =  np.maximum(0, lower - upper)
+    genes_length = gene_data.length
 
+    print(type(te_overlaps))
+    print(type(genes_length))
     densities = np.divide(
         te_overlaps,
         genes_length,
