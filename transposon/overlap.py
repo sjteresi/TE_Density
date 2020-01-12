@@ -173,8 +173,8 @@ class OverlapReducer(object):
 
 
 
-    def accumulate(self, gene_name, )
-    LEFT OFF HERE
+    def accumulate(self, gene_name,
+
 
     @static_method
     def overlap_matrix(self):
