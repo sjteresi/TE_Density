@@ -31,6 +31,23 @@ from transposon.data import GeneData, TransposonData
 
 WINDOWS = [2, 4, 8]
 
+class MockData(object):
+
+    def __init__(self, g_0, g1, t_1, t_0, window):
+
+        self.gene = None  # TODO scott, add GeneData
+        self.transposon = None  # TODO scott, add TransposonData
+        self.gene_name = None  # TODO scott, add str
+        self.window  = None  # TODO scott, add int
+        # TODO scott, take input and validate like in the function
+        self.window = validate_window(window_start, gene_start, window)
+        self.description = ""  # TODO scott, add info on usage?
+
+        # NOTE add expected overlap / density funcs?
+
+    @property
+    def gene_start(self):
+        return self.gene.start(self.gene_name)
 
 def mock_gene_data(start_stop=np.array([[0, 9], [10, 19], [20, 29]]) ):
     """Gene data for given the start/stop indices.
