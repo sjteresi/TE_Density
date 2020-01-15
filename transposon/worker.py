@@ -12,7 +12,9 @@ from queue import Empty, Full
 
 from transposon.density import rho_left_window, rho_intra, rho_right_window
 
-from transposon.density import
+# NOTE Michael I cleared this since it was giving trouble to the pytest for
+# whatever reason
+#from transposon.density import
 
 class DensityInput(object):
     """Contains data to request a density calculation."""
@@ -148,12 +150,12 @@ class DensityWorker(Process):
     def _validate_input(self, rho_input):
         raise NotImplementedError()
 
-    @static_method
+    @staticmethod
     def _extract_families(self, transposons):
         """Return set of the TE families."""
         raise NotImplementedError()
 
-    @static_method
+    @staticmethod
     def _extract_sub_families(self, transposons):
         """Return set of the TE sub-families."""
         raise NotImplementedError()
@@ -163,8 +165,8 @@ class DensityWorker(Process):
         raise NotImplementedError()
 
 
-    @static_method
-    def _calc_density(rho_input, genes, transposons logger):
+    @staticmethod
+    def _calc_density(rho_input, genes, transposons, logger):
         """Caculate the transposable element densities.
 
         This is the target function of the worker.
@@ -187,8 +189,8 @@ class DensityWorker(Process):
             genes.start(name),
             genes.stop(name),
             rho_input.window,
-            transposons.starts
-            transposons.stops
+            transposons.starts,
+            transposons.stops,
             transposons.lengths
         )
         intra = rho_intra(
@@ -203,10 +205,12 @@ class DensityWorker(Process):
             genes.start(name),
             genes.stop(name),
             rho_input.window,
-            transposons.starts
-            transposons.stops
+            transposons.starts,
+            transposons.stops,
             transposons.lengths
         )
         densities = DensityOutput()
         densities.input = rho_input
-        densities.
+        # NOTE Michael I cleared this since it was giving trouble to the pytest for
+        # whatever reason
+        #densities.

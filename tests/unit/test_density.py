@@ -21,8 +21,6 @@ import numpy as np
 import pandas as pd
 
 from transposon.density import rho_intra
-#from transposon.density import is_inside_only
-#from transposon.density import in_left_window_only
 from transposon.density import rho_left_window
 from transposon.density import rho_right_window
 from transposon.density import validate_window
@@ -31,23 +29,6 @@ from transposon.data import GeneData, TransposonData
 
 WINDOWS = [2, 4, 8]
 
-class MockData(object):
-
-    def __init__(self, g_0, g1, t_1, t_0, window):
-
-        self.gene = None  # TODO scott, add GeneData
-        self.transposon = None  # TODO scott, add TransposonData
-        self.gene_name = None  # TODO scott, add str
-        self.window  = None  # TODO scott, add int
-        # TODO scott, take input and validate like in the function
-        self.window = validate_window(window_start, gene_start, window)
-        self.description = ""  # TODO scott, add info on usage?
-
-        # NOTE add expected overlap / density funcs?
-
-    @property
-    def gene_start(self):
-        return self.gene.start(self.gene_name)
 
 def mock_gene_data(start_stop=np.array([[0, 9], [10, 19], [20, 29]]) ):
     """Gene data for given the start/stop indices.
@@ -61,7 +42,7 @@ def mock_gene_data(start_stop=np.array([[0, 9], [10, 19], [20, 29]]) ):
     for gi in range(n_genes):
         g0 = start_stop[gi, 0]
         g1 = start_stop[gi, 1]
-        gL = g1 - g0
+        gL = g1 - g0 + 1
         name = "gene_{}".format(gi)
         datum = [name, g0, g1, gL]
         data.append(datum)
@@ -87,7 +68,7 @@ def mock_te_data(start_stop):
     for gi in range(n_genes):
         g0 = start_stop[gi, 0]
         g1 = start_stop[gi, 1]
-        gL = g1 - g0
+        gL = g1 - g0 + 1
         # FUTURE may want to parametrize sub family name later
         subfam_suffix = "A" if gi%2 else "B"
         subfamily = "SubFamily_{}".format(subfam_suffix)
@@ -97,245 +78,376 @@ def mock_te_data(start_stop):
     frame = pd.DataFrame(data, columns=columns)
     return TransposonData(frame)
 
+class MockData(object):
 
+    def __init__(self, g_start, g_stop, t_start, t_stop, window, expected_rho_left,
+                expected_rho_right, expected_rho_intra, description = 'Test'):
 
+        self.Gene = mock_gene_data(np.array([[g_start, g_stop]]))
+        self.Transposon = mock_te_data(np.array([[t_start, t_stop]]))
+        self.gene_name = 'gene_0'  # TODO scott, add str
 
-def test_rho_only_inside_one_on_gene():
-    """Does ONLY INSIDE work when one end of the TE is on edge of a gene?
-    genes = gene_array()
-    transposons = genes
-    transposons[:,1] = np.subtract(transposons[:,1], 1)
+        window_start = np.subtract(np.array([g_start]), window)
+        window_start = np.clip(window_start, 0, None)
+        self.window = validate_window(window_start, np.array([g_start]), window)
+        self.expected_rho_left = expected_rho_left
+        self.expected_rho_intra = expected_rho_intra
+        self.expected_rho_right = expected_rho_right
+        self.description = description
 
-    for t_i in range(transposons.shape[0]):
-        hit = is_inside_only(genes, transposons[t_i, :])
-        assert hit[t_i]
-        hit[t_i] = False
-        assert np.all(np.invert(hit))
-    """
-    pass
+        # NOTE add expected overlap / density funcs?
 
-def test_rho_in_left_window_only():
-    # TODO should rename test
-    """Does ONLY INSIDE work when TE is on window?
-    genes = gene_array()
-    transposons = np.copy(genes)
-    transposons[:,1] = np.subtract(transposons[:,1], 11) # put TEs in left
-    transposons[:,0] = np.subtract(transposons[:,0], 2)
-    window = 5
+    @property
+    def gene_start(self):
+        return self.gene.start(self.gene_name)
 
-    for t_i in range(transposons.shape[0]):
-        #print(genes)
-        #print(transposons[t_i, :])
-        hit = in_left_window_only(genes, transposons[t_i, :], window)
-        assert hit[t_i]
-        hit[t_i] = False
-        assert np.all(np.invert(hit))
-    """
-    pass
+    @property
+    def gene_stop(self):
+        return self.gene.stop(self.gene_name)
 
-def test_intra_density_congruent():
-    """Does the intra density return 1 when the TE is the same as gene?
+    @property
+    def transposon_start(self):
+        return self.Transposon.starts[0]
 
-    genes = np.array([[0, 9], [10, 19], [20, 29]])
-    transposon = genes[1, :]
-    g0 = genes[:,0]
-    g1 = genes[:,1]
-    gl = g1 - g0 # MAGIC NUMBER the data uses an inclusive stop
-    t0 = transposon[0]
-    t1 = transposon[1]
-    rhos = rho_intra(g0, g1, gl, t0, t1)
-    expected_rhos = np.array([0, 1.0, 0])
-    assert np.all(rhos == expected_rhos)
-    """
-    pass
+    @property
+    def transposon_stop(self):
+        return self.Transposon.stops[0]
 
-def test_intra_density_partial():
-    """Does the intra density return 1 when the TE is the same as gene?
-    genes = np.array([[0, 10], [200, 300], [1000, 1500]])
-    transposon = np.array([225,275])
-    g_start = genes[:,0]
-    g_stop = genes[:,1]
-    g_length = g_stop - g_start # MAGIC NUMBER the data uses an inclusive stop
-    t_start = transposon[0]
-    t_stop = transposon[1]
-    rhos = rho_intra(g_start, g_stop, g_length, t_start, t_stop)
-    expected_rhos = np.array([0, 0.5, 0])
-    assert np.all(rhos == expected_rhos)
-    """
-    pass
+# Test Cases
+# At first the expected_rho values are for testing the rho_left_window function
+# later I will modify the expected_rho values for the intra and right window
+# calculations
 
-@pytest.mark.parametrize("start_stop, window, te_extend_start, te_extend_stop",
+# General Cases
+Left_Win_Only = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 700,
+    t_stop = 800,
+    window = 500,
+    expected_rho_left = 101/501,
+    expected_rho_intra = 0,
+    expected_rho_right = 0,
+    description = 'In left window only')
+
+Right_Win_Only = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 2700,
+    t_stop = 2800,
+    window = 1000,
+    expected_rho_left = 0,
+    expected_rho_intra = 0,
+    expected_rho_right = 101/1001,
+    description = 'In right window only')
+
+Left_Outside_Win_End_Inside_Win = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 400,
+    t_stop = 800,
+    window = 500,
+    expected_rho_left = 302/501,
+    expected_rho_intra = 0,
+    expected_rho_right = 0,
+    description = '''Left: Start outside window & end
+        inside window''')
+
+Right_Inside_Win_End_Outside_Win= MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 2400,
+    t_stop = 2700,
+    window = 500,
+    expected_rho_left = 0,
+    expected_rho_intra = 0,
+    expected_rho_right = np.divide(102,501),
+    description = '''Right: Begin inside window & end
+        outside window''')
+#4
+Left_Inside_Win_End_Inside_Gene = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 800,
+    t_stop = 1500,
+    window = 500,
+    expected_rho_left = 200/501,
+    expected_rho_intra = 501/1001,
+    expected_rho_right = 0,
+    description = 'Left: Start in window, end in gene')
+
+Right_Inside_Gene_End_Inside_Win = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 1500,
+    t_stop = 2200,
+    window = 500,
+    expected_rho_left = 0,
+    expected_rho_intra = 501/1001,
+    expected_rho_right = 200/501,
+    description = 'Right: Start in gene, end in window')
+
+Inside_Gene_Only = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 1500,
+    t_stop = 1700,
+    window = 500,
+    expected_rho_left = 0,
+    expected_rho_intra = 201/1001,
+    expected_rho_right = 0,
+    description = 'In gene only')
+
+# 7
+Overlap_Gene_Full = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 1000,
+    t_stop = 2000,
+    window = 500,
+    expected_rho_left = 0,
+    expected_rho_intra = 1,
+    expected_rho_right = 0,
+    description = 'In gene full overlap')
+
+# Exceptional Cases
+Left_Outside_Win_End_Inside_Gene = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 300,
+    t_stop = 1200,
+    window = 500,
+    expected_rho_left = 1,
+    expected_rho_intra = 201/1001,
+    expected_rho_right = 0,
+    description = '''Left: Start outside window, end
+        inside gene''')
+# 9
+Right_Inside_Gene_End_Outside_Win = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 1250,
+    t_stop = 2600,
+    window = 500,
+    expected_rho_left = 0,
+    expected_rho_intra = np.divide(751, 1001),
+    expected_rho_right = 1,
+    description = '''Right: Start inside gene, end
+        outside window''')
+
+Left_Win_To_Right_Win = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 800,
+    t_stop = 2200,
+    window = 500,
+    expected_rho_left = 200/501,
+    expected_rho_intra = 1,
+    expected_rho_right = 200/501,
+    description = 'Cover gene, start and end in windows')
+
+Left_Outside_Win_Right_Outside_Win = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 300,
+    t_stop = 2800,
+    window = 500,
+    expected_rho_left = 1,
+    expected_rho_intra = 1,
+    expected_rho_right = 1,
+    description = 'Cover gene, start and end outside both windows')
+# 12
+Left_Inside_Win_Right_Inside_Win = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 700,
+    t_stop = 2372,
+    window = 500,
+    expected_rho_left = 300/501,
+    expected_rho_intra = 1,
+    expected_rho_right = 372/501,
+    description = 'Start inside left window, end inside right window')
+
+Left_Inside_Win_Right_Inside_Win_V2 = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 701,
+    t_stop = 2372,
+    window = 500,
+    expected_rho_left = 299/501,
+    expected_rho_intra = 1,
+    expected_rho_right = 372/501,
+    description = 'Start inside left window, end inside right window')
+
+Left_Outside_Win_Right_Inside_Win = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 300,
+    t_stop = 2248,
+    window = 500,
+    expected_rho_left = 1,
+    expected_rho_intra = 1,
+    expected_rho_right = np.divide(248,501),
+    description = 'Start outside left window, end inside right window')
+
+Left_Inside_Win_Right_Outside_Win = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 879,
+    t_stop = 2800,
+    window = 500,
+    expected_rho_left = 121/501,
+    expected_rho_intra = 1,
+    expected_rho_right = 1,
+    description = 'Start inside left window, end outside right window')
+
+# Edge Cases
+# 16
+Left_On_WinStart_End_On_GeneLeft = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 500,
+    t_stop = 1000,
+    window = 500,
+    expected_rho_left = 500/501,
+    expected_rho_intra = np.divide(1,1001),
+    expected_rho_right = 0,
+    description = 'Start inside left window, end outside right window')
+
+Intra_Edge_V1 = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 600,
+    t_stop = 1000,
+    window = 500,
+    expected_rho_left = 400/501,
+    expected_rho_intra = np.divide(1,1001),
+    expected_rho_right = 0,
+    description = 'Test')
+
+Intra_Edge_V2 = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 2000,
+    t_stop = 2200,
+    window = 500,
+    expected_rho_left = 0,
+    expected_rho_intra = np.divide(1,1001),
+    expected_rho_right = 200/501,
+    description = 'Test')
+
+Intra_Edge_V3 = MockData(
+    g_start = 1000,
+    g_stop = 2000,
+    t_start = 1001,
+    t_stop = 1999,
+    window = 500,
+    expected_rho_left = 0,
+    expected_rho_intra = np.divide(999,1001),
+    expected_rho_right = 0,
+    description = 'Test')
+
+@pytest.mark.parametrize("MockData_Obj",
                         [
-                            # On the gene
-                            (np.array([[2000,3000]]),500,0,0),
-
-                            # TE only in window
-                            (np.array([[2000,3000]]),500,300,1100),
-
-                            # Make sure the left hand window doesn't turn
-                            # negative
-                            (np.array([[7000,9000]]),10000,200,0),
-
-                            # Completely swamping the window
-                            (np.array([[2225,3000]]),200,251,0),
-
-                            # Start outside end inside window
-                            (np.array([[2000,3000]]),300,500,1200),
-
-                            # Start outside end ON gene start
-                            (np.array([[2000,3000]]),500,1000,1000),
-
-                            # Start outside end ON gene stop
-                            (np.array([[2000,3000]]),500,1000,0),
-
-                            # Start outside end inside gene
-                            (np.array([[2000,3000]]),500,1000,900),
-
-                            # Completely cover the gene, but not the left window
-                            (np.array([[2000,3000]]),500,400,-100),
-
-                            # Completely cover the gene, and the window
-                            (np.array([[2000,3000]]),500,600,-100)
-
+                        Left_Win_Only,
+                        Right_Win_Only,
+                        Left_Outside_Win_End_Inside_Win,
+                        Right_Inside_Win_End_Outside_Win,
+                        Left_Inside_Win_End_Inside_Gene,
+                        Right_Inside_Gene_End_Inside_Win,
+                        Inside_Gene_Only,
+                        Overlap_Gene_Full,
+                        Left_Outside_Win_End_Inside_Gene,
+                        Right_Inside_Gene_End_Outside_Win,
+                        Left_Win_To_Right_Win,
+                        Left_Outside_Win_Right_Outside_Win,
+                        Left_Inside_Win_Right_Inside_Win,
+                        Left_Inside_Win_Right_Inside_Win_V2,
+                        Left_Outside_Win_Right_Inside_Win,
+                        Left_Inside_Win_Right_Outside_Win,
+                        Left_On_WinStart_End_On_GeneLeft,
+                        Intra_Edge_V1,
+                        Intra_Edge_V2
                         ]
                         )
-def test_rho_left_window(start_stop, window, te_extend_start, te_extend_stop):
+def test_rho_left_window(MockData_Obj):
     """
-    Args:
-        te_extend_start (int):
-        te_extend_stop (int):
-            Modifications are relative to the gene's values
-
-    Does the correct window density return when TE is in the lefthand window?
+    Test the left window
     """
+    rhos = rho_left_window(MockData_Obj.Gene,
+                           'gene_0', # fake name needed because of GeneData
+                           MockData_Obj.Transposon,
+                           MockData_Obj.window)
+    expected_rho_lefts = np.array([MockData_Obj.expected_rho_left])
+    assert np.all(rhos == expected_rho_lefts)
 
-    genes = mock_gene_data(start_stop)
-    # move the TE start to the left using the 'te_extend' param
-    # OLD
-    #transposons = mock_te_data(start_stop[0,:] - np.array([[te_extend, 0]]))
-
-    # NEW
-    transposons = mock_te_data(start_stop[0,:] - np.array([[te_extend_start,
-                                                            te_extend_stop]]))
-    gene_name = list(genes.names)[0]  # MAGIC NUMBER just use the first one
-    gene_start = start_stop[0,:][0]
-    window_start = np.subtract(gene_start, window)
-    window_start = np.clip(window_start, 0, None)
-    window = validate_window(window_start, gene_start, window)
-
-    rhos = rho_left_window(genes, gene_name, transposons, window)
-
-
-    #print(" expected {}".format(expected_rhos))
-    #print(" rhos {}".format(rhos))
-    #print(f"Window Size: {window}")
-    #print(f"Window Start: {window_start}")
-    #print(f"Extend: {te_extend_start}")
-    #print(f"Genes: {start_stop}")
-    #print(f"TE Starts and Stops: {transposons.starts} {transposons.stops}")
-
-    # TODO Michael, I am not sure what to do here. I can't figure out how to
-    # correctly validate the instance where a TE is purely within the left hand
-    # window, our functions calculate the correct value, but our expected_rhos
-    # are actually incorrect in those instances. So the issues is that we need
-    # to write a correct check value. We need to rewrite te expected value
-    if transposons.stops[0] >= gene_start:
-        expected = min(te_extend_start / window, 1)
-        expected_rhos = np.array([expected])
-        assert np.all(rhos == expected_rhos)
-    if transposons.stops[0] < gene_start:
-        # TODO fix
-
-        expected_rhos = rhos # temporary stopgap
-        assert np.all(rhos == expected_rhos)
-
-    #print(f"expected_rhos: {expected_rhos}")
-    #print()
-
-
-
-@pytest.mark.parametrize("start_stop, window, te_extend_start, te_extend_stop",
+@pytest.mark.parametrize("MockData_Obj",
                         [
-                            # Cover gene and end in window
-                            (np.array([[1000,2000]]),100,0,50),
-
-                            # Start inside gene and end in window
-                            (np.array([[1000,2000]]),500,100,200),
-
-                            # Start inside gene and end outside window
-                            (np.array([[1000,2000]]),500,100,600),
-
-                            # Start on gene and end outside window
-                            (np.array([[1000,2000]]),500,0,600),
-
-                            # Only in the window
-                            (np.array([[1000,2000]]),500,1100,200),
-
-                            # Start in window and end outside window
-                            (np.array([[1000,2000]]),500,1100,700),
-
+                        Left_Win_Only,
+                        Right_Win_Only,
+                        Left_Outside_Win_End_Inside_Win,
+                        Right_Inside_Win_End_Outside_Win,
+                        Left_Inside_Win_End_Inside_Gene,
+                        Right_Inside_Gene_End_Inside_Win,
+                        Inside_Gene_Only,
+                        Overlap_Gene_Full,
+                        Left_Outside_Win_End_Inside_Gene,
+                        Right_Inside_Gene_End_Outside_Win,
+                        Left_Win_To_Right_Win,
+                        Left_Outside_Win_Right_Outside_Win,
+                        Left_Inside_Win_Right_Inside_Win,
+                        Left_Outside_Win_Right_Inside_Win,
+                        Left_Inside_Win_Right_Outside_Win,
+                        Left_On_WinStart_End_On_GeneLeft,
+                        Intra_Edge_V1,
+                        Intra_Edge_V2,
+                        Intra_Edge_V3
                         ]
                         )
-def test_rho_right_window(start_stop, window, te_extend_start, te_extend_stop):
+def test_rho_right_window(MockData_Obj):
     """
-    Does the correct window density return when TE is in the righthand window?
-    Args:
-        start_stop: 2D numpy array with only one row. Shape (1,2)
-        window: integer of the window extension to be applied to the stop value
+    Test the right window
     """
-    # TODO we need to fix the expected rhos for this. I have validated the
-    # above tests by hand but the "expected" values are oftentimes incorrect
-    genes = mock_gene_data(start_stop)
-    # move the TE start to the right using the 'extend' param
-    transposons = mock_te_data(start_stop[0,:] + np.array([[te_extend_start,
-                                                            te_extend_stop]]))
-    gene_name = list(genes.names)[0]  # MAGIC NUMBER just use the first one
-    gene_stop = start_stop[0,:][1]
-    rhos = rho_right_window(genes, gene_name, transposons, window)
-    expected = min(te_extend_stop / window, 1)
-    expected_rhos = np.array([expected])
-    print(" expected {}".format(expected_rhos))
-    print(" rhos {}".format(rhos))
-    print(f"Window Size: {window}")
-    print(f"Extend: {te_extend_stop}")
-    print(f"Genes: {start_stop}")
-    print(f"TE Starts and Stops: {transposons.starts} {transposons.stops}")
-    print()
+    rhos = rho_right_window(MockData_Obj.Gene,
+                           'gene_0', # fake name needed because of GeneData
+                           MockData_Obj.Transposon,
+                           MockData_Obj.window)
+    expected_rho_rights = np.array([MockData_Obj.expected_rho_right])
+    #print(MockData_Obj.expected_rho_right)
+    assert np.all(rhos == expected_rho_rights)
 
-    # TODO Michael, same as rho_left, the way our expected values are
-    # caluclated are wrong. The function calculates the correct true values,
-    # but the expected values can be wrong if a TE is only inside the window.
-    if transposons.starts[0] <= gene_stop:
-        expected = min(te_extend_stop / window, 1)
-        expected_rhos = np.array([expected])
-        assert np.all(rhos == expected_rhos)
-    if transposons.starts[0] > gene_stop:
-        # TODO fix
-        expected_rhos = rhos # temporary stopgap
-        assert np.all(rhos == expected_rhos)
-
-    #assert np.all(rhos == expected_rhos)
-
-@pytest.mark.parametrize("start_stop, te_extend_start, te_extend_stop",
+@pytest.mark.parametrize("MockData_Obj",
                         [
-                            # Cover gene and end in window
-                            (np.array([[1000,2000]]),0,0),
+                        Left_Win_Only,
+                        Right_Win_Only,
+                        Left_Outside_Win_End_Inside_Win,
+                        Right_Inside_Win_End_Outside_Win,
+                        Left_Inside_Win_End_Inside_Gene,
+                        Right_Inside_Gene_End_Inside_Win,
+                        Inside_Gene_Only,
+                        Overlap_Gene_Full,
+                        Left_Outside_Win_End_Inside_Gene,
+                        Right_Inside_Gene_End_Outside_Win,
+                        Left_Win_To_Right_Win,
+                        Left_Outside_Win_Right_Outside_Win,
+                        Left_Inside_Win_Right_Inside_Win,
+                        Left_Outside_Win_Right_Inside_Win,
+                        Left_Inside_Win_Right_Outside_Win,
+                        Left_On_WinStart_End_On_GeneLeft,
+                        Intra_Edge_V1,
+                        Intra_Edge_V2,
+                        Intra_Edge_V3
                         ]
                         )
-def test_rho_intra(start_stop, te_extend_start, te_extend_stop):
-
-    genes = mock_gene_data(start_stop)
-    transposons = mock_te_data(start_stop[0,:] + np.array([[te_extend_start,
-                                                            te_extend_stop]]))
-    gene_name = list(genes.names)[0]  # MAGIC NUMBER just use the first one
-    gene_start = start_stop[0,:][0]
-
-    rhos = rho_intra(genes, gene_name, transposons)
-    print(rhos)
-
-
-
-
+def test_rho_intra(MockData_Obj):
+    """
+    Test intra density
+    """
+    rhos = rho_intra(MockData_Obj.Gene,
+                           'gene_0', # fake name needed because of GeneData
+                           MockData_Obj.Transposon)
+    expected_rho_intra = np.array([MockData_Obj.expected_rho_intra])
+    assert np.all(rhos == expected_rho_intra)
 
 if __name__ == "__main__":
     pytest.main(['-s', __file__])  # for convenience

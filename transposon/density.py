@@ -167,8 +167,7 @@ def import_genes(input_dir):
     Gene_Data.Start = Gene_Data.Start.astype('uint32')
     Gene_Data.Stop = Gene_Data.Stop.astype('uint32')
     # NOTE is the gene index a closed | open interval?
-    # Scott thinks we should delete the + 1 for length
-    Gene_Data['Length'] = Gene_Data.Stop - Gene_Data.Start
+    Gene_Data['Length'] = Gene_Data.Stop - Gene_Data.Start + 1
 
     # We will not swap Start and Stop for Antisense strands. We will do this
     # post-processing
@@ -208,7 +207,7 @@ def import_transposons(input_dir):
     TE_Data.Start = TE_Data.Start.astype('uint32')
     TE_Data.Stop = TE_Data.Stop.astype('uint32')
     # NOTE see same comment on gene intervals / off-by-one
-    TE_Data['Length'] = TE_Data.Stop - TE_Data.Start
+    TE_Data['Length'] = TE_Data.Stop - TE_Data.Start + 1
     TE_Data = TE_Data[TE_Data.Family != 'Simple_repeat'] # drop s repeat
     TE_Data = replace_names(TE_Data)
     return TE_Data
@@ -333,11 +332,11 @@ def rho_intra(gene_data, gene_name, transposon_data):
     # NOTE we are using 0 indexing, need to double check
     # NOTE is the stop value inclusive or exclusive? the length values imply inclusive
     # and this code works for exclusive...
-    te_overlaps =  np.maximum(0, lower - upper)
-    genes_length = gene_data.length
+    te_overlaps =  np.maximum(0, (lower - upper + 1))
+    genes_length = gL
+    print(te_overlaps)
+    print(genes_length)
 
-    print(type(te_overlaps))
-    print(type(genes_length))
     densities = np.divide(
         te_overlaps,
         genes_length,
@@ -383,13 +382,20 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
     #assert transposon_data.starts.shape == transposon_data.lengths.shape
     check_shape(transposon_data)
 
+    # account for the fact that the window actually starts at g0 + 1
+    window = np.add(window, 1)
     window_start = np.subtract(g0, window)
     window_start = np.clip(window_start, 0, None)  # clamp to [0...inf)
     window = validate_window(window_start, g0, window)
 
     lower_bound = np.maximum(window_start, transposon_data.starts)
-    upper_bound = np.minimum(g0, transposon_data.stops)
-    te_overlaps =  np.maximum(0, upper_bound - lower_bound)
+    upper_bound = np.minimum(g0 - 1, transposon_data.stops)
+    te_overlaps =  np.maximum(0, upper_bound - lower_bound + 1)
+    print()
+    print(f'window_start: {window_start}')
+    print(f'lower_bound: {lower_bound}')
+    print(f'upper_bound: {upper_bound}')
+    print(f'te_overlaps: {te_overlaps}')
     densities = np.divide(
         te_overlaps,
         window,
@@ -425,18 +431,20 @@ def rho_right_window(gene_data, gene_name, transposon_data, window):
     #assert transposon_data.starts.shape == transposon_data.stops.shape
     #assert transposon_data.starts.shape == transposon_data.lengths.shape
 
+    # account for the fact that the window actually starts at g0 + 1
+    window = np.add(window, 1)
     window_stop = np.add(g1, window)
-    lower_bound = np.maximum(g1, transposon_data.starts)
+    lower_bound = np.maximum(g1+1, transposon_data.starts)
     # lower bound gets TE starts to the right of gene stops
     upper_bound = np.minimum(window_stop, transposon_data.stops)
     # upper bound gets TE stops to the left of window stops
-    te_overlaps =  np.maximum(0, upper_bound - lower_bound)
+    te_overlaps =  np.maximum(0, upper_bound - lower_bound + 1)
     # NOTE it isn't necessary to divide here, right?
     # the relevant area is constant, keep track of it
     # sum the overlaps *then* calculate using the division
     densities = np.divide(
         te_overlaps,
-        window,
+        window ,
         out=np.zeros_like(te_overlaps, dtype='float')
     )
 
