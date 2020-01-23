@@ -1,9 +1,28 @@
-1. When importing the genes data, make it so that it is a function argument, lessen the amount of hard-coding
+# SCOTT, TODO 2020 01 22
 
-2. Check + 1
+-replace asserts w/ raises (except for unit tests)
 
-3. Delete Software column in TE and Gene importer
+-add doc strings (w/ Args section)
+-remove old code
 
-4. Multiprocessing for each chromosome?
+-refactor GeneData to have a similar interface to TransposonData
+  - remove functions, just have properties
+  - add GeneDatum class
+  - add function to GeneData to produce a GeneDatum given a gene_id
 
-5. Make sure the length for each gene is correct, need to make it the aggregate of all of the exons or should I just make it (stop - start + 1)???
+-add function to GeneDatum to calculate window starts
+  - good candidate for memoization
+
+-refactor in test_density.py and density.py, specify window: start / stop / length / offset for variable names
+  - window = np.add(window, 1) change to window_start
+
+-handle the case where you have two data inputs (e.g. blueberries)
+  - SEE Factory pattern (https://en.wikipedia.org/wiki/Factory_method_pattern)
+  - SEE Interface Class (https://en.wikipedia.org/wiki/Interface_(computing))
+  - add base class for data cleaning (just be an interface)
+  - add data_preprocessor.py
+  - define an Abstract Base Class (SEE module `abc` https://docs.python.org/3.4/library/abc.html)
+  - declare the methods ppl need to implement using `@abstracmethod`
+  - add your implementation for the camerosa (that produces the genedata & tedata)
+  - add your implementation for the other one
+
