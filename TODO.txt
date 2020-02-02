@@ -9,6 +9,7 @@
   - bound method
   - static method
   - class method
+  - wrapper
 
 -refactor GeneData to have a similar interface to TransposonData
   - add GeneData public attributes similar to TransposonData to access gene columns

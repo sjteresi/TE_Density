@@ -20,7 +20,8 @@ __author__ = "Michael Teresi"
 class GeneData(object):
     """Wraps a gene data frame.
 
-    Provides attribute access for a single gene.
+    Provides attributes for numpy views of the data frame entries.
+    Delineates the interface for the data frame
     """
 
     def __init__(self, gene_dataframe):
@@ -32,11 +33,14 @@ class GeneData(object):
 
         self.data_frame = gene_dataframe
         self._names = self.data_frame.index
+        self.start = self.data_frame.Start.to_numpy(copy=False)
+        # SCOTT repeat the line added above for the rest of the public attributes
+        # then delete the corresponding function (start is already deleted)
 
-    def start(self, gene_id):
-        """The start index for the given gene."""
+    def get_gene(self, gene_id):
+        """Return a GeneDatum for the gene identifier."""
 
-        return self.data_frame.Start[str(gene_id)]
+        raise NotImplementedError()  # SCOTT implement this
 
     def stop(self, gene_id):
         """The stop index for the given gene."""
@@ -64,6 +68,18 @@ class GeneData(object):
 
         return (name for name in self._names)
 
+
+class GeneDatum(object):
+    """Wraps a single gene data frame.
+
+    Provides attribute access for a single gene.
+    """
+
+    # SCOTT implement, __init__, add 'public' attributes for the columns
+    # basically, use the [] syntax from the functions in GeneData that you are deleting
+
+    def __init__(self, data_frame, gene_id):
+        self.start = data_frame.Start[str(gene_id)]
 
 class TransposonData(object):
     """Wraps a transposable elements data frame.
