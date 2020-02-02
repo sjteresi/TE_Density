@@ -5,10 +5,18 @@
 -add doc strings (w/ Args section)
 -remove old code
 
+-lookup these definitions
+  - bound method
+  - static method
+  - class method
+
 -refactor GeneData to have a similar interface to TransposonData
-  - remove functions, just have properties
+  - add GeneData public attributes similar to TransposonData to access gene columns
   - add GeneDatum class
-  - add function to GeneData to produce a GeneDatum given a gene_id
+  - add bound method to GeneData that produces a GeneDatum given gene_id
+  - remove GeneData functions that expose the gene columns for one gene_id
+  - refactor density calcs to use the GeneDatum
+
 
 -add function to GeneDatum to calculate window starts
   - good candidate for memoization
