@@ -94,16 +94,15 @@ class TransposonData(object):
         """Initialize.
 
         Args:
-            gene_dataframe (DataFrame): transposable element data frame.
+            transposable_elements (DataFrame): transposable element data frame.
         """
         self.data_frame = transposable_elements_dataframe
         self.indices = self.data_frame.index.to_numpy(copy=False)
         self.starts = self.data_frame.Start.to_numpy(copy=False)
         self.stops = self.data_frame.Stop.to_numpy(copy=False)
         self.lengths = self.data_frame.Length.to_numpy(copy=False)
-        self.orders = self.data_frame.Family.to_numpy(copy=False)
-        self.superfamilies = self.data_frame.SubFamily.to_numpy(copy=False)
-        # TODO: change input data frame names, Family-->Order, SubFamily-->SuperFamily
+        self.orders = self.data_frame.Order.to_numpy(copy=False)
+        self.superfamilies = self.data_frame.SuperFamily.to_numpy(copy=False)
 
     def __add__(self, other):
         """Combine transposon data."""

@@ -27,57 +27,6 @@ from transposon.density import validate_window
 
 from transposon.data import GeneData, TransposonData
 
-WINDOWS = [2, 4, 8]
-
-
-def mock_gene_data(start_stop=np.array([[0, 9], [10, 19], [20, 29]]) ):
-    """Gene data for given the start/stop indices.
-
-    Args:
-        start_stop (np.array): N gene x (start_idx, stop_idx).
-    """
-
-    n_genes = start_stop.shape[0]
-    data = []
-    for gi in range(n_genes):
-        g0 = start_stop[gi, 0]
-        g1 = start_stop[gi, 1]
-        gL = g1 - g0 + 1
-        name = "gene_{}".format(gi)
-        datum = [name, g0, g1, gL]
-        data.append(datum)
-
-    frame = pd.DataFrame(data, columns=['Gene_Name', 'Start', 'Stop', 'Length'])
-    frame.set_index('Gene_Name', inplace=True)
-    return GeneData(frame)
-
-def mock_te_data(start_stop):
-    """Transposon data for given the start/stop indices.
-
-    Creates one
-
-    Args:
-        start_stop (np.array): N gene x (start_idx, stop_idx). 2D array
-   """
-
-    n_genes = start_stop.shape[0]
-    data = []
-    family = "Family_0"  # FUTURE may want to parametrize family name later
-    # NB overall order is not important but the names are
-    columns = ['Start', 'Stop', 'Length', 'Family', 'SubFamily']
-    for gi in range(n_genes):
-        g0 = start_stop[gi, 0]
-        g1 = start_stop[gi, 1]
-        gL = g1 - g0 + 1
-        # FUTURE may want to parametrize sub family name later
-        subfam_suffix = "A" if gi%2 else "B"
-        subfamily = "SubFamily_{}".format(subfam_suffix)
-        datum = [g0, g1, gL, family, subfamily]
-        data.append(datum)
-
-    frame = pd.DataFrame(data, columns=columns)
-    return TransposonData(frame)
-
 class MockData(object):
 
     def __init__(self, g_start, g_stop, t_start, t_stop, window, expected_rho_left,
