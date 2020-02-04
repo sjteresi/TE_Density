@@ -64,14 +64,22 @@ class GeneDatum(object):
         self.length = gene_dataframe.Length[str(gene_id)]
         self.chromosome = gene_dataframe.Chromosome[str(gene_id)]
 
-    def left_win_start(self, window):
-        win_length = np.add(window,1) # memoize
+    def win_length(self, window):
+        return np.add(window,1)
+
+    def left_win_start(self, win_length):
         win_start = np.subtract(self.start, win_length)
         win_start = np.clip(win_start, 0, None)
         return win_start
 
     def left_win_stop(self):
-        return np.subtract(self.stop, 1)
+        return np.subtract(self.start, 1)
+
+    def right_win_start(self):
+        return np.add(self.stop, 1)
+
+    def right_win_stop(self, win_length):
+        return np.add(self.stop, win_length)
 
     @property
     def start_stop_len(self):

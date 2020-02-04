@@ -313,12 +313,10 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
     g_start, g_stop, g_length = gene_data.get_gene(gene_name).start_stop_len
 
     # Define windows
-    win_length = np.add(window, 1)
-    win_start = np.subtract(g_start, win_length)
-    win_start = np.clip(win_start, 0, None)  # clamp to [0...inf)
-    win_stop = np.subtract(g_start, 1)
-    win_length = validate_window(win_start, g_start, win_length) # check
-        #win_length
+    win_length = gene_data.get_gene(gene_name).win_length(window)
+    win_start = gene_data.get_gene(gene_name).left_win_start(win_length)
+    win_stop = gene_data.get_gene(gene_name).left_win_stop()
+    win_length = validate_window(win_start, g_start, win_length)
 
     # Set bounds and perform density calculation
     lower_bound = np.maximum(win_start, transposon_data.starts)
@@ -352,9 +350,9 @@ def rho_right_window(gene_data, gene_name, transposon_data, window):
     g_start, g_stop, g_length = gene_data.get_gene(gene_name).start_stop_len
 
     # Define windows
-    win_length = np.add(window, 1)
-    win_start = np.add(g_stop, 1)
-    win_stop = np.add(g_stop, win_length)
+    win_length = gene_data.get_gene(gene_name).win_length(window)
+    win_start = gene_data.get_gene(gene_name).right_win_start()
+    win_stop = gene_data.get_gene(gene_name).right_win_stop(win_length)
 
     # Set bounds and perform density calculation
     lower_bound = np.maximum(win_start, transposon_data.starts)
