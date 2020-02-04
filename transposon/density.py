@@ -110,7 +110,6 @@ def import_genes(input_dir):
     Gene_Data.Strand = Gene_Data.Strand.astype(str)
     Gene_Data.Start = Gene_Data.Start.astype('uint32')
     Gene_Data.Stop = Gene_Data.Stop.astype('uint32')
-    # NOTE is the gene index a closed | open interval?
     Gene_Data['Length'] = Gene_Data.Stop - Gene_Data.Start + 1
 
     # We will not swap Start and Stop for Antisense strands. We will do this
@@ -206,7 +205,6 @@ def replace_names(my_TEs):
         'hAT|cleanup':'hAT',
         '':U,
         'Line':'LINE'
-
     }
 
     my_TEs.Order.replace(master_order, inplace=True)
@@ -232,7 +230,7 @@ def check_shape(transposon_data):
 
     length = transposon_data.lengths.shape
     if start != length:
-        msg = (" input TE missing fields: starts.shape {}  != lengths.shape {}"
+        msg = ("Input TE missing fields: starts.shape {}  != lengths.shape {}"
                .format(start, stop))
         logger.critical(msg)
         raise ValueError(msg)
@@ -270,9 +268,8 @@ def rho_intra(gene_data, gene_name, transposon_data):
         gene_name (hashable): name of gene to use
         transposon_data (transponson.data.TransposonData): transposon container
     """
-
-    g_start, g_stop, g_length = gene_data.start_stop_len(gene_name)
     check_shape(transposon_data)
+    g_start, g_stop, g_length = gene_data.get_gene(gene_name).start_stop_len
     lower = np.minimum(g_stop, transposon_data.stops)
     upper = np.maximum(g_start, transposon_data.starts)
     te_overlaps =  np.maximum(0, (lower - upper + 1))
@@ -313,7 +310,7 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
         transposon_data (transponson.data.TransposonData): transposon container
     """
     check_shape(transposon_data)
-    g_start, g_stop, g_length = gene_data.start_stop_len(gene_name)
+    g_start, g_stop, g_length = gene_data.get_gene(gene_name).start_stop_len
 
     # Define windows
     win_length = np.add(window, 1)
@@ -352,7 +349,7 @@ def rho_right_window(gene_data, gene_name, transposon_data, window):
         transposon_data (transponson.data.TransposonData): transposon container
     """
     check_shape(transposon_data)
-    g_start, g_stop, g_length = gene_data.start_stop_len(gene_name)
+    g_start, g_stop, g_length = gene_data.get_gene(gene_name).start_stop_len
 
     # Define windows
     win_length = np.add(window, 1)
@@ -361,7 +358,7 @@ def rho_right_window(gene_data, gene_name, transposon_data, window):
 
     # Set bounds and perform density calculation
     lower_bound = np.maximum(win_start, transposon_data.starts)
-    upper_bound = np.minimum(window_stop, transposon_data.stops)
+    upper_bound = np.minimum(win_stop, transposon_data.stops)
     te_overlaps =  np.maximum(0, upper_bound - lower_bound + 1)
     densities = np.divide(
         te_overlaps,
@@ -463,36 +460,7 @@ def validate_args(args, logger):
         logger.critical("argument 'output_dir' is not a directory")
         raise ValueError("%s is not a directory"%(abs_path))
 
-if __name__ == '__main__':
-    """Command line interface to calculate density."""
-
-    parser = argparse.ArgumentParser(description="calculate TE density")
-    path_main = os.path.abspath(__file__)
-    parser.add_argument('input_dir', type=str,
-                        help='parent directory of gene & transposon files')
-    parser.add_argument('--output_dir', '-o', type=str,
-                        default=os.path.join(path_main, '../..', 'results'),
-                        help='parent directory to output results')
-    parser.add_argument('-v', '--verbose',
-                        action='store_true',
-                        help='set debugging level to DEBUG')
-    args = parser.parse_args()
-    args.output_dir = os.path.abspath(args.output_dir)
-    args.input_dir = os.path.abspath(args.input_dir)
-    log_level = logging.DEBUG if args.verbose else logging.INFO
-    logger = logging.getLogger(__name__)
-    coloredlogs.install(level=log_level)
-    logger.info("start processing directory '%s'"%(args.input_dir))
-    for argname, argval in vars(args).items():
-        logger.debug("%-12s: %s"%(argname, argval))
-    validate_args(args, logger)
-
-    # FUTURE move this preprocessing to it's object
-    logger.info("Importing genes, this may take a moment...")
-    Gene_Data = import_genes(args.input_dir)
-    logger.info("Importing transposons, this may take a moment...")
-    TE_Data = import_transposons(args.input_dir)
-
+def other_things():
     grouped_genes = split(Gene_Data, 'Chromosome') # check docstring for my split func
     grouped_TEs = split(TE_Data, 'Chromosome') # check docstring for my split func
     check_groupings(grouped_genes, grouped_TEs, logger)
@@ -539,3 +507,45 @@ if __name__ == '__main__':
         # combine all the results
         # write to disk
         gene_progress.update(1)
+if __name__ == '__main__':
+    """Command line interface to calculate density."""
+
+    parser = argparse.ArgumentParser(description="calculate TE density")
+    path_main = os.path.abspath(__file__)
+    parser.add_argument('input_dir', type=str,
+                        help='parent directory of gene & transposon files')
+    parser.add_argument('--output_dir', '-o', type=str,
+                        default=os.path.join(path_main, '../..', 'results'),
+                        help='parent directory to output results')
+    parser.add_argument('-v', '--verbose',
+                        action='store_true',
+                        help='set debugging level to DEBUG')
+    args = parser.parse_args()
+    args.output_dir = os.path.abspath(args.output_dir)
+    args.input_dir = os.path.abspath(args.input_dir)
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    logger = logging.getLogger(__name__)
+    coloredlogs.install(level=log_level)
+    logger.info("Start processing directory '%s'"%(args.input_dir))
+    for argname, argval in vars(args).items():
+        logger.debug("%-12s: %s"%(argname, argval))
+    validate_args(args, logger)
+
+    # FUTURE move this preprocessing to it's object
+    logger.info("Importing genes, this may take a moment...")
+    Gene_Data = import_genes(args.input_dir)
+    #logger.info("Importing transposons, this may take a moment...")
+    #TE_Data = import_transposons(args.input_dir)
+
+    # Scott Test
+    genes = GeneData(Gene_Data)
+    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').chromosome)
+    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').start_stop_len)
+    #genes.get_gene('maker-Fvb1-1-snap-gene-0.15', 500)
+    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_start)
+    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').calc_win_length(500))
+    print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').start)
+    print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').stop)
+    print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_start(50))
+    print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_stop())
+

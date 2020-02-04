@@ -14,8 +14,8 @@ Future:
       dot notation for accessing the columns, to make this inheritable
 """
 
-__author__ = "Michael Teresi"
-
+__author__ = "Michael Teresi, Scott Teresi"
+import numpy as np
 
 class GeneData(object):
     """Wraps a gene data frame.
@@ -33,34 +33,14 @@ class GeneData(object):
 
         self.data_frame = gene_dataframe
         self._names = self.data_frame.index
-        self.start = self.data_frame.Start.to_numpy(copy=False)
-        # SCOTT repeat the line added above for the rest of the public attributes
-        # then delete the corresponding function (start is already deleted)
+        self.starts = self.data_frame.Start.to_numpy(copy=False)
+        self.stops = self.data_frame.Stop.to_numpy(copy=False)
+        self.lengths = self.data_frame.Length.to_numpy(copy=False)
+        self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
 
     def get_gene(self, gene_id):
         """Return a GeneDatum for the gene identifier."""
-
-        raise NotImplementedError()  # SCOTT implement this
-
-    def stop(self, gene_id):
-        """The stop index for the given gene."""
-
-        return self.data_frame.Stop[str(gene_id)]
-
-    def length(self, gene_id):
-        """The number of base pairs for the given gene."""
-
-        return self.data_frame.Length[str(gene_id)]
-
-    def start_stop_len(self, gene_id):
-        """Helper to return start, stop, and length for the given gene."""
-
-        return (self.start(gene_id), self.stop(gene_id), self.length(gene_id))
-
-    def chromosome(self, gene_id):
-        """The chromosome identifier for the given gene."""
-
-        return self.data_frame.Chromosome[str(gene_id)]
+        return GeneDatum(self.data_frame, gene_id)
 
     @property
     def names(self):
@@ -78,8 +58,25 @@ class GeneDatum(object):
     # SCOTT implement, __init__, add 'public' attributes for the columns
     # basically, use the [] syntax from the functions in GeneData that you are deleting
 
-    def __init__(self, data_frame, gene_id):
-        self.start = data_frame.Start[str(gene_id)]
+    def __init__(self, gene_dataframe, gene_id):
+        self.start = gene_dataframe.Start[str(gene_id)]
+        self.stop = gene_dataframe.Stop[str(gene_id)]
+        self.length = gene_dataframe.Length[str(gene_id)]
+        self.chromosome = gene_dataframe.Chromosome[str(gene_id)]
+
+    def left_win_start(self, window):
+        win_length = np.add(window,1) # memoize
+        win_start = np.subtract(self.start, win_length)
+        win_start = np.clip(win_start, 0, None)
+        return win_start
+
+    def left_win_stop(self):
+        return np.subtract(self.stop, 1)
+
+    @property
+    def start_stop_len(self):
+        return (self.start, self.stop, self.length)
+
 
 class TransposonData(object):
     """Wraps a transposable elements data frame.
@@ -103,6 +100,8 @@ class TransposonData(object):
         self.lengths = self.data_frame.Length.to_numpy(copy=False)
         self.orders = self.data_frame.Order.to_numpy(copy=False)
         self.superfamilies = self.data_frame.SuperFamily.to_numpy(copy=False)
+        self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
+
 
     def __add__(self, other):
         """Combine transposon data."""

@@ -27,6 +27,56 @@ from transposon.density import validate_window
 
 from transposon.data import GeneData, TransposonData
 
+def mock_gene_data(start_stop=np.array([[0, 9], [10, 19], [20, 29]]) ):
+    """Gene data for given the start/stop indices.
+
+    Args:
+    start_stop (np.array): N gene x (start_idx, stop_idx).
+    """
+
+    n_genes = start_stop.shape[0]
+    data = []
+    for gi in range(n_genes):
+        g0 = start_stop[gi, 0]
+        g1 = start_stop[gi, 1]
+        gL = g1 - g0 + 1
+        name = "gene_{}".format(gi)
+        chromosome = 'Chr_Test'
+        datum = [name, g0, g1, gL, chromosome]
+        data.append(datum)
+
+    frame = pd.DataFrame(data, columns=['Gene_Name', 'Start', 'Stop', 'Length',
+                                       'Chromosome'])
+    frame.set_index('Gene_Name', inplace=True)
+    return GeneData(frame)
+
+def mock_te_data(start_stop):
+    """Transposon data for given the start/stop indices
+        Creates one
+
+        Args:
+            start_stop (np.array): N gene x (start_idx, stop_idx). 2D array
+    """
+
+    n_genes = start_stop.shape[0]
+    data = []
+    family = "Family_0"  # FUTURE may want to parametrize family name later
+    # NB overall order is not important but the names are
+    columns = ['Start', 'Stop', 'Length', 'Order', 'SuperFamily', 'Chromosome']
+    for gi in range(n_genes):
+        g0 = start_stop[gi, 0]
+        g1 = start_stop[gi, 1]
+        gL = g1 - g0 + 1
+        # FUTURE may want to parametrize sub
+        # family name later
+        subfam_suffix = "A" if gi%2 else "B"
+        subfamily = "SubFamily_{}".format(subfam_suffix)
+        chromosome = 'Chr_Test'
+        datum = [g0,g1,gL,family,subfamily, chromosome]
+        data.append(datum)
+    frame = pd.DataFrame(data, columns=columns)
+    return TransposonData(frame)
+
 class MockData(object):
 
     def __init__(self, g_start, g_stop, t_start, t_stop, window, expected_rho_left,
@@ -36,9 +86,7 @@ class MockData(object):
         self.Transposon = mock_te_data(np.array([[t_start, t_stop]]))
         self.gene_name = 'gene_0'  # TODO scott, add str
 
-        window_start = np.subtract(np.array([g_start]), window)
-        window_start = np.clip(window_start, 0, None)
-        self.window = validate_window(window_start, np.array([g_start]), window)
+        self.window = window
         self.expected_rho_left = expected_rho_left
         self.expected_rho_intra = expected_rho_intra
         self.expected_rho_right = expected_rho_right
@@ -362,7 +410,6 @@ def test_rho_right_window(MockData_Obj):
                            MockData_Obj.Transposon,
                            MockData_Obj.window)
     expected_rho_rights = np.array([MockData_Obj.expected_rho_right])
-    #print(MockData_Obj.expected_rho_right)
     assert np.all(rhos == expected_rho_rights)
 
 @pytest.mark.parametrize("MockData_Obj",
