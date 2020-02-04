@@ -73,9 +73,11 @@ class GeneDatum(object):
         return win_start
 
     def left_win_stop(self):
+        # For the left side, window stop is one digit before gene start
         return np.subtract(self.start, 1)
 
     def right_win_start(self):
+        # For the right side, window start is one digit after gene stop
         return np.add(self.stop, 1)
 
     def right_win_stop(self, win_length):

@@ -24,6 +24,7 @@ import numpy as np
 import pandas as pd
 
 from transposon.data import GeneData, TransposonData
+from transposon.replace_names import TE_Renamer
 
 def get_head(Data):
     """ Get the heading of the Pandaframe """
@@ -156,60 +157,9 @@ def import_transposons(input_dir):
     # NOTE see same comment on gene intervals / off-by-one
     TE_Data['Length'] = TE_Data.Stop - TE_Data.Start + 1
     TE_Data = TE_Data[TE_Data.Order != 'Simple_repeat'] # drop s repeat
-    TE_Data = replace_names(TE_Data)
+    #TE_Data = replace_names(TE_Data)
+    TE_Data = TE_Renamer(TE_Data)
     return TE_Data
-
-def replace_names(my_TEs):
-    U = 'Unknown'
-    master_order = {
-        'RC?':'DNA',
-        'RC':'DNA',
-        'SINE?':U,
-        'tandem':'Tandem',
-        'No_hits':U
-    }
-
-    U = 'Unknown_SuperFam'
-    master_superfamily = {
-        'Uknown':U,
-        'MuDr':'MULE',
-        'MULE-MuDR':'MULE',
-        'Mutator|cleanup':'MULE',
-        'TcMar':U,
-        'Pao':U,
-        'Caulimovirus':U,
-        'hAT-Tag1':'hAT',
-        'hAT-Tip100':'hAT',
-        'hAT-Charlie':'hAT',
-        'Helitron':U,
-        'unknown':U,
-        'Maverick':U,
-        'Harbinger':'PIF-Harbinger',
-        'TcMar-Pogo':U,
-        'CR1':'LINE',
-        'hAT-Ac':'hAT',
-        'L2':'LINE',
-        'L1':'LINE',
-        'Jockey':'LINE',
-        'MuLE-MuDR':'MULE',
-        'MuDR':'MULE',
-        'Mutator':'MULE',
-        'Micro_like':U,
-        'Micro-like-sequence':U,
-        'Micro-like-sequence|cleanup':U,
-        'Unclassified':U,
-        'L1-Tx1':'Line',
-        'CRE':'Line',
-        'CACTA':'CMC-EnSpm',
-        'Tad1':U,
-        'hAT|cleanup':'hAT',
-        '':U,
-        'Line':'LINE'
-    }
-
-    my_TEs.Order.replace(master_order, inplace=True)
-    my_TEs.SuperFamily.replace(master_superfamily, inplace=True)
-    return my_TEs
 
 def check_shape(transposon_data):
     """Checks to make sure the columns of the TE data are the same size.
@@ -532,18 +482,20 @@ if __name__ == '__main__':
     # FUTURE move this preprocessing to it's object
     logger.info("Importing genes, this may take a moment...")
     Gene_Data = import_genes(args.input_dir)
-    #logger.info("Importing transposons, this may take a moment...")
-    #TE_Data = import_transposons(args.input_dir)
+    logger.info("Importing transposons, this may take a moment...")
+    TE_Data = import_transposons(args.input_dir)
+
+    print(TE_Data.head())
 
     # Scott Test
-    genes = GeneData(Gene_Data)
+    #genes = GeneData(Gene_Data)
     #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').chromosome)
     #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').start_stop_len)
     #genes.get_gene('maker-Fvb1-1-snap-gene-0.15', 500)
     #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_start)
     #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').calc_win_length(500))
-    print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').start)
-    print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').stop)
-    print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_start(50))
-    print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_stop())
+    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').start)
+    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').stop)
+    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_start(50))
+    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_stop())
 
