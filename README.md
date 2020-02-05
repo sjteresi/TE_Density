@@ -1,3 +1,7 @@
+# OLD REPO
+I am currently in the process of updating the pipeline to implement a number of speed improvements. I am also working on making this pipeline more universal. To view the old repository follow this [link](https://github.com/EdgerLab/TE_Density_Old)
+
+
 # Notes:
 Michael, I have decided to stop switching Start and Stop for Genes that are on the negative strand (antisense) we will swap their upstream and downstream density values in a post processing manner.
 

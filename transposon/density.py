@@ -271,7 +271,7 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
     # Set bounds and perform density calculation
     lower_bound = np.maximum(win_start, transposon_data.starts)
     upper_bound = np.minimum(win_stop, transposon_data.stops)
-    te_overlaps =  np.maximum(0, upper_bound - lower_bound + 1)
+    te_overlaps =  np.maximum(0, (upper_bound - lower_bound + 1))
     densities = np.divide(
         te_overlaps,
         win_length,
@@ -307,7 +307,7 @@ def rho_right_window(gene_data, gene_name, transposon_data, window):
     # Set bounds and perform density calculation
     lower_bound = np.maximum(win_start, transposon_data.starts)
     upper_bound = np.minimum(win_stop, transposon_data.stops)
-    te_overlaps =  np.maximum(0, upper_bound - lower_bound + 1)
+    te_overlaps =  np.maximum(0, (upper_bound - lower_bound + 1))
     densities = np.divide(
         te_overlaps,
         win_length,
