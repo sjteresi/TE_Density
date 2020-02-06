@@ -26,6 +26,7 @@ import pandas as pd
 from transposon.data import GeneData, TransposonData
 from transposon.replace_names import TE_Renamer
 from transposon.import_genes import import_genes
+from transposon.import_transposons import import_transposons
 
 def get_head(Data):
     """ Get the heading of the Pandaframe """
@@ -78,47 +79,6 @@ def split(df, group):
     gb = df.groupby(group)
     return [gb.get_group(x) for x in gb.groups]
 
-def import_transposons(input_dir):
-    """Import TE File
-        Args: input_dir (command line argument) Specify the input directory of
-        the TE annotation data, this is the same as the Gene annotation
-        directory
-    """
-
-    # TODO remove MAGIC NUMBER (perhaps just search by extension (gtf)?)
-    gff_filename = 'camarosa_gff_data.gff' # DECLARE YOUR DATA NAME
-
-    col_names = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
-        'Score', 'Strand', 'Frame', 'Attribute']
-
-    col_to_use = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
-                 'Strand']
-
-    TE_Data = pd.read_csv(
-            os.path.join(input_dir, gff_filename),
-            sep='\t+',
-            header=None,
-            engine='python',
-            names = col_names,
-            usecols = col_to_use)
-
-    TE_Data[['Order', 'SuperFamily']] = TE_Data.Feature.str.split('/', expand=True)
-    TE_Data.SuperFamily.fillna(value='Unknown_SuperFam', inplace=True) # replace None w U
-        # step to fix TE names
-
-    TE_Data = TE_Data.drop(['Feature', 'Software'], axis=1)
-
-    TE_Data = drop_nulls(TE_Data) # Dropping nulls because I checked
-    TE_Data.Strand = TE_Data.Strand.astype(str)
-    # NOTE see same comment on gene data types
-    TE_Data.Start = TE_Data.Start.astype('uint32')
-    TE_Data.Stop = TE_Data.Stop.astype('uint32')
-    # NOTE see same comment on gene intervals / off-by-one
-    TE_Data['Length'] = TE_Data.Stop - TE_Data.Start + 1
-    TE_Data = TE_Data[TE_Data.Order != 'Simple_repeat'] # drop s repeat
-    #TE_Data = replace_names(TE_Data)
-    TE_Data = TE_Renamer(TE_Data)
-    return TE_Data
 
 def check_shape(transposon_data):
     """Checks to make sure the columns of the TE data are the same size.
@@ -439,10 +399,10 @@ if __name__ == '__main__':
     validate_args(args, logger)
 
     # FUTURE move this preprocessing to it's object
-    logger.info("Importing genes, this may take a moment...")
-    Gene_Data = import_genes(args.input_dir)
-    #logger.info("Importing transposons, this may take a moment...")
-    #TE_Data = import_transposons(args.input_dir)
+    #logger.info("Importing genes, this may take a moment...")
+    #Gene_Data = import_genes(args.input_dir)
+    logger.info("Importing transposons, this may take a moment...")
+    TE_Data = import_transposons(args.input_dir)
 
     #print(TE_Data.head())
 
