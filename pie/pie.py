@@ -121,7 +121,7 @@ def main_fig(TE_Data):
         for size in sizes:
             new_sizes.append(size * 100)
         colors = ['forestgreen', 'cornflowerblue', 'crimson']
-        explode = (0, 0, 0.1)# explode 3rd slice
+        explode = (0, 0, 0.1) # explode 3rd slice
         patches, texts, autotext = plt.pie(new_sizes, colors=colors, shadow=True,
                                     startangle=120, explode=explode,
                                     autopct='%1.1f%%', labels=labels)
@@ -327,5 +327,5 @@ if __name__ == '__main__':
 
     # FUTURE move this preprocessing to it's object
     logger.info("Importing transposons, this may take a moment...")
-    TE_Data = import_transposons(args.input_dir)
+    TE_Data = import_transposons(args.input_dir, 'H4_TEs.gff')
     print(TE_Data.head())

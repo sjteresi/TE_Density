@@ -5,12 +5,15 @@ def TE_Renamer(TE_Data):
         'RC':'DNA',
         'SINE?':U,
         'tandem':'Tandem',
-        'No_hits':U
+        'No_hits':U,
+        'LINE':'LINE'
     }
 
     U = 'Unknown_SuperFam'
     master_superfamily = {
         'Uknown':U,
+        'unknown':U,
+        'Unknown':U,
         'MuDr':'MULE',
         'MULE-MuDR':'MULE',
         'Mutator|cleanup':'MULE',
@@ -45,7 +48,7 @@ def TE_Renamer(TE_Data):
         '':U,
         'Line':'LINE'
     }
-
+    #print(TE_Data.SuperFamily.unique())
     TE_Data.Order.replace(master_order, inplace=True)
     TE_Data.SuperFamily.replace(master_superfamily, inplace=True)
     TE_Data.loc[TE_Data.Order == 'Tandem', 'SuperFamily'] = 'Tandem'
@@ -56,4 +59,5 @@ def TE_Renamer(TE_Data):
     TE_Data = TE_Data[~to_drop]
 
     TE_Data = TE_Data[TE_Data.Order != 'Simple_repeat'] # drop s repeat
+    print(TE_Data.SuperFamily.unique())
     return TE_Data

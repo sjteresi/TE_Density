@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-def import_genes(input_dir):
+def import_genes(genes_input_path):
     """Import Genes File
         Args: input_dir (command line argument) Specify the input directory of
         the gene annotation data, this is the same as the TE annotation
@@ -17,7 +17,7 @@ def import_genes(input_dir):
                   'Strand', 'FullName' ]
 
     Gene_Data = pd.read_csv(
-            os.path.join(input_dir, gtf_filename),
+            genes_input_path,
             sep='\t+',
             header=None,
             engine='python',

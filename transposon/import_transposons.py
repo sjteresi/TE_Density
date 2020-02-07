@@ -8,7 +8,7 @@ def check_nulls(my_df):
     if Bool:
         print('You have Null values in your dataframe that were not caught!')
 
-def import_transposons(input_dir):
+def import_transposons(tes_input_path):
     """Import TE File
         Args: input_dir (command line argument) Specify the input directory of
         the TE annotation data, this is the same as the Gene annotation
@@ -16,7 +16,7 @@ def import_transposons(input_dir):
     """
 
     # TODO remove MAGIC NUMBER (perhaps just search by extension (gtf)?)
-    gff_filename = 'camarosa_gff_data.gff' # DECLARE YOUR DATA NAME
+    #gff_filename = 'camarosa_gff_data.gff' # DECLARE YOUR DATA NAME
 
     col_names = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
         'Score', 'Strand', 'Frame', 'Attribute']
@@ -25,7 +25,7 @@ def import_transposons(input_dir):
                  'Strand']
 
     TE_Data = pd.read_csv(
-            os.path.join(input_dir, gff_filename),
+            tes_input_path,
             sep='\t+',
             header=None,
             engine='python',

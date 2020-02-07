@@ -320,8 +320,11 @@ def check_groupings(grouped_genes, grouped_TEs, logger):
 def validate_args(args, logger):
     """Raise if an input argument is invalid."""
 
-    if not os.path.isdir(args.input_dir):
-        logger.critical("argument 'input_dir' is not a directory")
+    if not os.path.isfile(args.genes_input_file):
+        logger.critical("argument 'genes_input_dir' is not a file")
+        raise ValueError("%s is not a directory"%(abs_path))
+    if not os.path.isfile(args.tes_input_file):
+        logger.critical("argument 'tes_input_dir' is not a file")
         raise ValueError("%s is not a directory"%(abs_path))
     if not os.path.isdir(args.output_dir):
         logger.critical("argument 'output_dir' is not a directory")
@@ -379,8 +382,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="calculate TE density")
     path_main = os.path.abspath(__file__)
-    parser.add_argument('input_dir', type=str,
-                        help='parent directory of gene & transposon files')
+    parser.add_argument('genes_input_file', type=str,
+                        help='parent directory of gene files')
+    parser.add_argument('tes_input_file', type=str,
+                        help='parent directory of transposon files')
     parser.add_argument('--output_dir', '-o', type=str,
                         default=os.path.join(path_main, '../..', 'results'),
                         help='parent directory to output results')
@@ -389,20 +394,21 @@ if __name__ == '__main__':
                         help='set debugging level to DEBUG')
     args = parser.parse_args()
     args.output_dir = os.path.abspath(args.output_dir)
-    args.input_dir = os.path.abspath(args.input_dir)
+    args.genes_input_file = os.path.abspath(args.genes_input_file)
+    args.tes_input_file = os.path.abspath(args.tes_input_file)
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
     coloredlogs.install(level=log_level)
-    logger.info("Start processing directory '%s'"%(args.input_dir))
+    #logger.info("Start processing directory '%s'"%(args.input_dir))
     for argname, argval in vars(args).items():
         logger.debug("%-12s: %s"%(argname, argval))
     validate_args(args, logger)
 
     # FUTURE move this preprocessing to it's object
-    #logger.info("Importing genes, this may take a moment...")
-    #Gene_Data = import_genes(args.input_dir)
+    logger.info("Importing genes, this may take a moment...")
+    Gene_Data = import_genes(args.genes_input_file)
     logger.info("Importing transposons, this may take a moment...")
-    TE_Data = import_transposons(args.input_dir)
+    TE_Data = import_transposons(args.tes_input_file)
 
     #print(TE_Data.head())
 

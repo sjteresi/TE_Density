@@ -2,7 +2,8 @@
 I am currently in the process of updating the pipeline to implement a number of speed improvements. I am also working on making this pipeline more universal. To view the old repository follow this [link](https://github.com/EdgerLab/TE_Density_Old)
 
 
-# Notes:
+# Usage:
+`python transposon/density /path/to/annotated/gene/file /path/to/annotated/TE/file`
 
 # Requirements
 Please install Pip so that you may easily install Python packages.
