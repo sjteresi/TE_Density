@@ -1,4 +1,4 @@
-def TE_Renamer(TE_Dataframe):
+def TE_Renamer(TE_Data):
     U = 'Unknown'
     master_order = {
         'RC?':'DNA',
@@ -46,6 +46,14 @@ def TE_Renamer(TE_Dataframe):
         'Line':'LINE'
     }
 
-    TE_Dataframe.Order.replace(master_order, inplace=True)
-    TE_Dataframe.SuperFamily.replace(master_superfamily, inplace=True)
-    return TE_Dataframe
+    TE_Data.Order.replace(master_order, inplace=True)
+    TE_Data.SuperFamily.replace(master_superfamily, inplace=True)
+    TE_Data.loc[TE_Data.Order == 'Tandem', 'SuperFamily'] = 'Tandem'
+
+    to_drop = TE_Data.Chromosome.str.contains('##sequence-region')
+    TE_Data = TE_Data[~to_drop]
+    to_drop = TE_Data.Chromosome.str.contains('contig*')
+    TE_Data = TE_Data[~to_drop]
+
+    TE_Data = TE_Data[TE_Data.Order != 'Simple_repeat'] # drop s repeat
+    return TE_Data

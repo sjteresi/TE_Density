@@ -34,19 +34,16 @@ def import_transposons(input_dir):
 
     TE_Data[['Order', 'SuperFamily']] = TE_Data.Feature.str.split('/', expand=True)
 
-    to_drop = TE_Data[TE_Data.Chromosome.str.contains('##sequence-region', case=False)]
-    TE_Data.drop(to_drop.index, inplace = True)
     TE_Data.SuperFamily.fillna(value='Unknown_SuperFam', inplace=True) # replace None w U
         # step to fix TE names
 
     TE_Data = TE_Data.drop(['Feature', 'Software'], axis=1)
+    TE_Data = TE_Renamer(TE_Data)
 
 
     TE_Data.Strand = TE_Data.Strand.astype(str)
     TE_Data.Start = TE_Data.Start.astype('uint32')
     TE_Data.Stop = TE_Data.Stop.astype('uint32')
     TE_Data['Length'] = TE_Data.Stop - TE_Data.Start + 1
-    TE_Data = TE_Data[TE_Data.Order != 'Simple_repeat'] # drop s repeat
-    TE_Data = TE_Renamer(TE_Data)
     check_nulls(TE_Data)
     return TE_Data
