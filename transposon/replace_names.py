@@ -95,6 +95,8 @@ def TE_Renamer(TE_Data):
         '':U,
         'Line':'LINE'
     }
+    TE_Data.SuperFamily.fillna(value='Unknown_SuperFam', inplace=True) # replace None w U
+        # step to fix TE names
     TE_Data.Order.replace(master_order, inplace=True)
     TE_Data.SuperFamily.replace(master_superfamily, inplace=True)
     TE_Data.loc[TE_Data.Order == 'Tandem', 'SuperFamily'] = 'Tandem'

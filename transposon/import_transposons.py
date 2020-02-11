@@ -34,9 +34,6 @@ def import_transposons(tes_input_path):
 
     TE_Data[['Order', 'SuperFamily']] = TE_Data.Feature.str.split('/', expand=True)
 
-    TE_Data.SuperFamily.fillna(value='Unknown_SuperFam', inplace=True) # replace None w U
-        # step to fix TE names
-
     TE_Data = TE_Data.drop(['Feature', 'Software'], axis=1)
     TE_Data = TE_Renamer(TE_Data)
 
