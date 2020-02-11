@@ -9,3 +9,6 @@ I am currently in the process of updating the pipeline to implement a number of 
 Please install Pip so that you may easily install Python packages.
 Then we will use Pip to go over our **requirements.txt** and install the needed Python packages.
 `pip install -r requirements.txt`
+
+# To Do:
+Talk with Michael about making `validate_args` its own separate file

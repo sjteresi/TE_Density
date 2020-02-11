@@ -383,9 +383,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="calculate TE density")
     path_main = os.path.abspath(__file__)
     parser.add_argument('genes_input_file', type=str,
-                        help='parent directory of gene files')
+                        help='parent path of gene file')
     parser.add_argument('tes_input_file', type=str,
-                        help='parent directory of transposon files')
+                        help='parent path of transposon file')
     parser.add_argument('--output_dir', '-o', type=str,
                         default=os.path.join(path_main, '../..', 'results'),
                         help='parent directory to output results')

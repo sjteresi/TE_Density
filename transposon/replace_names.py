@@ -59,5 +59,4 @@ def TE_Renamer(TE_Data):
     TE_Data = TE_Data[~to_drop]
 
     TE_Data = TE_Data[TE_Data.Order != 'Simple_repeat'] # drop s repeat
-    print(TE_Data.SuperFamily.unique())
     return TE_Data
