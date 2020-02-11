@@ -12,3 +12,5 @@ Then we will use Pip to go over our **requirements.txt** and install the needed 
 
 # To Do:
 Talk with Michael about making `validate_args` its own separate file
+
+Maybe set an option to use the EDTA TE naming system vs. Ning's naming system. Both are currently in the same file and there is the chance that they may overwrite one another. Also, the EDTA naming scheme contains some classifications that Ning specifically overwrote because she was not confident in those names, however that was for a hand-curated TE annotation file.

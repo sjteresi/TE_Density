@@ -1,16 +1,64 @@
 def TE_Renamer(TE_Data):
-    U = 'Unknown'
+    U = 'Unknown_Order'
     master_order = {
+        # Custom changes
+        'unknown':'Unknown',
+        'MITE':'DNA_(TIR)',
         'RC?':'DNA',
         'RC':'DNA',
         'SINE?':U,
         'tandem':'Tandem',
         'No_hits':U,
-        'LINE':'LINE'
+
+        # EDTA/Wicker et al 2007 renames to common name:
+        'LTR':'LTR',
+        'DIRS':'DIRS',
+        'PLE':'PLE',
+        'SINE':'SINE',
+        'LINE':'LINE',
+        'TIR':'DNA_(TIR)',
+        'Crypton':'Crypton',
+        'Helitron':'Helitron',
+        'Maverick':'Maverick'
+
     }
 
     U = 'Unknown_SuperFam'
     master_superfamily = {
+        # EDTA/Wicker et al 2007 renames to common name:
+        'RLC':'Copia',
+        'RLG':'Gypsy',
+        'RLB':'Bel_Pao',
+        'RLR':'Retrovirus',
+        'RLE':'ERV',
+        'RYD':'DIRS',
+        'RYN':'Ngaro',
+        'RYV':'VIPER',
+        'RPP':'Penelope',
+        'RIR':'R2',
+        'RIT':'RTE',
+        'RIJ':'Jockey',
+        'RIL':'L1',
+        'RII':'I',
+        'RST':'tRNA',
+        'RSL':'7SL',
+        'RSS':'5S',
+
+        'DTT':'Tc1_Mariner',
+        'DTA':'hAT',
+        'DTM':'Mutator',
+        'DTE':'Merlin',
+        'DTR':'Transib',
+        'DTP':'P',
+        'DTB':'PiggyBac',
+        'DTH':'PIF_Harbinger',
+        'DTC':'CACTA',
+        'DYC':'Crypton',
+        'DHH':'Helitron',
+        'DMM':'Maverick',
+
+
+        # Custom changes
         'Uknown':U,
         'unknown':U,
         'Unknown':U,
@@ -24,9 +72,8 @@ def TE_Renamer(TE_Data):
         'hAT-Tip100':'hAT',
         'hAT-Charlie':'hAT',
         'Helitron':U,
-        'unknown':U,
         'Maverick':U,
-        'Harbinger':'PIF-Harbinger',
+        'Harbinger':'PIF_Harbinger',
         'TcMar-Pogo':U,
         'CR1':'LINE',
         'hAT-Ac':'hAT',
@@ -48,7 +95,6 @@ def TE_Renamer(TE_Data):
         '':U,
         'Line':'LINE'
     }
-    #print(TE_Data.SuperFamily.unique())
     TE_Data.Order.replace(master_order, inplace=True)
     TE_Data.SuperFamily.replace(master_superfamily, inplace=True)
     TE_Data.loc[TE_Data.Order == 'Tandem', 'SuperFamily'] = 'Tandem'
