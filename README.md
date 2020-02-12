@@ -1,14 +1,16 @@
 # OLD REPO
-I am currently in the process of updating the pipeline to implement a number of speed improvements. I am also working on making this pipeline more universal. To view the old repository follow this [link](https://github.com/EdgerLab/TE_Density_Old)
+I am currently in the process of updating the pipeline to implement a number of speed and clarity improvements. I am also working on making this pipeline more universal. To view the old repository follow this [link](https://github.com/EdgerLab/TE_Density_Old)
 
+# Purpose:
+Calculate TE density for every gene in a genome, along sliding windows, and correctly allocate density values to a gene along TE Order and Superfamily classifications.
 
 # Usage:
-`python transposon/density /path/to/annotated/gene/file /path/to/annotated/TE/file`
+`python transposon/density.py /path/to/annotated/gene/file /path/to/annotated/TE/file`
+Edit the `transposon/replace_names.py` dictionary to accomodate changes to the TE naming scheme if you want to re-write some annotations or collapse some annotations together. 
 
 # Requirements
 Please install Pip so that you may easily install Python packages.
-Then we will use Pip to go over our **requirements.txt** and install the needed Python packages.
-`pip install -r requirements.txt`
+Then use Pip to go over our **requirements.txt** and install the needed Python packages: `pip install -r requirements.txt`.
 
 # To Do:
 Talk with Michael about making `validate_args` its own separate file
