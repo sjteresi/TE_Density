@@ -1,6 +1,6 @@
 import pandas as pd
-import os
 from transposon.replace_names import TE_Renamer
+
 
 def check_nulls(my_df):
     # TODO add logging event and possibly crash
@@ -8,29 +8,26 @@ def check_nulls(my_df):
     if Bool:
         print('You have Null values in your dataframe that were not caught!')
 
+
 def import_transposons(tes_input_path):
     """Import TE File
         Args: input_dir (command line argument) Specify the input directory of
         the TE annotation data, this is the same as the Gene annotation
         directory
     """
+    col_names = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop',
+                 'Score', 'Strand', 'Frame', 'Attribute']
 
-    # TODO remove MAGIC NUMBER (perhaps just search by extension (gtf)?)
-    #gff_filename = 'camarosa_gff_data.gff' # DECLARE YOUR DATA NAME
-
-    col_names = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
-        'Score', 'Strand', 'Frame', 'Attribute']
-
-    col_to_use = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop', \
-                 'Strand']
+    col_to_use = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop',
+                  'Strand']
 
     TE_Data = pd.read_csv(
             tes_input_path,
             sep='\t+',
             header=None,
             engine='python',
-            names = col_names,
-            usecols = col_to_use)
+            names=col_names,
+            usecols=col_to_use)
 
     TE_Data[['Order', 'SuperFamily']] = TE_Data.Feature.str.split('/', expand=True)
 

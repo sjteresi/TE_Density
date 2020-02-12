@@ -17,6 +17,7 @@ Future:
 __author__ = "Michael Teresi, Scott Teresi"
 import numpy as np
 
+
 class GeneData(object):
     """Wraps a gene data frame.
 
@@ -65,7 +66,7 @@ class GeneDatum(object):
         self.chromosome = gene_dataframe.Chromosome[str(gene_id)]
 
     def win_length(self, window):
-        return np.add(window,1)
+        return np.add(window, 1)
 
     def left_win_start(self, win_length):
         win_start = np.subtract(self.start, win_length)
@@ -111,7 +112,6 @@ class TransposonData(object):
         self.orders = self.data_frame.Order.to_numpy(copy=False)
         self.superfamilies = self.data_frame.SuperFamily.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
-
 
     def __add__(self, other):
         """Combine transposon data."""
