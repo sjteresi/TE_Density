@@ -6,48 +6,17 @@ Calculate transposable element density.
 
 __author__ = "Scott Teresi, Michael Teresi"
 
-import pdb
 import os
 import time
 import argparse
 import coloredlogs
 import logging
-from enum import IntEnum, unique
-import time
-
-#from multiprocessing import Process
-#import multiprocessing
-#from threading import Thread
-
 from tqdm import tqdm
 import numpy as np
-import pandas as pd
-
 from transposon.data import GeneData, TransposonData
-from transposon.replace_names import TE_Renamer
 from transposon.import_genes import import_genes
 from transposon.import_transposons import import_transposons
 
-def get_head(Data):
-    """ Get the heading of the Pandaframe """
-    try:
-        print(Data.head())
-    except AttributeError as e:
-        raise AttributeError('Your input data was incorrect, check to make sure it is a Pandaframe')
-
-def save_output(Data, Output_Name):
-    """ Save the output of the Pandaframe """
-    if Output_Name[-4:] != '.csv':
-        raise NameError('Please make sure your filename has .csv in it!')
-    global OUTPUT_DIR  # TODO remove global
-    Data.to_csv(os.path.join(OUTPUT_DIR, Output_Name),
-            header=True,
-            sep=',')
-    # TODO remove ch_main_path, not sure where this is needed anymore
-    #ch_main_path() # change to Code directory
-
-def get_dtypes(my_df):
-    print(my_df.dtypes)
 
 def get_nulls(my_df):
     null_columns = my_df.columns[my_df.isnull().any()]
@@ -56,19 +25,23 @@ def get_nulls(my_df):
     rows_where_null = my_df[my_df.isnull().any(axis=1)][null_columns].head()
     print('Rows where null exist: ', '\n', rows_where_null, '\n')
 
+
 def drop_nulls(my_df, status=False):
     if status:
         print('DROPPING ROWS WITH AT LEAST ONE NULL VALUE!!!')
-    my_df = my_df.dropna(axis = 0, how ='any')
+    my_df = my_df.dropna(axis=0, how='any')
     return my_df
+
 
 def get_unique(my_df_col):
     return my_df_col.unique()
 
+
 def swap_columns(df, col_condition, c1, c2):
     df.loc[col_condition, [c1, c2]] = \
-    df.loc[col_condition, [c2, c1]].values
+        df.loc[col_condition, [c2, c1]].values
     return df
+
 
 def split(df, group):
     """
@@ -104,6 +77,7 @@ def check_shape(transposon_data):
         logger.critical(msg)
         raise ValueError(msg)
 
+
 def check_density_shape(densities, transposon_data):
     """ Checks to make sure the density output is of the same dimension as the
     transposon_data input.
@@ -119,6 +93,7 @@ def check_density_shape(densities, transposon_data):
         logger.critical(msg)
         raise ValueError(msg)
 
+
 def gene_names(sub_gene_data):
     """Return unique gene names for the input gene data (e.g. one chromosome)."""
 
@@ -126,6 +101,7 @@ def gene_names(sub_gene_data):
     gene_name_id = 'Gene_Name'
     names = sub_gene_data[gene_name_id].unique()
     return names
+
 
 def rho_intra(gene_data, gene_name, transposon_data):
     """Intra density for one gene wrt transposable elements.
@@ -141,17 +117,18 @@ def rho_intra(gene_data, gene_name, transposon_data):
     g_start, g_stop, g_length = gene_data.get_gene(gene_name).start_stop_len
     lower = np.minimum(g_stop, transposon_data.stops)
     upper = np.maximum(g_start, transposon_data.starts)
-    te_overlaps =  np.maximum(0, (lower - upper + 1))
+    te_overlaps = np.maximum(0, (lower - upper + 1))
 
     densities = np.divide(
         te_overlaps,
         g_length,
         out=np.zeros_like(te_overlaps, dtype='float'),
-        where=g_length!=0
+        where=g_length != 0
     )
 
-    check_density_shape(densities,transposon_data)
+    check_density_shape(densities, transposon_data)
     return densities
+
 
 def validate_window(window_start, g_start, window_length):
     if window_start < 0:
@@ -190,14 +167,15 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
     # Set bounds and perform density calculation
     lower_bound = np.maximum(win_start, transposon_data.starts)
     upper_bound = np.minimum(win_stop, transposon_data.stops)
-    te_overlaps =  np.maximum(0, (upper_bound - lower_bound + 1))
+    te_overlaps = np.maximum(0, (upper_bound - lower_bound + 1))
     densities = np.divide(
         te_overlaps,
         win_length,
         out=np.zeros_like(te_overlaps, dtype='float')
     )
-    check_density_shape(densities,transposon_data)
+    check_density_shape(densities, transposon_data)
     return densities
+
 
 def rho_right_window(gene_data, gene_name, transposon_data, window):
 
@@ -226,14 +204,15 @@ def rho_right_window(gene_data, gene_name, transposon_data, window):
     # Set bounds and perform density calculation
     lower_bound = np.maximum(win_start, transposon_data.starts)
     upper_bound = np.minimum(win_stop, transposon_data.stops)
-    te_overlaps =  np.maximum(0, (upper_bound - lower_bound + 1))
+    te_overlaps = np.maximum(0, (upper_bound - lower_bound + 1))
     densities = np.divide(
         te_overlaps,
         win_length,
         out=np.zeros_like(te_overlaps, dtype='float')
     )
-    check_density_shape(densities,transposon_data)
+    check_density_shape(densities, transposon_data)
     return densities
+
 
 def density_algorithm(genes, tes, window, increment, max_window):
     """
@@ -250,7 +229,6 @@ def density_algorithm(genes, tes, window, increment, max_window):
         get_unique(genes.Chromosome) == get_unique(tes.Chromosome)
     except:
         raise ValueError("You do not have the same chromosomes in your files")
-
 
     windows = list(range(window, max_window, increment))
     logging.info(" windows are {}:{}:{}  -->  {}"
@@ -271,13 +249,10 @@ def density_algorithm(genes, tes, window, increment, max_window):
 
         # The init_empty_densities function was to add the appropriate
         # columns, we may not need to worry about that for now
-
-
         # All the commented code below are my attempts to do the work
-        #-----------------------------
-        get_head(genes)
-        save_output(genes, 'Test_Output.csv')
+        # -----------------------------
         window += increment
+
 
 def init_empty_densities(my_genes, my_tes, window):
     """Initializes all of the empty columns we need in the gene file. """
@@ -300,6 +275,7 @@ def init_empty_densities(my_genes, my_tes, window):
     my_genes['TEs_inside'] = np.nan
     return my_genes
 
+
 def check_groupings(grouped_genes, grouped_TEs, logger):
     """Validates the gene / TE pairs.
 
@@ -311,28 +287,30 @@ def check_groupings(grouped_genes, grouped_TEs, logger):
         grouped_TEs (list of pandaframes): TE dataframes separated by chromosome
     """
     for g_element, t_element in zip(grouped_genes, grouped_TEs):
-        #print(g_element.Chromosome.iloc[:].values[0])
+        # print(g_element.Chromosome.iloc[:].values[0])
         if g_element.Chromosome.iloc[:].values[0] != t_element.Chromosome.iloc[:].values[0]:
             msg = 'Chromosomes do not match for the grouped_genes or grouped_TEs'
             logger.critical(msg)
             raise ValueError(msg)
+
 
 def validate_args(args, logger):
     """Raise if an input argument is invalid."""
 
     if not os.path.isfile(args.genes_input_file):
         logger.critical("argument 'genes_input_dir' is not a file")
-        raise ValueError("%s is not a directory"%(abs_path))
+        raise ValueError("%s is not a directory" % (abs_path))
     if not os.path.isfile(args.tes_input_file):
         logger.critical("argument 'tes_input_dir' is not a file")
-        raise ValueError("%s is not a directory"%(abs_path))
+        raise ValueError("%s is not a directory" % (abs_path))
     if not os.path.isdir(args.output_dir):
         logger.critical("argument 'output_dir' is not a directory")
-        raise ValueError("%s is not a directory"%(abs_path))
+        raise ValueError("%s is not a directory" % (abs_path))
+
 
 def other_things():
-    grouped_genes = split(Gene_Data, 'Chromosome') # check docstring for my split func
-    grouped_TEs = split(TE_Data, 'Chromosome') # check docstring for my split func
+    grouped_genes = split(Gene_Data, 'Chromosome')  # check docstring for my split func
+    grouped_TEs = split(TE_Data, 'Chromosome')  # check docstring for my split func
     check_groupings(grouped_genes, grouped_TEs, logger)
     # Think of the 7 main "chromosomes" as "meta-chromosomes" in reality there
     # are 4 actual chromosomes per "meta-chromosome" label. So Fvb1 is
@@ -357,7 +335,7 @@ def other_things():
         # FUTURE multiprocess starting here
         # create workers
         # create accumulators
-        window_it = lambda : range(100, 1000, 100)  # TODO remove magic numbers, parametrize
+        window_it = lambda: range(100, 1000, 100)  # TODO remove magic numbers, parametrize
         window_progress = tqdm(total=len(window_it()), desc="windows", position=1)
         for window in range(100, 4000, 100):
             # create density request, push
@@ -377,6 +355,8 @@ def other_things():
         # combine all the results
         # write to disk
         gene_progress.update(1)
+
+
 if __name__ == '__main__':
     """Command line interface to calculate density."""
 
@@ -399,9 +379,9 @@ if __name__ == '__main__':
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
     coloredlogs.install(level=log_level)
-    #logger.info("Start processing directory '%s'"%(args.input_dir))
+    # logger.info("Start processing directory '%s'"%(args.input_dir))
     for argname, argval in vars(args).items():
-        logger.debug("%-12s: %s"%(argname, argval))
+        logger.debug("%-12s: %s" % (argname, argval))
     validate_args(args, logger)
 
     # FUTURE move this preprocessing to it's object
@@ -410,17 +390,16 @@ if __name__ == '__main__':
     logger.info("Importing transposons, this may take a moment...")
     TE_Data = import_transposons(args.tes_input_file)
 
-    #print(TE_Data.head())
+    # print(TE_Data.head())
 
     # Scott Test
-    #genes = GeneData(Gene_Data)
-    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').chromosome)
-    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').start_stop_len)
-    #genes.get_gene('maker-Fvb1-1-snap-gene-0.15', 500)
-    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_start)
-    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').calc_win_length(500))
-    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').start)
-    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').stop)
-    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_start(50))
-    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_stop())
-
+    # genes = GeneData(Gene_Data)
+    # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').chromosome)
+    # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').start_stop_len)
+    # genes.get_gene('maker-Fvb1-1-snap-gene-0.15', 500)
+    # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_start)
+    # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').calc_win_length(500))
+    # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').start)
+    # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').stop)
+    # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_start(50))
+    # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_stop())
