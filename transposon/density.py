@@ -44,11 +44,12 @@ def swap_columns(df, col_condition, c1, c2):
 
 
 def split(df, group):
-    """
-    Returns a list of the dataframe with each element being a subset of the df.
+    """Return list of the dataframe with each element being a subset of the df.
+
     I use this function to split by chromosome so that we may later do
     chromosome element-wise operations.
     """
+
     gb = df.groupby(group)
     return [gb.get_group(x) for x in gb.groups]
 
@@ -79,7 +80,7 @@ def check_shape(transposon_data):
 
 
 def check_density_shape(densities, transposon_data):
-    """ Checks to make sure the density output is of the same dimension as the
+    """Checks to make sure the density output is of the same dimension as the
     transposon_data input.
 
     Args:
@@ -178,7 +179,6 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
 
 
 def rho_right_window(gene_data, gene_name, transposon_data, window):
-
     """Density to the right (upstream) of a gene.
     When TE is between gene and window
 
@@ -308,7 +308,7 @@ def validate_args(args, logger):
         raise ValueError("%s is not a directory" % (abs_path))
 
 
-def other_things():
+def process():
     grouped_genes = split(Gene_Data, 'Chromosome')  # check docstring for my split func
     grouped_TEs = split(TE_Data, 'Chromosome')  # check docstring for my split func
     check_groupings(grouped_genes, grouped_TEs, logger)
@@ -320,7 +320,7 @@ def other_things():
     # chromosome, where the second number is the actual physical chromosome,
     # and we use the number to denote which subgenome it is assigned to.
 
-    gene_progress = tqdm(total=len(grouped_genes), desc="sub genes", position=0)
+    gene_progress = tqdm(total=len(grouped_genes), desc="subgenes  ", position=0)
     for sub_gene, sub_te in zip(grouped_genes, grouped_TEs):
         gene_data = GeneData(sub_gene)
         te_data = TransposonData(sub_te)
@@ -335,9 +335,9 @@ def other_things():
         # FUTURE multiprocess starting here
         # create workers
         # create accumulators
-        window_it = lambda: range(100, 1000, 100)  # TODO remove magic numbers, parametrize
-        window_progress = tqdm(total=len(window_it()), desc="windows", position=1)
-        for window in range(100, 4000, 100):
+        window_it = lambda: range(100, 800, 100)  # TODO remove magic numbers, parametrize
+        window_progress = tqdm(total=len(window_it()), desc="  windows ", position=1)
+        for window in window_it():
             # create density request, push
 
             # density_algorithm(
@@ -348,7 +348,7 @@ def other_things():
             #                 max_window=10000
             #                 )
 
-            time.sleep(0.025)
+            time.sleep(0.075)
             window_progress.update(1)
             gene_progress.refresh()
         # collapse accumulated results (i.e. do the division)
@@ -389,6 +389,8 @@ if __name__ == '__main__':
     Gene_Data = import_genes(args.genes_input_file)
     logger.info("Importing transposons, this may take a moment...")
     TE_Data = import_transposons(args.tes_input_file)
+
+    process()
 
     # print(TE_Data.head())
 
