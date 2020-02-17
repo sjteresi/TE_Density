@@ -15,6 +15,9 @@ Future:
 """
 
 __author__ = "Michael Teresi, Scott Teresi"
+
+import logging
+
 import numpy as np
 
 
@@ -98,12 +101,18 @@ class TransposonData(object):
         ensure that the output is a (no-copy) view.
     """
 
-    def __init__(self, transposable_elements_dataframe):
+    # FUTURE filter out irrelevant TEs for a window by comparing the
+    # max gene stop with the TE start? for optimization
+    # FUTURE split one TE file into multiple if memory becomes and issue?
+
+    def __init__(self, transposable_elements_dataframe, logger=None):
         """Initialize.
 
         Args:
             transposable_elements (DataFrame): transposable element data frame.
         """
+
+        self._logger = logger or logging.getLogger(__name__)
         self.data_frame = transposable_elements_dataframe
         self.indices = self.data_frame.index.to_numpy(copy=False)
         self.starts = self.data_frame.Start.to_numpy(copy=False)
@@ -112,6 +121,35 @@ class TransposonData(object):
         self.orders = self.data_frame.Order.to_numpy(copy=False)
         self.superfamilies = self.data_frame.SuperFamily.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
+
+    @property
+    def number_elements(self):
+        """The number of transposable elements."""
+
+        # TODO verify
+        return self.indices.size[0]  # MAGIC NUMBER it's one column
+
+    def check_shape(self):
+        """Checks to make sure the columns of the TE data are the same size.
+
+        If the shapes don't match then there are records that are incomplete,
+            as in an entry (row) does have all the expected fields (column).
+        """
+
+        start = self.starts.shape
+        stop = self.stops.shape
+        if start != stop:
+            msg = ("Input TE missing fields: starts.shape {}  != stops.shape {}"
+                   .format(start, stop))
+            logger.critical(msg)
+            raise ValueError(msg)
+
+        length = transposon_data.lengths.shape
+        if start != length:
+            msg = ("Input TE missing fields: starts.shape {}  != lengths.shape {}"
+                   .format(start, stop))
+            logger.critical(msg)
+            raise ValueError(msg)
 
     def __add__(self, other):
         """Combine transposon data."""

@@ -54,31 +54,6 @@ def split(df, group):
     return [gb.get_group(x) for x in gb.groups]
 
 
-def check_shape(transposon_data):
-    """Checks to make sure the columns of the TE data are the same size.
-
-    If the shapes don't match then there are records that are incomplete,
-        as in an entry (row) does have all the expected fields (column).
-    Args:
-        transposon_data (transposon.data.TransposonData): transposon container
-    """
-
-    start = transposon_data.starts.shape
-    stop = transposon_data.stops.shape
-    if start != stop:
-        msg = ("Input TE missing fields: starts.shape {}  != stops.shape {}"
-               .format(start, stop))
-        logger.critical(msg)
-        raise ValueError(msg)
-
-    length = transposon_data.lengths.shape
-    if start != length:
-        msg = ("Input TE missing fields: starts.shape {}  != lengths.shape {}"
-               .format(start, stop))
-        logger.critical(msg)
-        raise ValueError(msg)
-
-
 def check_density_shape(densities, transposon_data):
     """Checks to make sure the density output is of the same dimension as the
     transposon_data input.
@@ -114,7 +89,7 @@ def rho_intra(gene_data, gene_name, transposon_data):
         gene_name (hashable): name of gene to use
         transposon_data (transponson.data.TransposonData): transposon container
     """
-    check_shape(transposon_data)
+    transposon_data.check_shape()
     g_start, g_stop, g_length = gene_data.get_gene(gene_name).start_stop_len
     lower = np.minimum(g_stop, transposon_data.stops)
     upper = np.maximum(g_start, transposon_data.starts)
@@ -156,7 +131,7 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
         gene_name (hashable): name of gene to use
         transposon_data (transponson.data.TransposonData): transposon container
     """
-    check_shape(transposon_data)
+    transposon_data.check_shape()
     g_start, g_stop, g_length = gene_data.get_gene(gene_name).start_stop_len
 
     # Define windows
@@ -193,7 +168,7 @@ def rho_right_window(gene_data, gene_name, transposon_data, window):
         gene_name (hashable): name of gene to use
         transposon_data (transponson.data.TransposonData): transposon container
     """
-    check_shape(transposon_data)
+    transposon_data.check_shape()
     g_start, g_stop, g_length = gene_data.get_gene(gene_name).start_stop_len
 
     # Define windows

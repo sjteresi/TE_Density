@@ -4,13 +4,20 @@
         - I modified the flake8 config (`.flake8`) for 90 character limit
         - so you can pay attention to those erros now
         - this is up to you, pep8's limit of 79 is pretty stringent IMHO, just be consistent
+- [ ] add user identifier to GeneData for debugging
+        - like the name of the chromosome or something, anything the help identify it
+        - possibly the name of the file it came from?
+        - add this to the __repr__ method?
 - [ ] add comments on magic numbers, like this:  # MAGIC NUMBER <explanation>
 - [ ] refactor rho calcs to not call `get_gene` more than needed
+- [ ] add ConfigParser to __main__ of density.py (or similar module for reading configs)
+        - add param for window start, delta, stop
 - [ ] read up on concepts:
         - Factory pattern (https://en.wikipedia.org/wiki/Factory_method_pattern)
         - Interface Class (https://en.wikipedia.org/wiki/Interface_(computing))
         - Abstract Base Class (https://docs.python.org/3.4/library/abc.html) (@abstractmethod)
         - callable magic method `__call__`: (https://www.geeksforgeeks.org/callable-in-python/)
+        - profiling (https://docs.python.org/3/library/profile.html)
 - [ ] refactor `import_transposons.py::import_trasnsposons` for input arg
         - input callable for preprocessing instead so client doesn't have to modify the import
         - see the comments on that function
