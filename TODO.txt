@@ -1,37 +1,23 @@
-# SCOTT, TODO 2020 01 22
+# SCOTT, TODO 2020 02 17
 
--replace asserts w/ raises (except for unit tests)
+- [ ] run flake8 and fix most problems:  `$ cd TE_Density; flake8`
+        - I modified the flake8 config (`.flake8`) for 90 character limit
+        - so you can pay attention to those erros now
+        - this is up to you, pep8's limit of 79 is pretty stringent IMHO, just be consistent
+- [ ] add comments on magic numbers, like this:  # MAGIC NUMBER <explanation>
+- [ ] refactor rho calcs to not call `get_gene` more than needed
+- [ ] read up on concepts:
+        - Factory pattern (https://en.wikipedia.org/wiki/Factory_method_pattern)
+        - Interface Class (https://en.wikipedia.org/wiki/Interface_(computing))
+        - Abstract Base Class (https://docs.python.org/3.4/library/abc.html) (@abstractmethod)
+        - callable magic method `__call__`: (https://www.geeksforgeeks.org/callable-in-python/)
+- [ ] refactor `import_transposons.py::import_trasnsposons` for input arg
+        - input callable for preprocessing instead so client doesn't have to modify the import
+        - see the comments on that function
+- [ ] add a system test for a client's usage of TE_Density (processing a new organism)
+        - use this as an example for how to refactor TE_Density
+        - you should be able to just import TE_Density and run it with the new data
+        - that is, you should add the new preprocessing code and not have to modify TE_Density
+- [ ] add a profiling test for GeneDatum accessing start/stop etc., then add memoization
 
--add doc strings (w/ Args section)
--remove old code
-
--lookup these definitions
-  - bound method
-  - static method
-  - class method
-  - wrapper
-
--refactor GeneData to have a similar interface to TransposonData
-  - add GeneData public attributes similar to TransposonData to access gene columns
-  - add GeneDatum class
-  - add bound method to GeneData that produces a GeneDatum given gene_id
-  - remove GeneData functions that expose the gene columns for one gene_id
-  - refactor density calcs to use the GeneDatum
-
-
--add function to GeneDatum to calculate window starts
-  - good candidate for memoization
-
--refactor in test_density.py and density.py, specify window: start / stop / length / offset for variable names
-  - window = np.add(window, 1) change to window_start
-
--handle the case where you have two data inputs (e.g. blueberries)
-  - SEE Factory pattern (https://en.wikipedia.org/wiki/Factory_method_pattern)
-  - SEE Interface Class (https://en.wikipedia.org/wiki/Interface_(computing))
-  - add base class for data cleaning (just be an interface)
-  - add data_preprocessor.py
-  - define an Abstract Base Class (SEE module `abc` https://docs.python.org/3.4/library/abc.html)
-  - declare the methods ppl need to implement using `@abstracmethod`
-  - add your implementation for the camerosa (that produces the genedata & tedata)
-  - add your implementation for the other one
 
