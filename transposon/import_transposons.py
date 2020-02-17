@@ -9,6 +9,11 @@ def check_nulls(my_df):
         print('You have Null values in your dataframe that were not caught!')
 
 
+# TODO SCOTT add an input argument for filtering the data, so a client can
+# provide a filtering function (TE_Renamer) instead of the import hard coded
+# that way the client doesn't have to modify your code to get it to work
+# also use lower case for function names and start only classes with capital
+# letters
 def import_transposons(tes_input_path):
     """Import TE File
         Args: input_dir (command line argument) Specify the input directory of
