@@ -17,7 +17,6 @@ Future:
 __author__ = "Michael Teresi, Scott Teresi"
 
 import logging
-
 import numpy as np
 
 
@@ -144,7 +143,8 @@ class TransposonData(object):
             logger.critical(msg)
             raise ValueError(msg)
 
-        length = transposon_data.lengths.shape
+        # TODO verify that this isn't weird
+        length = self.lengths.shape
         if start != length:
             msg = ("Input TE missing fields: starts.shape {}  != lengths.shape {}"
                    .format(start, stop))
@@ -159,6 +159,7 @@ class TransposonData(object):
         # so if we wanted to handle multiple sub/families we could parametrize
         # the function to produce one TE wrt sub/family and combine them after
         raise NotImplementedError()
+
 
 class OverlapData(object):
     """Stores the number of base pairs that overlap the gene name / TE.

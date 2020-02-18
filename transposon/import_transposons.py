@@ -38,8 +38,6 @@ def import_transposons(tes_input_path):
 
     TE_Data = TE_Data.drop(['Feature', 'Software'], axis=1)
     TE_Data = TE_Renamer(TE_Data)
-
-
     TE_Data.Strand = TE_Data.Strand.astype(str)
     TE_Data.Start = TE_Data.Start.astype('uint32')
     TE_Data.Stop = TE_Data.Stop.astype('uint32')
