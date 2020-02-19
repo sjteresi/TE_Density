@@ -40,6 +40,7 @@ class GeneData(object):
         self.stops = self.data_frame.Stop.to_numpy(copy=False)
         self.lengths = self.data_frame.Length.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
+        self.unique_genes = gene_dataframe.index.unique()
 
     def get_gene(self, gene_id):
         """Return a GeneDatum for the gene identifier."""
@@ -51,21 +52,18 @@ class GeneData(object):
 
         return (name for name in self._names)
 
-
     def __repr__(self):
         info = """
                Wrapped Gene DataFrame: {self.data_frame}
                """
         return info.format(self=self)
 
+
 class GeneDatum(object):
     """Wraps a single gene data frame.
 
     Provides attribute access for a single gene.
     """
-
-    # SCOTT implement, __init__, add 'public' attributes for the columns
-    # basically, use the [] syntax from the functions in GeneData that you are deleting
 
     def __init__(self, gene_dataframe, gene_id):
         self.start = gene_dataframe.Start[str(gene_id)]
@@ -104,6 +102,7 @@ class GeneDatum(object):
                GeneDatum start_stop_len: {self.start_stop_len}
                """
         return info.format(self=self)
+
 
 class TransposonData(object):
     """Wraps a transposable elements data frame.
@@ -170,7 +169,6 @@ class TransposonData(object):
                Wrapped TE DataFrame: {self.data_frame}
                """
         return info.format(self=self)
-
 
     def __add__(self, other):
         """Combine transposon data."""
