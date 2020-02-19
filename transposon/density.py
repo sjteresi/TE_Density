@@ -79,33 +79,6 @@ def gene_names(sub_gene_data):
     return names
 
 
-def rho_intra(gene_data, gene_name, transposon_data):
-    """Intra density for one gene wrt transposable elements.
-
-    The relevant ares is the gene for intra density.
-
-    Args:
-        gene_data (transponson.data.GeneData): gene container
-        gene_name (hashable): name of gene to use
-        transposon_data (transponson.data.TransposonData): transposon container
-    """
-    transposon_data.check_shape()
-    g_start, g_stop, g_length = gene_data.get_gene(gene_name).start_stop_len
-    lower = np.minimum(g_stop, transposon_data.stops)
-    upper = np.maximum(g_start, transposon_data.starts)
-    te_overlaps = np.maximum(0, (lower - upper + 1))
-
-    densities = np.divide(
-        te_overlaps,
-        g_length,
-        out=np.zeros_like(te_overlaps, dtype='float'),
-        where=g_length != 0
-    )
-
-    check_density_shape(densities, transposon_data)
-    return densities
-
-
 def validate_window(window_start, g_start, window_length):
     if window_start < 0:
         msg = ("window_start is not 0 or a positive value")
@@ -132,12 +105,13 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
         transposon_data (transponson.data.TransposonData): transposon container
     """
     transposon_data.check_shape()
-    g_start, g_stop, g_length = gene_data.get_gene(gene_name).start_stop_len
+    gene_datum = gene_data.get_gene(gene_name)
+    g_start, g_stop, g_length = gene_datum.start_stop_len
 
     # Define windows
-    win_length = gene_data.get_gene(gene_name).win_length(window)
-    win_start = gene_data.get_gene(gene_name).left_win_start(win_length)
-    win_stop = gene_data.get_gene(gene_name).left_win_stop()
+    win_length = gene_datum.win_length(window)
+    win_start = gene_datum.left_win_start(win_length)
+    win_stop = gene_datum.left_win_stop()
     win_length = validate_window(win_start, g_start, win_length)
 
     # Set bounds and perform density calculation
@@ -149,6 +123,34 @@ def rho_left_window(gene_data, gene_name, transposon_data, window):
         win_length,
         out=np.zeros_like(te_overlaps, dtype='float')
     )
+    check_density_shape(densities, transposon_data)
+    return densities
+
+
+def rho_intra(gene_data, gene_name, transposon_data):
+    """Intra density for one gene wrt transposable elements.
+
+    The relevant ares is the gene for intra density.
+
+    Args:
+        gene_data (transponson.data.GeneData): gene container
+        gene_name (hashable): name of gene to use
+        transposon_data (transponson.data.TransposonData): transposon container
+    """
+    transposon_data.check_shape()
+    gene_datum = gene_data.get_gene(gene_name)
+    g_start, g_stop, g_length = gene_datum.start_stop_len
+    lower = np.minimum(g_stop, transposon_data.stops)
+    upper = np.maximum(g_start, transposon_data.starts)
+    te_overlaps = np.maximum(0, (lower - upper + 1))
+
+    densities = np.divide(
+        te_overlaps,
+        g_length,
+        out=np.zeros_like(te_overlaps, dtype='float'),
+        where=g_length != 0
+    )
+
     check_density_shape(densities, transposon_data)
     return densities
 
@@ -169,12 +171,13 @@ def rho_right_window(gene_data, gene_name, transposon_data, window):
         transposon_data (transponson.data.TransposonData): transposon container
     """
     transposon_data.check_shape()
-    g_start, g_stop, g_length = gene_data.get_gene(gene_name).start_stop_len
+    gene_datum = gene_data.get_gene(gene_name)
+    g_start, g_stop, g_length = gene_datum.start_stop_len
 
     # Define windows
-    win_length = gene_data.get_gene(gene_name).win_length(window)
-    win_start = gene_data.get_gene(gene_name).right_win_start()
-    win_stop = gene_data.get_gene(gene_name).right_win_stop(win_length)
+    win_length = gene_datum.win_length(window)
+    win_start = gene_datum.right_win_start()
+    win_stop = gene_datum.right_win_stop(win_length)
 
     # Set bounds and perform density calculation
     lower_bound = np.maximum(win_start, transposon_data.starts)
@@ -361,17 +364,19 @@ if __name__ == '__main__':
 
     # FUTURE move this preprocessing to it's object
     logger.info("Importing genes, this may take a moment...")
-    Gene_Data = import_genes(args.genes_input_file)
+    #Gene_Data = import_genes(args.genes_input_file)
     logger.info("Importing transposons, this may take a moment...")
     TE_Data = import_transposons(args.tes_input_file)
 
-    process()
+    # process()
 
     # print(TE_Data.head())
 
     # Scott Test
-    # genes = GeneData(Gene_Data)
-    # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').chromosome)
+    #genes = GeneData(Gene_Data)
+    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15'))
+    TEs = TransposonData(TE_Data)
+    print(TEs)
     # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').start_stop_len)
     # genes.get_gene('maker-Fvb1-1-snap-gene-0.15', 500)
     # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_start)

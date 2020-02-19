@@ -52,6 +52,12 @@ class GeneData(object):
         return (name for name in self._names)
 
 
+    def __repr__(self):
+        info = """
+               Wrapped Gene DataFrame: {self.data_frame}
+               """
+        return info.format(self=self)
+
 class GeneDatum(object):
     """Wraps a single gene data frame.
 
@@ -66,6 +72,7 @@ class GeneDatum(object):
         self.stop = gene_dataframe.Stop[str(gene_id)]
         self.length = gene_dataframe.Length[str(gene_id)]
         self.chromosome = gene_dataframe.Chromosome[str(gene_id)]
+        self.name = str(gene_id)
 
     def win_length(self, window):
         return np.add(window, 1)
@@ -90,6 +97,13 @@ class GeneDatum(object):
     def start_stop_len(self):
         return (self.start, self.stop, self.length)
 
+    def __repr__(self):
+        info = """
+               GeneDatum name: {self.name}
+               GeneDatum chromosome: {self.chromosome}
+               GeneDatum start_stop_len: {self.start_stop_len}
+               """
+        return info.format(self=self)
 
 class TransposonData(object):
     """Wraps a transposable elements data frame.
@@ -150,6 +164,13 @@ class TransposonData(object):
                    .format(start, stop))
             logger.critical(msg)
             raise ValueError(msg)
+
+    def __repr__(self):
+        info = """
+               Wrapped TE DataFrame: {self.data_frame}
+               """
+        return info.format(self=self)
+
 
     def __add__(self, other):
         """Combine transposon data."""

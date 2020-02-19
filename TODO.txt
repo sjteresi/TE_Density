@@ -1,15 +1,15 @@
 # SCOTT, TODO 2020 02 17
 
-- [ ] run flake8 and fix most problems:  `$ cd TE_Density; flake8`
+- [ALMOST] run flake8 and fix most problems:  `$ cd TE_Density; flake8`
         - I modified the flake8 config (`.flake8`) for 90 character limit
         - so you can pay attention to those erros now
         - this is up to you, pep8's limit of 79 is pretty stringent IMHO, just be consistent
-- [ ] add user identifier to GeneData for debugging
+- [X] add user identifier to GeneData for debugging
         - like the name of the chromosome or something, anything the help identify it
         - possibly the name of the file it came from?
         - add this to the __repr__ method?
 - [ ] add comments on magic numbers, like this:  # MAGIC NUMBER <explanation>
-- [ ] refactor rho calcs to not call `get_gene` more than needed
+- [X] refactor rho calcs to not call `get_gene` more than needed
 - [ ] add ConfigParser to __main__ of density.py (or similar module for reading configs)
         - add param for window start, delta, stop
 - [ ] read up on concepts:
@@ -26,5 +26,3 @@
         - you should be able to just import TE_Density and run it with the new data
         - that is, you should add the new preprocessing code and not have to modify TE_Density
 - [ ] add a profiling test for GeneDatum accessing start/stop etc., then add memoization
-
-
