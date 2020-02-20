@@ -17,7 +17,6 @@ Future:
 __author__ = "Michael Teresi, Scott Teresi"
 
 import logging
-
 import numpy as np
 
 
@@ -41,6 +40,7 @@ class GeneData(object):
         self.stops = self.data_frame.Stop.to_numpy(copy=False)
         self.lengths = self.data_frame.Length.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
+        self.unique_genes = gene_dataframe.index.unique()
 
     def write(self, filename):
         """Write to disk."""
@@ -64,6 +64,12 @@ class GeneData(object):
 
         return (name for name in self._names)
 
+    def __repr__(self):
+        info = """
+               Wrapped Gene DataFrame: {self.data_frame}
+               """
+        return info.format(self=self)
+
 
 class GeneDatum(object):
     """Wraps a single gene data frame.
@@ -71,14 +77,12 @@ class GeneDatum(object):
     Provides attribute access for a single gene.
     """
 
-    # SCOTT implement, __init__, add 'public' attributes for the columns
-    # basically, use the [] syntax from the functions in GeneData that you are deleting
-
     def __init__(self, gene_dataframe, gene_id):
         self.start = gene_dataframe.Start[str(gene_id)]
         self.stop = gene_dataframe.Stop[str(gene_id)]
         self.length = gene_dataframe.Length[str(gene_id)]
         self.chromosome = gene_dataframe.Chromosome[str(gene_id)]
+        self.name = str(gene_id)
 
     def win_length(self, window):
         return np.add(window, 1)
@@ -102,6 +106,14 @@ class GeneDatum(object):
     @property
     def start_stop_len(self):
         return (self.start, self.stop, self.length)
+
+    def __repr__(self):
+        info = """
+               GeneDatum name: {self.name}
+               GeneDatum chromosome: {self.chromosome}
+               GeneDatum start_stop_len: {self.start_stop_len}
+               """
+        return info.format(self=self)
 
 
 class TransposonData(object):
@@ -168,12 +180,19 @@ class TransposonData(object):
             logger.critical(msg)
             raise ValueError(msg)
 
-        length = transposon_data.lengths.shape
+        # TODO verify that this isn't weird
+        length = self.lengths.shape
         if start != length:
             msg = ("Input TE missing fields: starts.shape {}  != lengths.shape {}"
                    .format(start, stop))
             logger.critical(msg)
             raise ValueError(msg)
+
+    def __repr__(self):
+        info = """
+               Wrapped TE DataFrame: {self.data_frame}
+               """
+        return info.format(self=self)
 
     def __add__(self, other):
         """Combine transposon data."""
