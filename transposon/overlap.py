@@ -8,9 +8,7 @@ The no. base pairs that the transposable elements overlap the window for a gene.
 
 from enum import Enum, unique
 import logging
-
 import numpy as np
-
 from transposon.data import TransposonData, GeneData
 
 
@@ -21,13 +19,13 @@ class Overlap(object):
     class Direction(Enum):
         """Where the overlap is calculated relevant to the gene."""
 
-        LEFT = 0
-        INTRA = 1
-        RIGHT = 2
+        LEFT = 0  # MAGIC NUMBER
+        INTRA = 1  # MAGIC NUMBER
+        RIGHT = 2  # MAGIC NUMBER
 
     @staticmethod
     def left(gene_datum, transposons, window):
-        """Overlap to the left (aka downstream) of the gene.
+        """Overlap to the left of the gene.
 
         Number base pair overlap between the TE / gene on the relevant distance.
 
@@ -40,7 +38,8 @@ class Overlap(object):
         w_len = gene_datum.win_length(window)
         w_0 = gene_datum.left_win_start(w_len)
         w_1 = gene_datum.left_win_stop()
-        #w_l = validate_window(w0, transposons.start, w_len)
+        # TODO implement validate window
+        # w_l = validate_window(w0, transposons.start, w_len)
         lower_bound = np.maximum(w_0, transposons.starts)
         upper_bound = np.minimum(w_1, transposons.stops)
         te_overlaps = np.maximum(0, (upper_bound - lower_bound + 1))
@@ -58,17 +57,16 @@ class Overlap(object):
             window (int): no. base pairs from gene to calculate overlap.
         """
 
-        g_0 = gene_datum.start
-        g_len = gene_datum.length
-        g_1 = gene_datum.stop
-        lower_bound = np.minimum(g_0, transposons.stops)
-        upper_bound = np.maximum(g_1, transposons.starts)
+        g_start = gene_datum.start
+        g_stop = gene_datum.stop
+        lower_bound = np.minimum(g_start, transposons.stops)
+        upper_bound = np.maximum(g_stop, transposons.starts)
         te_overlaps = np.maximum(0, (lower_bound - upper_bound + 1))
         return te_overlaps
 
     @staticmethod
     def right(gene_datum, transposons, window):
-        """Overlap to the right (aka upstream) of the gene.
+        """Overlap to the right of the gene.
 
         Number base pair overlap between the TE / gene on the relevant distance.
 
@@ -109,7 +107,7 @@ class OverlapData(object):
         self._right = None
         self._windows = None
         self._gene_names = None
-        self._gene_name_2_idx = None
+        self._gene_name_2_idx = None  # NOTE Michael can you explain sometime?
         self._window_2_idx = None
 
     def calculate(self, windows, gene_names, window_update=None):
