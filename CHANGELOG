@@ -1,1 +1,4 @@
+- add Overlap, OverlapData
+    - calc and store te/gene overlap
+    - precursor to pseudo-density by postponing the division
 - add module 'transposon'
