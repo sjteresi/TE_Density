@@ -5,7 +5,7 @@ I am currently in the process of updating the pipeline to implement a number of 
 Calculate TE density for every gene in a genome, along sliding windows, and correctly allocate density values to a gene along TE Order and Superfamily classifications.
 
 # Usage:
-This code requires two input files. It requires an annotated gene file and an annotated TE file. Preferably, both files are in `gff` format, however the pipeline does work on `gtf` format, though support is not maintained for `gtf` formatted input data.
+This code requires two input files. It requires an annotated gene file and an annotated TE file. Preferably, both files are in `gff` format, however the pipeline does work on `gtf` format, though support is not maintained for `gtf` formatted input data. TEs identities, which ought to be in the third column of the TE annotation file, should have a string name of the Order, followed by a `/`, and then the SuperFamily. For example, an entry might look like `LTR/Gypsey` or `DNA/DTH`.
 
 `python transposon/density.py /path/to/annotated/gene/file /path/to/annotated/TE/file`
 Edit the `transposon/replace_names.py` dictionary to accomodate changes to the TE naming scheme if you want to re-write some annotations or collapse some annotations together. 

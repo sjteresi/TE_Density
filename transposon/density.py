@@ -17,6 +17,7 @@ from transposon.data import GeneData, TransposonData
 from transposon.import_genes import import_genes
 from transposon.import_transposons import import_transposons
 from transposon.overlap import OverlapData
+from transposon.replace_names import te_annot_renamer
 
 
 def get_nulls(my_df):
@@ -365,16 +366,16 @@ if __name__ == '__main__':
     # FUTURE move this preprocessing to it's object
     logger.info("Importing genes, this may take a moment...")
     Gene_Data = import_genes(args.genes_input_file)
-    #logger.info("Importing transposons, this may take a moment...")
-    #TE_Data = import_transposons(args.tes_input_file)
+    logger.info("Importing transposons, this may take a moment...")
+    TE_Data = import_transposons(args.tes_input_file, te_annot_renamer)
 
     # process()
 
-    # print(TE_Data.head())
+    print(TE_Data.head())
 
     # Scott Test
-    genes = GeneData(Gene_Data)
-    print(genes.unique_genes)
+    # genes = GeneData(Gene_Data)
+    # print(genes.unique_genes)
     #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15'))
     #TEs = TransposonData(TE_Data)
     #print(TEs)

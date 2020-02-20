@@ -1,4 +1,4 @@
-def TE_Renamer(TE_Data):
+def te_annot_renamer(TE_Data):
     U = 'Unknown_Order'
     master_order = {
         # Custom changes

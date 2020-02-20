@@ -1,5 +1,4 @@
 import pandas as pd
-from transposon.replace_names import TE_Renamer
 
 
 def check_nulls(my_df):
@@ -14,7 +13,7 @@ def check_nulls(my_df):
 # that way the client doesn't have to modify your code to get it to work
 # also use lower case for function names and start only classes with capital
 # letters
-def import_transposons(tes_input_path):
+def import_transposons(tes_input_path, te_annot_renamer):
     """Import TE File
         Args: input_dir (command line argument) Specify the input directory of
         the TE annotation data, this is the same as the Gene annotation
@@ -37,7 +36,7 @@ def import_transposons(tes_input_path):
     TE_Data[['Order', 'SuperFamily']] = TE_Data.Feature.str.split('/', expand=True)
 
     TE_Data = TE_Data.drop(['Feature', 'Software'], axis=1)
-    TE_Data = TE_Renamer(TE_Data)
+    TE_Data = te_annot_renamer(TE_Data)  # NOTE call to the cleaner
     TE_Data.Strand = TE_Data.Strand.astype(str)
     TE_Data.Start = TE_Data.Start.astype('uint32')
     TE_Data.Stop = TE_Data.Stop.astype('uint32')
