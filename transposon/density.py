@@ -16,6 +16,7 @@ import numpy as np
 from transposon.data import GeneData, TransposonData
 from transposon.import_genes import import_genes
 from transposon.import_transposons import import_transposons
+from transposon.overlap import OverlapData
 
 
 def get_nulls(my_df):
@@ -295,7 +296,7 @@ def process():
     # chromosome, where the second number is the actual physical chromosome,
     # and we use the number to denote which subgenome it is assigned to.
 
-    gene_progress = tqdm(total=len(grouped_genes), desc="subgenes  ", position=0)
+    gene_progress = tqdm(total=len(grouped_genes), desc="metachrome  ", position=0, ncols=80)
     for sub_gene, sub_te in zip(grouped_genes, grouped_TEs):
         gene_data = GeneData(sub_gene)
         te_data = TransposonData(sub_te)
@@ -310,22 +311,30 @@ def process():
         # FUTURE multiprocess starting here
         # create workers
         # create accumulators
-        window_it = lambda: range(100, 800, 100)  # TODO remove magic numbers, parametrize
-        window_progress = tqdm(total=len(window_it()), desc="  windows ", position=1)
-        for window in window_it():
-            # create density request, push
 
-            # density_algorithm(
-            #                 Gene_Data,
-            #                 TE_Data,
-            #                 window=1000,
-            #                 increment=500,
-            #                 max_window=10000
-            #                 )
-
-            time.sleep(0.075)
-            window_progress.update(1)
+        window_it = lambda: range(100, 1000, 100)  # TODO remove magic numbers, parametrize
+        n_genes = sum(1 for g in gene_data.names)
+        sub_progress = tqdm(total=n_genes, desc="  genes     ", position=1, ncols=80)
+        overlap = OverlapData(gene_data, te_data)
+        def update_win_prog():
+            sub_progress.update(1)
             gene_progress.refresh()
+        overlap.calculate(window_it(), gene_data.names, update_win_prog)
+        # for window in window_it():
+        #     # create density request, push
+        #
+        #
+        #     # density_algorithm(
+        #     #                 Gene_Data,
+        #     #                 TE_Data,
+        #     #                 window=1000,
+        #     #                 increment=500,
+        #     #                 max_window=10000
+        #     #                 )
+        #
+        #     time.sleep(0.075)
+        #     window_progress.update(1)
+        #     gene_progress.refresh()
         # collapse accumulated results (i.e. do the division)
         # combine all the results
         # write to disk

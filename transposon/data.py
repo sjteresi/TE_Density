@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Wrappers for the data.
+Wrappers for the input data.
 
 Design:
     Downstream work operates with one gene combined with many TEs, so:
@@ -41,6 +41,18 @@ class GeneData(object):
         self.stops = self.data_frame.Stop.to_numpy(copy=False)
         self.lengths = self.data_frame.Length.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
+
+    def write(self, filename):
+        """Write to disk."""
+
+        # NOTE consider for map reduce?
+        raise NotImplementedError()
+
+    def read(self, filename):
+        """Read from disk."""
+
+        # NOTE consider for map reduce?
+        raise NotImplementedError()
 
     def get_gene(self, gene_id):
         """Return a GeneDatum for the gene identifier."""
@@ -122,12 +134,24 @@ class TransposonData(object):
         self.superfamilies = self.data_frame.SuperFamily.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
 
+    def write(self, filename):
+        """Write to disk."""
+
+        # NOTE consider for map reduce?
+        raise NotImplementedError()
+
+    def read(self, filename):
+        """Read from disk."""
+
+        # NOTE consider for map reduce?
+        raise NotImplementedError()
+
     @property
     def number_elements(self):
         """The number of transposable elements."""
 
         # TODO verify
-        return self.indices.size[0]  # MAGIC NUMBER it's one column
+        return self.indices.shape[0]  # MAGIC NUMBER it's one column
 
     def check_shape(self):
         """Checks to make sure the columns of the TE data are the same size.
@@ -159,21 +183,3 @@ class TransposonData(object):
         # so if we wanted to handle multiple sub/families we could parametrize
         # the function to produce one TE wrt sub/family and combine them after
         raise NotImplementedError()
-
-class OverlapData(object):
-    """Stores the number of base pairs that overlap the gene name / TE.
-
-    This data is used to calculate density.
-    First, the number of base pairs that overlap the gene name / TE accumulates.
-    Second, the accumulated overlaps are divided by the relevant area,
-        the window size for left/right and the gene length for intra.
-    """
-
-    def __init__(self, genes, transposons, window):
-        """Initialize.
-
-        Args:
-            genes (GeneData): the gene data container.
-            transposons (TransposonData): the transposon data container.
-            window (int): the window to accumulate to.
-        """
