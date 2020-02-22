@@ -8,8 +8,8 @@ The no. base pairs that the transposable elements overlap the window for a gene.
 
 from enum import Enum, unique
 import logging
+
 import numpy as np
-from transposon.data import TransposonData, GeneData
 
 
 class Overlap(object):
@@ -19,9 +19,9 @@ class Overlap(object):
     class Direction(Enum):
         """Where the overlap is calculated relevant to the gene."""
 
-        LEFT = 0  # MAGIC NUMBER
-        INTRA = 1  # MAGIC NUMBER
-        RIGHT = 2  # MAGIC NUMBER
+        LEFT = 0
+        INTRA = 1
+        RIGHT = 2
 
     @staticmethod
     def left(gene_datum, transposons, window):
@@ -57,10 +57,10 @@ class Overlap(object):
             window (int): no. base pairs from gene to calculate overlap.
         """
 
-        g_start = gene_datum.start
-        g_stop = gene_datum.stop
-        lower_bound = np.minimum(g_start, transposons.stops)
-        upper_bound = np.maximum(g_stop, transposons.starts)
+        g_0 = gene_datum.start
+        g_1 = gene_datum.stop
+        lower_bound = np.minimum(g_0, transposons.stops)
+        upper_bound = np.maximum(g_1, transposons.starts)
         te_overlaps = np.maximum(0, (lower_bound - upper_bound + 1))
         return te_overlaps
 
@@ -79,8 +79,8 @@ class Overlap(object):
         w_0 = gene_datum.right_win_start()
         w_len = gene_datum.win_length(window)
         w_1 = gene_datum.right_win_stop(w_len)
-        lower_bound = np.maximum(w0, transposons.starts)
-        upper_bound = np.minimum(w1, transposons.stops)
+        lower_bound = np.maximum(w_0, transposons.starts)
+        upper_bound = np.minimum(w_1, transposons.stops)
         te_overlaps = np.maximum(0, (upper_bound - lower_bound + 1))
         return te_overlaps
 
@@ -130,7 +130,7 @@ class OverlapData(object):
             self._intra[:, g_idx] = Overlap.intra(gene, transposons)
             for window in self._windows:
                 left = Overlap.left(gene, transposons, window)
-                right = Overlap.left(gene, transposons, window)
+                right = Overlap.right(gene, transposons, window)
                 w_idx = self._window_2_idx[window]
                 self._left[:, g_idx, w_idx] = left
                 self._right[:, g_idx, w_idx] = right
@@ -168,10 +168,10 @@ class OverlapData(object):
     def _reset(self, windows, gene_names):
         """Initialize overalap data; mutates self."""
 
-        # TODO remove list of gene names, replace with generator, e.g. sum(1 for n in names)...
         self._gene_names = list(self._filter_gene_names(gene_names))
         self._windows = list(self._filter_windows(windows))
-        self._gene_name_2_idx = {name: idx for idx, name in enumerate(self._gene_names)}
+        gene_name_iter = enumerate(self._gene_names)
+        self._gene_name_2_idx = {name: idx for idx, name in gene_name_iter}
         self._window_2_idx = {win: idx for idx, win in enumerate(windows)}
         n_win = len(self._windows)
         n_gene = len(self._gene_names)

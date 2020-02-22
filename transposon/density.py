@@ -11,8 +11,10 @@ import time
 import argparse
 import coloredlogs
 import logging
+
 from tqdm import tqdm
 import numpy as np
+
 from transposon.data import GeneData, TransposonData
 from transposon.import_genes import import_genes
 from transposon.import_transposons import import_transposons
@@ -368,10 +370,11 @@ if __name__ == '__main__':
     Gene_Data = import_genes(args.genes_input_file)
     logger.info("Importing transposons, this may take a moment...")
     TE_Data = import_transposons(args.tes_input_file, te_annot_renamer)
-
-    # process()
-
+    
     print(TE_Data.head())
+
+    process()
+
 
     # Scott Test
     # genes = GeneData(Gene_Data)
