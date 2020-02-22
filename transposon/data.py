@@ -95,6 +95,9 @@ class GeneDatum(object):
         raise NotImplementedError()
 
     def win_length(self, window):
+        # SCOTT why the plus 1?
+        # SCOTT why is this not an off by one error?
+        # If it's just semantics then it would be helpful if this func was unecessary
         return np.add(window, 1)
 
     def left_win_start(self, win_length):

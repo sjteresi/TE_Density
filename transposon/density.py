@@ -7,10 +7,10 @@ Calculate transposable element density.
 __author__ = "Scott Teresi, Michael Teresi"
 
 import argparse
-import coloredlogs
-import logging
 import os
 
+import logging
+import coloredlogs
 import numpy as np
 from tqdm import tqdm
 

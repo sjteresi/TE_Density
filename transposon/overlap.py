@@ -12,7 +12,7 @@ import logging
 import numpy as np
 
 
-class Overlap(object):
+class Overlap():
     """Functions for calculating overlap."""
 
     @unique
@@ -85,7 +85,7 @@ class Overlap(object):
         return te_overlaps
 
 
-class OverlapData(object):
+class OverlapData():
     """Contains the overlap between the genes and transposable elements."""
 
     PRECISION = np.uint32
@@ -151,7 +151,7 @@ class OverlapData(object):
         for name in gene_names:
             # could use list comprehension but we need to log if it fails
             if name not in self._genes.names:
-                self._logger.error(" invalid gene name: {}".format(name))
+                self._logger.error(" invalid gene name: %s", name)
             else:
                 yield name
 
@@ -161,7 +161,7 @@ class OverlapData(object):
         windows = list(windows)
         for window in windows:
             if window < 0:
-                self._logger.error(" invalid window:  {}".format(window))
+                self._logger.error(" invalid window:  %i", window)
             else:
                 yield window
 

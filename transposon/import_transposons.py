@@ -14,7 +14,7 @@ def check_nulls(my_df):
 # also use lower case for function names and start only classes with capital
 # letters
 def import_transposons(tes_input_path, te_annot_renamer):
-    """Import TE File
+    """Import TE File.
         Args: input_dir (command line argument) Specify the input directory of
         the TE annotation data, this is the same as the Gene annotation
         directory
@@ -26,12 +26,12 @@ def import_transposons(tes_input_path, te_annot_renamer):
                   'Strand']
 
     TE_Data = pd.read_csv(
-            tes_input_path,
-            sep='\t+',
-            header=None,
-            engine='python',
-            names=col_names,
-            usecols=col_to_use)
+        tes_input_path,
+        sep='\t+',
+        header=None,
+        engine='python',
+        names=col_names,
+        usecols=col_to_use)
 
     TE_Data[['Order', 'SuperFamily']] = TE_Data.Feature.str.split('/', expand=True)
 

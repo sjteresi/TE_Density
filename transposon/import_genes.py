@@ -2,11 +2,13 @@ import pandas as pd
 
 
 def import_genes(genes_input_path):
-    """Import Genes File
-        Args: input_dir (command line argument) Specify the input directory of
-        the gene annotation data, this is the same as the TE annotation
-        directory
+    """Import genes file.
+
+    Args:
+        input_dir (command line argument) Specify the input directory of the gene
+        annotation data, this is the same as the TE annotation directory
     """
+
     col_names = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop',
                  'Score', 'Strand', 'Frame', 'FullName']
 
@@ -14,12 +16,12 @@ def import_genes(genes_input_path):
                   'Strand', 'FullName']
 
     Gene_Data = pd.read_csv(
-            genes_input_path,
-            sep='\t+',
-            header=None,
-            engine='python',
-            names=col_names,
-            usecols=col_to_use)
+        genes_input_path,
+        sep='\t+',
+        header=None,
+        engine='python',
+        names=col_names,
+        usecols=col_to_use)
 
     Gene_Data = Gene_Data[Gene_Data.Feature == 'gene']  # drop non-gene rows
 
