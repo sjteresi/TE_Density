@@ -84,6 +84,16 @@ class GeneDatum(object):
         self.chromosome = gene_dataframe.Chromosome[str(gene_id)]
         self.name = str(gene_id)
 
+    def write(self, filename):
+        """Write to disk."""
+
+        raise NotImplementedError()
+
+    def read(self, filename):
+        """Read from disk."""
+
+        raise NotImplementedError()
+
     def win_length(self, window):
         return np.add(window, 1)
 
@@ -108,6 +118,8 @@ class GeneDatum(object):
         return (self.start, self.stop, self.length)
 
     def __repr__(self):
+        """Printable representation."""
+
         info = """
                GeneDatum name: {self.name}
                GeneDatum chromosome: {self.chromosome}
@@ -149,13 +161,11 @@ class TransposonData(object):
     def write(self, filename):
         """Write to disk."""
 
-        # NOTE consider for map reduce?
         raise NotImplementedError()
 
     def read(self, filename):
         """Read from disk."""
 
-        # NOTE consider for map reduce?
         raise NotImplementedError()
 
     @property
@@ -177,7 +187,7 @@ class TransposonData(object):
         if start != stop:
             msg = ("Input TE missing fields: starts.shape {}  != stops.shape {}"
                    .format(start, stop))
-            logger.critical(msg)
+            self._logger.critical(msg)
             raise ValueError(msg)
 
         # TODO verify that this isn't weird
@@ -185,13 +195,13 @@ class TransposonData(object):
         if start != length:
             msg = ("Input TE missing fields: starts.shape {}  != lengths.shape {}"
                    .format(start, stop))
-            logger.critical(msg)
+            self._logger.critical(msg)
             raise ValueError(msg)
 
     def __repr__(self):
-        info = """
-               Wrapped TE DataFrame: {self.data_frame}
-               """
+        """Printable representation."""
+
+        info = "Wrapped TE DataFrame: {self.data_frame}"
         return info.format(self=self)
 
     def __add__(self, other):

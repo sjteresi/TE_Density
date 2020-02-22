@@ -6,14 +6,13 @@ Calculate transposable element density.
 
 __author__ = "Scott Teresi, Michael Teresi"
 
-import os
-import time
 import argparse
 import coloredlogs
 import logging
+import os
 
-from tqdm import tqdm
 import numpy as np
+from tqdm import tqdm
 
 from transposon.data import GeneData, TransposonData
 from transposon.import_genes import import_genes
@@ -187,46 +186,6 @@ def rho_right_window(gene_data, gene_name, transposon_data, window):
     return densities
 
 
-def density_algorithm(genes, tes, window, increment, max_window):
-    """
-    te data frame has columns: SEE import_transposons
-    te data frame has rows: each row is a temp
-
-    Args:
-
-
-    """
-    # NOTE create 2 structs to hold files / param & result
-
-    try:
-        get_unique(genes.Chromosome) == get_unique(tes.Chromosome)
-    except:
-        raise ValueError("You do not have the same chromosomes in your files")
-
-    windows = list(range(window, max_window, increment))
-    logging.info(" windows are {}:{}:{}  -->  {}"
-                 .format(window, increment, max_window, windows))
-
-    # Use the subsets in main?
-    while window <= max_window:
-        logging.debug(" Gene df shape:  {}".format(genes.values.shape))
-        logging.debug(" TE df shape:  {}".format(tes.values.shape))
-        # Perform the windowing operations
-        # Multiple tests need to be done here for each window
-        # All the tests must be run for that window and then rerun for the
-        # next window
-        # I foresee that for each gene file we will have an output wiht all
-        # of the original gene data and the output will be 500_LTR_Upstream
-        # The TE types (LTR) are given by the TE_Dataframe.Order and
-        # TE_Dataframe.SuperFamily columns
-
-        # The init_empty_densities function was to add the appropriate
-        # columns, we may not need to worry about that for now
-        # All the commented code below are my attempts to do the work
-        # -----------------------------
-        window += increment
-
-
 def init_empty_densities(my_genes, my_tes, window):
     """Initializes all of the empty columns we need in the gene file. """
 
@@ -299,16 +258,6 @@ def process():
         te_data = TransposonData(sub_te)
         # TODO validate the gene / te pair
 
-        # NOTE Everything seems good to me, the method for validating (my split
-        # function and the check_groupings) could probably be done better but I
-        # don't know, what do you think Michael? It is nice to be able
-        # to put it through a for loop for our workers's purposes, see
-        # the above for loop. -S
-
-        # FUTURE multiprocess starting here
-        # create workers
-        # create accumulators
-
         window_it = lambda: range(100, 1000, 100)  # TODO remove magic numbers, parametrize
         n_genes = sum(1 for g in gene_data.names)
         sub_progress = tqdm(total=n_genes, desc="  genes     ", position=1, ncols=80)
@@ -317,24 +266,7 @@ def process():
             sub_progress.update(1)
             gene_progress.refresh()
         overlap.calculate(window_it(), gene_data.names, update_win_prog)
-        # for window in window_it():
-        #     # create density request, push
-        #
-        #
-        #     # density_algorithm(
-        #     #                 Gene_Data,
-        #     #                 TE_Data,
-        #     #                 window=1000,
-        #     #                 increment=500,
-        #     #                 max_window=10000
-        #     #                 )
-        #
-        #     time.sleep(0.075)
-        #     window_progress.update(1)
-        #     gene_progress.refresh()
-        # collapse accumulated results (i.e. do the division)
-        # combine all the results
-        # write to disk
+
         gene_progress.update(1)
 
 
@@ -353,6 +285,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose',
                         action='store_true',
                         help='set debugging level to DEBUG')
+
     args = parser.parse_args()
     args.output_dir = os.path.abspath(args.output_dir)
     args.genes_input_file = os.path.abspath(args.genes_input_file)
@@ -360,6 +293,7 @@ if __name__ == '__main__':
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
     coloredlogs.install(level=log_level)
+
     # logger.info("Start processing directory '%s'"%(args.input_dir))
     for argname, argval in vars(args).items():
         logger.debug("%-12s: %s" % (argname, argval))
@@ -370,11 +304,10 @@ if __name__ == '__main__':
     Gene_Data = import_genes(args.genes_input_file)
     logger.info("Importing transposons, this may take a moment...")
     TE_Data = import_transposons(args.tes_input_file, te_annot_renamer)
-    
+
     print(TE_Data.head())
 
     process()
-
 
     # Scott Test
     # genes = GeneData(Gene_Data)

@@ -24,7 +24,8 @@ def import_genes(genes_input_path):
     Gene_Data = Gene_Data[Gene_Data.Feature == 'gene']  # drop non-gene rows
 
     # clean the names and set as the index (get row wrt name c.f. idx)
-    Gene_Data[['Name1', 'Gene_Name']] = Gene_Data.FullName.str.split(';Name=', expand=True)
+    Gene_Data[['Name1', 'Gene_Name']] = \
+        Gene_Data.FullName.str.split(';Name=', expand=True)
     Gene_Data.set_index('Gene_Name', inplace=True)
     Gene_Data = Gene_Data.drop(['FullName', 'Name1', 'Software'], axis=1)
 
