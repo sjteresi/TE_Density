@@ -127,13 +127,13 @@ class OverlapData():
         for gene_name in self._gene_names:
             gene = self._genes.get_gene(gene_name)
             g_idx = self._gene_name_2_idx[gene_name]
-            self._intra[:, g_idx] = Overlap.intra(gene, transposons)
+            self._intra[g_idx, :] = Overlap.intra(gene, transposons)
             for window in self._windows:
                 left = Overlap.left(gene, transposons, window)
                 right = Overlap.right(gene, transposons, window)
                 w_idx = self._window_2_idx[window]
-                self._left[:, g_idx, w_idx] = left
-                self._right[:, g_idx, w_idx] = right
+                self._left[g_idx, w_idx, :] = left
+                self._right[g_idx, w_idx, :] = right
             if window_update is not None:
                 window_update()
 
@@ -176,6 +176,7 @@ class OverlapData():
         n_win = len(self._windows)
         n_gene = len(self._gene_names)
         n_te = self._transposons.number_elements
-        self._left = np.zeros((n_te, n_gene, n_win), self.PRECISION)
-        self._intra = np.zeros((n_te, n_gene), self.PRECISION)
-        self._right = np.zeros((n_te, n_gene, n_win), self.PRECISION)
+        # N.B. numpy uses row major by default
+        self._left = np.zeros((n_gene, n_win, n_te), self.PRECISION)
+        self._intra = np.zeros((n_gene, n_te), self.PRECISION)
+        self._right = np.zeros((n_gene, n_win, n_te), self.PRECISION)
