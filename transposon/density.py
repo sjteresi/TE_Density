@@ -252,7 +252,7 @@ def process():
     # chromosome, where the second number is the actual physical chromosome,
     # and we use the number to denote which subgenome it is assigned to.
 
-    gene_progress = tqdm(total=len(grouped_genes), desc="metachrome  ", position=0, ncols=80)
+    gene_progress = tqdm(total=len(grouped_genes), desc="chromosome  ", position=0, ncols=80)
     for sub_gene, sub_te in zip(grouped_genes, grouped_TEs):
         gene_data = GeneData(sub_gene)
         te_data = TransposonData(sub_te)

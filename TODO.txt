@@ -16,15 +16,11 @@
         - profiling (https://docs.python.org/3/library/profile.html)
 - [ ] add ConfigParser to __main__ of density.py (or similar module for reading configs)
         - add param for window start, delta, stop
-- [ ] add unit test for Overlap
 - [ ] modify requirements to be nested
         - SEE https://stackoverflow.com/a/20720019
         - add pylint to the dev requirements
+- [ ] add (implement) to/from disk for GeneData
 - [ ] refactor `import_transposons.py::import_trasnsposons` for input arg
         - input callable for preprocessing instead so client doesn't have to modify the import
         - see the comments on that function
-- [ ] add a system test for a client's usage of TE_Density (processing a new organism)
-        - use this as an example for how to refactor TE_Density
-        - you should be able to just import TE_Density and run it with the new data
-        - that is, you should add the new preprocessing code and not have to modify TE_Density
 - [ ] add a profiling test for GeneDatum accessing start/stop etc., then add memoization
