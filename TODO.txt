@@ -14,13 +14,14 @@
         - Abstract Base Class (https://docs.python.org/3.4/library/abc.html) (@abstractmethod)
         - callable magic method `__call__`: (https://www.geeksforgeeks.org/callable-in-python/)
         - profiling (https://docs.python.org/3/library/profile.html)
-- [ ] add ConfigParser to __main__ of density.py (or similar module for reading configs)
+- [X] add ConfigParser to __main__ of density.py (or similar module for reading configs)
         - add param for window start, delta, stop
 - [ ] modify requirements to be nested
         - SEE https://stackoverflow.com/a/20720019
         - add pylint to the dev requirements
 - [ ] add (implement) to/from disk for GeneData
-- [ ] refactor `import_transposons.py::import_trasnsposons` for input arg
+- [X] refactor `import_transposons.py::import_trasnsposons` for input arg
         - input callable for preprocessing instead so client doesn't have to modify the import
         - see the comments on that function
+- [X] Clean up GeneDatum and the methods in Overlaps.py so that the window length value is less confusing
 - [ ] add a profiling test for GeneDatum accessing start/stop etc., then add memoization

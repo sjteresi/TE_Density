@@ -13,6 +13,7 @@ import logging
 import coloredlogs
 import numpy as np
 from tqdm import tqdm
+from configparser import ConfigParser
 
 from transposon.data import GeneData, TransposonData
 from transposon.import_genes import import_genes
@@ -258,7 +259,10 @@ def process():
         te_data = TransposonData(sub_te)
         # TODO validate the gene / te pair
 
-        window_it = lambda: range(100, 1000, 100)  # TODO remove magic numbers, parametrize
+        # OLD, candidate for deletion
+        # window_it = lambda: range(100, 1000, 100)  # TODO remove magic numbers, parametrize
+        window_it = lambda: range(first_window_size, last_window_size,
+                                  window_delta)
         n_genes = sum(1 for g in gene_data.names)
         sub_progress = tqdm(total=n_genes, desc="  genes     ", position=1, ncols=80)
         overlap = OverlapData(gene_data, te_data)
@@ -299,27 +303,33 @@ if __name__ == '__main__':
         logger.debug("%-12s: %s" % (argname, argval))
     validate_args(args, logger)
 
+    # NOTE Imports
     # FUTURE move this preprocessing to it's object
     logger.info("Importing genes, this may take a moment...")
     Gene_Data = import_genes(args.genes_input_file)
     logger.info("Importing transposons, this may take a moment...")
     TE_Data = import_transposons(args.tes_input_file, te_annot_renamer)
 
-    print(TE_Data.head())
+    # NOTE Config parser section
+    logger.info("Setting config file...")
+    config = ConfigParser()
+    # NOTE Set this as needed, may have to move elsewhere so people can edit
+    # MICHAEL for the sake of testing, I will leave the options as 100, 100,
+    # 1000, but during our production runs I intend for it to be 500, 500,
+    # 10000
+    config['density_parameters'] = {'first_window_size': 100,
+                         'window_delta': 100,
+                         'last_window_size': 1000}
+    with open('config.ini', 'w') as configfile:
+        config.write(configfile)
 
+    logger.info("Reading config file...")
+    parser = ConfigParser()
+    parser.read('config.ini')
+    # Set the parameters for processing
+    first_window_size = parser.getint('density_parameters', 'first_window_size')
+    window_delta = parser.getint('density_parameters', 'window_delta')
+    last_window_size = parser.getint('density_parameters', 'last_window_size')
+
+    # Process data
     process()
-
-    # Scott Test
-    # genes = GeneData(Gene_Data)
-    # print(genes.unique_genes)
-    #print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15'))
-    #TEs = TransposonData(TE_Data)
-    #print(TEs)
-    # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').start_stop_len)
-    # genes.get_gene('maker-Fvb1-1-snap-gene-0.15', 500)
-    # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_start)
-    # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').calc_win_length(500))
-    # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').start)
-    # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').stop)
-    # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_start(50))
-    # print(genes.get_gene('maker-Fvb1-1-snap-gene-0.15').left_win_stop())
