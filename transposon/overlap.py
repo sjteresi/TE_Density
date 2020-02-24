@@ -35,13 +35,14 @@ class Overlap():
             window (int): no. base pairs from gene to calculate overlap.
         """
 
-        w_len = gene_datum.win_length(window)
-        w_0 = gene_datum.left_win_start(w_len)
-        w_1 = gene_datum.left_win_stop()
-        # TODO implement validate window
-        # w_l = validate_window(w0, transposons.start, w_len)
-        lower_bound = np.maximum(w_0, transposons.starts)
-        upper_bound = np.minimum(w_1, transposons.stops)
+        w_start = gene_datum.left_win_start(window)
+        w_stop = gene_datum.left_win_stop
+        # TODO implement validate window to fix the window length for the
+        # density caluclations, because w_len is not needed for the overlaps.
+        # w_len = gene_datum.win_length(window)
+        # w_len = validate_window(w_start, gene_datum.start, w_len)
+        lower_bound = np.maximum(w_start, transposons.starts)
+        upper_bound = np.minimum(w_stop, transposons.stops)
         te_overlaps = np.maximum(0, (upper_bound - lower_bound + 1))
         return te_overlaps
 
@@ -57,10 +58,10 @@ class Overlap():
             window (int): no. base pairs from gene to calculate overlap.
         """
 
-        g_0 = gene_datum.start
-        g_1 = gene_datum.stop
-        lower_bound = np.minimum(g_0, transposons.stops)
-        upper_bound = np.maximum(g_1, transposons.starts)
+        g_start = gene_datum.start
+        g_stop = gene_datum.stop
+        lower_bound = np.minimum(g_start, transposons.stops)
+        upper_bound = np.maximum(g_stop, transposons.starts)
         te_overlaps = np.maximum(0, (lower_bound - upper_bound + 1))
         return te_overlaps
 
@@ -76,11 +77,10 @@ class Overlap():
             window (int): no. base pairs from gene to calculate overlap.
         """
 
-        w_0 = gene_datum.right_win_start()
-        w_len = gene_datum.win_length(window)
-        w_1 = gene_datum.right_win_stop(w_len)
-        lower_bound = np.maximum(w_0, transposons.starts)
-        upper_bound = np.minimum(w_1, transposons.stops)
+        w_start = gene_datum.right_win_start
+        w_stop = gene_datum.right_win_stop(window)
+        lower_bound = np.maximum(w_start, transposons.starts)
+        upper_bound = np.minimum(w_stop, transposons.stops)
         te_overlaps = np.maximum(0, (upper_bound - lower_bound + 1))
         return te_overlaps
 

@@ -78,11 +78,16 @@ class GeneDatum(object):
     """
 
     def __init__(self, gene_dataframe, gene_id):
+        self.name = str(gene_id)
         self.start = gene_dataframe.Start[str(gene_id)]
         self.stop = gene_dataframe.Stop[str(gene_id)]
         self.length = gene_dataframe.Length[str(gene_id)]
         self.chromosome = gene_dataframe.Chromosome[str(gene_id)]
-        self.name = str(gene_id)
+
+        # For the left side, window stop is one digit before gene start
+        self.left_win_stop = np.subtract(self.start, 1)
+        # For the right side, window start is one digit after gene stop
+        self.right_win_start = np.add(self.stop, 1)
 
     def write(self, filename):
         """Write to disk."""
@@ -98,23 +103,20 @@ class GeneDatum(object):
         # SCOTT why the plus 1?
         # SCOTT why is this not an off by one error?
         # If it's just semantics then it would be helpful if this func was unecessary
+
+        # MICHAEL I am going to keep the function for now because this will be
+        # necessary for the density calculations later when you need to divide
+        # by the window length, but for now I have simplified the notation for
+        # the window calculations so that they are clearer.
         return np.add(window, 1)
 
-    def left_win_start(self, win_length):
-        win_start = np.subtract(self.start, win_length)
+    def left_win_start(self, window):
+        win_start = np.subtract(self.left_win_stop, window)
         win_start = np.clip(win_start, 0, None)
         return win_start
 
-    def left_win_stop(self):
-        # For the left side, window stop is one digit before gene start
-        return np.subtract(self.start, 1)
-
-    def right_win_start(self):
-        # For the right side, window start is one digit after gene stop
-        return np.add(self.stop, 1)
-
-    def right_win_stop(self, win_length):
-        return np.add(self.stop, win_length)
+    def right_win_stop(self, window):
+        return np.add(self.right_win_start, window)
 
     @property
     def start_stop_len(self):
