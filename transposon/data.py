@@ -18,6 +18,8 @@ __author__ = "Michael Teresi, Scott Teresi"
 
 import logging
 import numpy as np
+import pandas as pd
+# import h5py
 
 
 class GeneData(object):
@@ -41,18 +43,43 @@ class GeneData(object):
         self.lengths = self.data_frame.Length.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
         self.unique_genes = gene_dataframe.index.unique()
+        # unique() returns a list, there ought to be one element in the list
+        # and we just want it in string form, so I index on 0 MAGIC NUMBER below
+        self.chrom_of_the_subset = self.data_frame.Chromosome.unique()[0]
 
-    def write(self, filename):
-        """Write to disk."""
+    def write(self, filename, key='default'):
+        """Write a Pandaframe to disk.
 
+            filename (str): a string of the filename you want to write.
+            key (str): identifier for the group in the store, since we can
+            write multiple pandaframes to an hdf5 file, we need a key string
+            identifer to grab a specific pandaframe from the hdf5, so I set a
+            default value. I imagine during production we will use the
+            chromosome as the key for each pandaframe in the hdf5.
+        """
+        # self.data_frame is a PandaFrame that is why we can use to_hdf
+        self.data_frame.to_hdf(filename, key=key, mode='w')
         # NOTE consider for map reduce?
-        raise NotImplementedError()
 
-    def read(self, filename):
-        """Read from disk."""
+    @staticmethod
+    def read(filename, key='default'):
+        """Read from disk. Returns a Pandaframe from an hdf5 file
 
+        Args:
+            filename (str): a string of the filename you want to read.
+            key (str): identifier for the group in the store, since we can
+            write multiple pandaframes to an hdf5 file, we need a key string
+            identifer to grab a specific pandaframe from the hdf5, so I set a
+            default value. I imagine during production we will use the
+            chromosome as the key for each pandaframe in the hdf5.
+        """
+        # MICHAEL, let me know if this syntax is good/appropriate.
+        # I made it a static method because you don't need self, but I make
+        # sure to use the Pandas method of reading an hdf because that is how
+        # we are initially constructing our dataset, so I thought it would be
+        # consistent.
+        return pd.read_hdf(filename, key=key)
         # NOTE consider for map reduce?
-        raise NotImplementedError()
 
     def get_gene(self, gene_id):
         """Return a GeneDatum for the gene identifier."""
