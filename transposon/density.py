@@ -23,6 +23,13 @@ from transposon.replace_names import te_annot_renamer
 
 
 def get_nulls(my_df):
+    """
+    Print out a count of null values per column.
+    Print out the row IDs where the null values exist
+
+    Args:
+        my_df (Pandaframes): Pandaframe to check null values in
+    """
     null_columns = my_df.columns[my_df.isnull().any()]
     count_of_null = my_df[null_columns].isnull().sum()
     print('Counts of null values per column: ' '\n', count_of_null, '\n')
@@ -31,31 +38,40 @@ def get_nulls(my_df):
 
 
 def drop_nulls(my_df, status=False):
+    """
+    Drop null values inside a Pandaframe
+
+    Args:
+        my_df (Pandaframes): Pandaframe to drop null values
+    """
     if status:
         print('DROPPING ROWS WITH AT LEAST ONE NULL VALUE!!!')
     my_df = my_df.dropna(axis=0, how='any')
     return my_df
 
 
-def get_unique(my_df_col):
-    return my_df_col.unique()
+def swap_columns(dataframe, col_condition, col_1, col_2):
+    """
+    Swap the values of two designated columns for a row based on a column
+    condition, return the dataframe
+
+    Args:
+        my_df (Pandaframes): Pandaframe to swap columns in.
+    """
+    dataframe.loc[col_condition, [col_1, col_2]] = \
+        dataframe.loc[col_condition, [col_2, col_1]].values
+    return dataframe
 
 
-def swap_columns(df, col_condition, c1, c2):
-    df.loc[col_condition, [c1, c2]] = \
-        df.loc[col_condition, [c2, c1]].values
-    return df
-
-
-def split(df, group):
+def split(dataframe, group):
     """Return list of the dataframe with each element being a subset of the df.
 
     I use this function to split by chromosome so that we may later do
     chromosome element-wise operations.
     """
 
-    gb = df.groupby(group)
-    return [gb.get_group(x) for x in gb.groups]
+    grouped_df = dataframe.groupby(group)
+    return [grouped_df.get_group(x) for x in grouped_df.groups]
 
 
 def check_density_shape(densities, transposon_data):
@@ -75,6 +91,16 @@ def check_density_shape(densities, transposon_data):
 
 
 def validate_window(window_start, g_start, window_length):
+    """
+    Validate the window specifically to make sure it doesn't go into the
+    negative values. Function invoked to validate the left-hand window.
+
+    Args:
+        window_start (int): integer value for the left window start value, we need
+        to make sure it isn't negative.
+        g_start (int): gene start value
+        window_length (int)
+    """
     if window_start < 0:
         msg = ("window_start is not 0 or a positive value")
         logger.critical(msg)
@@ -191,18 +217,18 @@ def init_empty_densities(my_genes, my_tes, window):
     """Initializes all of the empty columns we need in the gene file. """
 
     # NOTE This function is a candidate for deletion
-    Order_List = my_tes.Order.unique()
-    SuperFamily_List = my_tes.SuperFamily.unique()
-    Directions = ['_downstream', '_intra', '_upstream']
+    order_list = my_tes.Order.unique()
+    superfamily_list = my_tes.SuperFamily.unique()
+    directions = ['_downstream', '_intra', '_upstream']
     # left, center, right
 
-    for an_order in Order_List:
-        for direction in Directions:
+    for an_order in order_list:
+        for direction in directions:
             col_name = (str(window) + '_' + an_order + direction)
             my_genes[col_name] = np.nan
 
-    for a_superfamily in SuperFamily_List:
-        for direction in Directions:
+    for a_superfamily in superfamily_list:
+        for direction in directions:
             col_name = (str(window) + '_' + a_superfamily + direction)
             my_genes[col_name] = np.nan
     my_genes['TEs_inside'] = np.nan
@@ -232,16 +258,17 @@ def validate_args(args, logger):
 
     if not os.path.isfile(args.genes_input_file):
         logger.critical("argument 'genes_input_dir' is not a file")
-        raise ValueError("%s is not a directory" % (abs_path))
+        raise ValueError("%s is not a directory" % (args.genes_input_file))
     if not os.path.isfile(args.tes_input_file):
         logger.critical("argument 'tes_input_dir' is not a file")
-        raise ValueError("%s is not a directory" % (abs_path))
+        raise ValueError("%s is not a directory" % (args.tes_input_file))
     if not os.path.isdir(args.output_dir):
         logger.critical("argument 'output_dir' is not a directory")
-        raise ValueError("%s is not a directory" % (abs_path))
+        raise ValueError("%s is not a directory" % (args.output_dir))
 
 
 def process():
+    """ Run the algorithm """
     grouped_genes = split(Gene_Data, 'Chromosome')  # check docstring for my split func
     grouped_TEs = split(TE_Data, 'Chromosome')  # check docstring for my split func
     check_groupings(grouped_genes, grouped_TEs, logger)
@@ -318,8 +345,8 @@ if __name__ == '__main__':
     # 1000, but during our production runs I intend for it to be 500, 500,
     # 10000
     config['density_parameters'] = {'first_window_size': 100,
-                         'window_delta': 100,
-                         'last_window_size': 1000}
+                                    'window_delta': 100,
+                                    'last_window_size': 1000}
     with open('config.ini', 'w') as configfile:
         config.write(configfile)
 
