@@ -16,7 +16,7 @@
         - profiling (https://docs.python.org/3/library/profile.html)
 - [X] add ConfigParser to __main__ of density.py (or similar module for reading configs)
         - add param for window start, delta, stop
-- [ ] modify requirements to be nested
+- [X] modify requirements to be nested
         - SEE https://stackoverflow.com/a/20720019
         - add pylint to the dev requirements
 - [ ] add (implement) to/from disk for GeneData
