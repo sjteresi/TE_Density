@@ -257,10 +257,13 @@ def process():
     for sub_gene, sub_te in zip(grouped_genes, grouped_TEs):
         gene_data = GeneData(sub_gene)
         te_data = TransposonData(sub_te)
+        # filename = 'Test.hdf5'
+        # chromosome_identifier = gene_data.chrom_of_the_subset
+        # gene_data.write(filename, key=chromosome_identifier)
+        # X = GeneData.read(filename, key=chromosome_identifier)
+
         # TODO validate the gene / te pair
 
-        # OLD, candidate for deletion
-        # window_it = lambda: range(100, 1000, 100)  # TODO remove magic numbers, parametrize
         window_it = lambda: range(first_window_size, last_window_size,
                                   window_delta)
         n_genes = sum(1 for g in gene_data.names)
@@ -332,4 +335,5 @@ if __name__ == '__main__':
     last_window_size = parser.getint('density_parameters', 'last_window_size')
 
     # Process data
+    logger.info("Process data...")
     process()

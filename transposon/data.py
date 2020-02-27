@@ -18,6 +18,8 @@ __author__ = "Michael Teresi, Scott Teresi"
 
 import logging
 import numpy as np
+import pandas as pd
+# import h5py
 
 
 class GeneData(object):
@@ -41,18 +43,38 @@ class GeneData(object):
         self.lengths = self.data_frame.Length.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
         self.unique_genes = gene_dataframe.index.unique()
+        # unique() returns a list, there ought to be one element in the list
+        # and we just want it in string form, so I index on 0 MAGIC NUMBER below
+        self.chrom_of_the_subset = self.data_frame.Chromosome.unique()[0]
 
-    def write(self, filename):
-        """Write to disk."""
+    def write(self, filename, key='default'):
+        """Write a Pandaframe to disk.
 
+        Args:
+            filename (str): a string of the filename to write.
+            key (str): identifier for the group (dataset) in the hdf5 obj.
+
+        """
+        # NOTE since we can write multiple pandaframes to an hdf5 file,
+        # we need a key string identifer to grab a specific pandaframe from the hdf5,
+        # so I set a default value. I imagine during production we will use the
+        # chromosome as the key for each pandaframe in the hdf5.
+
+        # self.data_frame is a PandaFrame that is why we can use to_hdf
+        self.data_frame.to_hdf(filename, key=key, mode='w')
         # NOTE consider for map reduce?
-        raise NotImplementedError()
 
-    def read(self, filename):
-        """Read from disk."""
+    @classmethod
+    def read(cls, filename, key='default'):
+        """Read from disk. Returns a wrapped Pandaframe from an hdf5 file
 
+        Args:
+            filename (str): a string of the filename to write.
+            key (str): identifier for the group (dataset) in the hdf5 obj.
+        """
+        panda_dataset = pd.read_hdf(filename, key=key)
+        return cls(panda_dataset)
         # NOTE consider for map reduce?
-        raise NotImplementedError()
 
     def get_gene(self, gene_id):
         """Return a GeneDatum for the gene identifier."""
@@ -162,16 +184,31 @@ class TransposonData(object):
         self.orders = self.data_frame.Order.to_numpy(copy=False)
         self.superfamilies = self.data_frame.SuperFamily.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
+        self.chrom_of_the_subset = self.data_frame.Chromosome.unique()[0]
 
-    def write(self, filename):
-        """Write to disk."""
+    def write(self, filename, key='default'):
+        """Write a Pandaframe to disk.
 
-        raise NotImplementedError()
+        Args:
+            filename (str): a string of the filename to write.
+            key (str): identifier for the group (dataset) in the hdf5 obj.
+        """
+        # See comments for GeneData's write method for more detail
+        # self.data_frame is a PandaFrame that is why we can use to_hdf
+        self.data_frame.to_hdf(filename, key=key, mode='w')
+        # NOTE consider for map reduce?
 
-    def read(self, filename):
-        """Read from disk."""
+    @classmethod
+    def read(cls, filename, key='default'):
+        """Read from disk. Returns a wrapped Pandaframe from an hdf5 file
 
-        raise NotImplementedError()
+        Args:
+            filename (str): a string of the filename to write.
+            key (str): identifier for the group (dataset) in the hdf5 obj.
+        """
+        panda_dataset = pd.read_hdf(filename, key=key)
+        return cls(panda_dataset)
+        # NOTE consider for map reduce?
 
     @property
     def number_elements(self):
