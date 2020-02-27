@@ -264,8 +264,6 @@ def process():
 
         # TODO validate the gene / te pair
 
-        # OLD, candidate for deletion, Scott has added variable names
-        # window_it = lambda: range(100, 1000, 100)  # TODO remove magic numbers, parametrize
         window_it = lambda: range(first_window_size, last_window_size,
                                   window_delta)
         n_genes = sum(1 for g in gene_data.names)
@@ -337,4 +335,5 @@ if __name__ == '__main__':
     last_window_size = parser.getint('density_parameters', 'last_window_size')
 
     # Process data
+    logger.info("Process data...")
     process()

@@ -50,35 +50,30 @@ class GeneData(object):
     def write(self, filename, key='default'):
         """Write a Pandaframe to disk.
 
-            filename (str): a string of the filename you want to write.
-            key (str): identifier for the group in the store, since we can
-            write multiple pandaframes to an hdf5 file, we need a key string
-            identifer to grab a specific pandaframe from the hdf5, so I set a
-            default value. I imagine during production we will use the
-            chromosome as the key for each pandaframe in the hdf5.
+        Args:
+            filename (str): a string of the filename to write.
+            key (str): identifier for the group (dataset) in the hdf5 obj.
+
         """
+        # NOTE since we can write multiple pandaframes to an hdf5 file,
+        # we need a key string identifer to grab a specific pandaframe from the hdf5,
+        # so I set a default value. I imagine during production we will use the
+        # chromosome as the key for each pandaframe in the hdf5.
+
         # self.data_frame is a PandaFrame that is why we can use to_hdf
         self.data_frame.to_hdf(filename, key=key, mode='w')
         # NOTE consider for map reduce?
 
-    @staticmethod
-    def read(filename, key='default'):
-        """Read from disk. Returns a Pandaframe from an hdf5 file
+    @classmethod
+    def read(cls, filename, key='default'):
+        """Read from disk. Returns a wrapped Pandaframe from an hdf5 file
 
         Args:
-            filename (str): a string of the filename you want to read.
-            key (str): identifier for the group in the store, since we can
-            write multiple pandaframes to an hdf5 file, we need a key string
-            identifer to grab a specific pandaframe from the hdf5, so I set a
-            default value. I imagine during production we will use the
-            chromosome as the key for each pandaframe in the hdf5.
+            filename (str): a string of the filename to write.
+            key (str): identifier for the group (dataset) in the hdf5 obj.
         """
-        # MICHAEL, let me know if this syntax is good/appropriate.
-        # I made it a static method because you don't need self, but I make
-        # sure to use the Pandas method of reading an hdf because that is how
-        # we are initially constructing our dataset, so I thought it would be
-        # consistent.
-        return pd.read_hdf(filename, key=key)
+        panda_dataset = pd.read_hdf(filename, key=key)
+        return cls(panda_dataset)
         # NOTE consider for map reduce?
 
     def get_gene(self, gene_id):
@@ -194,35 +189,25 @@ class TransposonData(object):
     def write(self, filename, key='default'):
         """Write a Pandaframe to disk.
 
-            filename (str): a string of the filename you want to write.
-            key (str): identifier for the group in the store, since we can
-            write multiple pandaframes to an hdf5 file, we need a key string
-            identifer to grab a specific pandaframe from the hdf5, so I set a
-            default value. I imagine during production we will use the
-            chromosome as the key for each pandaframe in the hdf5.
+        Args:
+            filename (str): a string of the filename to write.
+            key (str): identifier for the group (dataset) in the hdf5 obj.
         """
+        # See comments for GeneData's write method for more detail
         # self.data_frame is a PandaFrame that is why we can use to_hdf
         self.data_frame.to_hdf(filename, key=key, mode='w')
         # NOTE consider for map reduce?
 
-    @staticmethod
-    def read(filename, key='default'):
-        """Read from disk. Returns a Pandaframe from an hdf5 file
+    @classmethod
+    def read(cls, filename, key='default'):
+        """Read from disk. Returns a wrapped Pandaframe from an hdf5 file
 
         Args:
-            filename (str): a string of the filename you want to read.
-            key (str): identifier for the group in the store, since we can
-            write multiple pandaframes to an hdf5 file, we need a key string
-            identifer to grab a specific pandaframe from the hdf5, so I set a
-            default value. I imagine during production we will use the
-            chromosome as the key for each pandaframe in the hdf5.
+            filename (str): a string of the filename to write.
+            key (str): identifier for the group (dataset) in the hdf5 obj.
         """
-        # MICHAEL, let me know if this syntax is good/appropriate.
-        # I made it a static method because you don't need self, but I make
-        # sure to use the Pandas method of reading an hdf because that is how
-        # we are initially constructing our dataset, so I thought it would be
-        # consistent.
-        return pd.read_hdf(filename, key=key)
+        panda_dataset = pd.read_hdf(filename, key=key)
+        return cls(panda_dataset)
         # NOTE consider for map reduce?
 
     @property
