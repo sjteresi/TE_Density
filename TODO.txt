@@ -19,7 +19,7 @@
 - [X] modify requirements to be nested
         - SEE https://stackoverflow.com/a/20720019
         - add pylint to the dev requirements
-- [ ] add (implement) to/from disk for GeneData
+- [X] add (implement) to/from disk for GeneData
 - [X] refactor `import_transposons.py::import_trasnsposons` for input arg
         - input callable for preprocessing instead so client doesn't have to modify the import
         - see the comments on that function
