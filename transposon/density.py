@@ -253,6 +253,8 @@ def process():
     # and we use the number to denote which subgenome it is assigned to.
 
     gene_progress = tqdm(total=len(grouped_genes), desc="chromosome  ", position=0, ncols=80)
+    _temp_count = 0
+    # TODO need grouping ID for each GeneData and TransposonData (e.g. chromosome ID)
     for sub_gene, sub_te in zip(grouped_genes, grouped_TEs):
         gene_data = GeneData(sub_gene)
         te_data = TransposonData(sub_te)
@@ -261,12 +263,13 @@ def process():
         window_it = lambda: range(100, 1000, 100)  # TODO remove magic numbers, parametrize
         n_genes = sum(1 for g in gene_data.names)
         sub_progress = tqdm(total=n_genes, desc="  genes     ", position=1, ncols=80)
-        overlap = OverlapData(gene_data, te_data)
-        def update_win_prog():
+        overlap = OverlapData()
+        def progress():
             sub_progress.update(1)
             gene_progress.refresh()
-        overlap.calculate(window_it(), gene_data.names, update_win_prog)
+        overlap.calculate(gene_data, te_data, window_it(), gene_data.names, progress)
 
+        _temp_count += 1
         gene_progress.update(1)
 
 
