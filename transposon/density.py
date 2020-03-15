@@ -316,6 +316,10 @@ if __name__ == '__main__':
                         help='parent path of gene file')
     parser.add_argument('tes_input_file', type=str,
                         help='parent path of transposon file')
+    parser.add_argument('--config_file', '-c', type=str,
+                        default=os.path.join(path_main, '../../',
+                                             'config/test_run_config.ini'),
+                        help='parent path of config file')
     parser.add_argument('--output_dir', '-o', type=str,
                         default=os.path.join(path_main, '../..', 'results'),
                         help='parent directory to output results')
@@ -324,9 +328,10 @@ if __name__ == '__main__':
                         help='set debugging level to DEBUG')
 
     args = parser.parse_args()
-    args.output_dir = os.path.abspath(args.output_dir)
     args.genes_input_file = os.path.abspath(args.genes_input_file)
     args.tes_input_file = os.path.abspath(args.tes_input_file)
+    args.config_file = os.path.abspath(args.config_file)
+    args.output_dir = os.path.abspath(args.output_dir)
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
     coloredlogs.install(level=log_level)
@@ -343,23 +348,13 @@ if __name__ == '__main__':
     logger.info("Importing transposons, this may take a moment...")
     TE_Data = import_transposons(args.tes_input_file, te_annot_renamer)
 
-    # NOTE Config parser section
-    logger.info("Setting config file...")
-    config = ConfigParser()
-    # NOTE Set this as needed, may have to move elsewhere so people can edit
-    # MICHAEL for the sake of testing, I will leave the options as 100, 100,
-    # 1000, but during our production runs I intend for it to be 500, 500,
-    # 10000
-    config['density_parameters'] = {'first_window_size': 100,
-                                    'window_delta': 100,
-                                    'last_window_size': 1000}
-    with open('config.ini', 'w') as configfile:
-        config.write(configfile)
-
     logger.info("Reading config file...")
+    # NOTE
+    # Michael we could always pass the parser object to the process() function
+    # however that sections seems likely to change, let me know what you think,
+    # if the below variable assignments ought to be moved
     parser = ConfigParser()
-    parser.read('config.ini')
-    # Set the parameters for processing
+    parser.read(args.config_file)
     first_window_size = parser.getint('density_parameters', 'first_window_size')
     window_delta = parser.getint('density_parameters', 'window_delta')
     last_window_size = parser.getint('density_parameters', 'last_window_size')
