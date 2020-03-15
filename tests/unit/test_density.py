@@ -15,7 +15,10 @@ from transposon.density import rho_intra
 from transposon.density import rho_left_window
 from transposon.density import rho_right_window
 # from transposon.density import validate_window
-from transposon.data import GeneData, TransposonData
+
+from transposon.gene_data import GeneData
+from transposon.gene_datum import GeneDatum
+from transposon.transposon_data import TransposonData
 
 
 def mock_te_data(start_stop):

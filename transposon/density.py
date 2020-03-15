@@ -15,7 +15,8 @@ import numpy as np
 from tqdm import tqdm
 from configparser import ConfigParser
 
-from transposon.data import GeneData, TransposonData
+from transposon.gene_data import GeneData
+from transposon.transposon_data import TransposonData
 from transposon.import_genes import import_genes
 from transposon.import_transposons import import_transposons
 from transposon.overlap import OverlapData
@@ -81,7 +82,7 @@ def check_density_shape(densities, transposon_data):
     Args:
         densities (numpy.ndarray):
             density calculations, returned from rho functions.
-        transposon_data (transposon.data.TransposonData):
+        transposon_data (TransposonData):
             transposon container
     """
     if densities.shape != transposon_data.starts.shape:
