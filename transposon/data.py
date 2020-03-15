@@ -23,10 +23,13 @@ import pandas as pd
 
 
 class GeneData(object):
-    """Wraps a gene data frame.
+    """Wraps a data frame containing many genes.
+    Provides an interface, attribute access, and to/from disk functionality.
 
-    Provides attributes for numpy views of the data frame entries.
-    Delineates the interface for the data frame
+    Note the numpy views are not necessarily a no-copy (SEE pandas.DataFrame.to_numpy).
+
+    Expects certain column identifiers (SEE self.__init__).
+    Subclasses of GeneData should conform to these column names or redefine the properties.
     """
 
     def __init__(self, gene_dataframe):
@@ -42,10 +45,30 @@ class GeneData(object):
         self.stops = self.data_frame.Stop.to_numpy(copy=False)
         self.lengths = self.data_frame.Length.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
-        self.unique_genes = gene_dataframe.index.unique()
-        # unique() returns a list, there ought to be one element in the list
-        # and we just want it in string form, so I index on 0 MAGIC NUMBER below
-        self.chrom_of_the_subset = self.data_frame.Chromosome.unique()[0]
+
+    @classmethod
+    def mock(cls, start_stop=np.array([[0, 9], [10, 19], [20, 29]])):
+        """Mocked data for testing.
+
+        Args:
+            start_stop (numpy.array): N gene x (start_idx, stop_idx)
+        """
+
+        n_genes = start_stop.shape[0]
+        data = []
+        for gi in range(n_genes):
+            g0 = start_stop[gi, 0]
+            g1 = start_stop[gi, 1]
+            gL = g1 - g0 + 1
+            name = "gene_{}".format(gi)
+            chromosome = 'Chr_Test'
+            datum = [name, g0, g1, gL, chromosome]
+            data.append(datum)
+
+        col_names = ['Gene_Name', 'Start', 'Stop', 'Length', 'Chromosome']
+        frame = pd.DataFrame(data, columns=col_names)
+        frame.set_index('Gene_Name', inplace=True)
+        return GeneData(frame)
 
     def write(self, filename, key='default'):
         """Write a Pandaframe to disk.
@@ -62,7 +85,6 @@ class GeneData(object):
 
         # self.data_frame is a PandaFrame that is why we can use to_hdf
         self.data_frame.to_hdf(filename, key=key, mode='w')
-        # NOTE consider for map reduce?
 
     @classmethod
     def read(cls, filename, key='default'):
@@ -74,10 +96,10 @@ class GeneData(object):
         """
         panda_dataset = pd.read_hdf(filename, key=key)
         return cls(panda_dataset)
-        # NOTE consider for map reduce?
 
     def get_gene(self, gene_id):
         """Return a GeneDatum for the gene identifier."""
+
         return GeneDatum(self.data_frame, gene_id)
 
     @property
@@ -86,17 +108,41 @@ class GeneData(object):
 
         return (name for name in self._names)
 
+    @property
+    def chromosome_unique_id(self):
+        """Unique chromosome identifier for all the genes available.
+
+        Use only if the genes all are from the same chromosome.
+
+        Returns:
+            str: the unique identifier.
+        Raises:
+            RuntimeError: if multiple chromosomes are in the data frame (i.e. no unique).
+        """
+
+        chromosome_list = self.data_frame.Chromosome.unique().tolist()
+        if not chromosome_list:
+            raise RuntimeError("column 'Chromosome' is empty")
+        elif len(chromosome_list) > 1:
+            raise RuntimeError("chromosomes are not unique: %s"%chromosome_list)
+        else:
+            return chromosome_list[0]  # MAGIC NUMBER list to string
+
     def __repr__(self):
-        info = """
-               Wrapped Gene DataFrame: {self.data_frame}
-               """
-        return info.format(self=self)
+        """String representation for developer."""
+
+        return  "GeneData{}".format(self.data_frame)
 
 
 class GeneDatum(object):
-    """Wraps a single gene data frame.
+    """Wraps data frame containing one gene.
 
-    Provides attribute access for a single gene.
+    Provides an interface, attribute access, and to/from disk functionality.
+
+    Note the numpy views are not necessarily a no-copy (SEE pandas.DataFrame.to_numpy).
+
+    Expects certain column identifiers (SEE self.__init__).
+    Subclasses of GeneData should conform to these column names or redefine the properties.
     """
 
     def __init__(self, gene_dataframe, gene_id):

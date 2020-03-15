@@ -18,30 +18,6 @@ from transposon.density import rho_right_window
 from transposon.data import GeneData, TransposonData
 
 
-def mock_gene_data(start_stop=np.array([[0, 9], [10, 19], [20, 29]])):
-    """Gene data for given the start/stop indices.
-
-    Args:
-    start_stop (np.array): N gene x (start_idx, stop_idx).
-    """
-
-    n_genes = start_stop.shape[0]
-    data = []
-    for gi in range(n_genes):
-        g0 = start_stop[gi, 0]
-        g1 = start_stop[gi, 1]
-        gL = g1 - g0 + 1
-        name = "gene_{}".format(gi)
-        chromosome = 'Chr_Test'
-        datum = [name, g0, g1, gL, chromosome]
-        data.append(datum)
-
-    frame = pd.DataFrame(data, columns=['Gene_Name', 'Start', 'Stop', 'Length',
-                                        'Chromosome'])
-    frame.set_index('Gene_Name', inplace=True)
-    return GeneData(frame)
-
-
 def mock_te_data(start_stop):
     """Transposon data for given the start/stop indices
         Creates one
@@ -75,7 +51,7 @@ class MockData(object):
     def __init__(self, g_start, g_stop, t_start, t_stop, window, expected_rho_left,
                  expected_rho_right, expected_rho_intra, description='Test'):
 
-        self.Gene = mock_gene_data(np.array([[g_start, g_stop]]))
+        self.Gene = GeneData.mock(np.array([[g_start, g_stop]]))
         self.Transposon = mock_te_data(np.array([[t_start, t_stop]]))
         self.gene_name = 'gene_0'  # TODO scott, add str
 
