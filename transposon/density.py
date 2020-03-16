@@ -12,6 +12,7 @@ import os
 import logging
 import coloredlogs
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 from configparser import ConfigParser
 
@@ -268,6 +269,57 @@ def validate_args(args, logger):
         raise ValueError("%s is not a directory" % (args.output_dir))
 
 
+def verify_gene_cache(genes_input_file, cleaned_genes):
+    """Determine whether or not previously filtered gene data exists, if it
+    does, read it from disk. If it does not, read the raw annotation file and
+    make a filtered dataset for future import.
+
+    Args:
+        genes_input_file (str): A command line argument, this is the location
+            of the gene annotation file.
+
+        cleaned_genes (str): A string representing the path of a previously
+            filtered gene file via import_genes().
+    """
+    if os.path.exists(cleaned_genes):
+        logger.info("Importing filtered gene dataset from disk...")
+        Gene_Data = pd.read_csv(cleaned_genes, header='infer', sep='\t')
+    else:
+        logger.info("Previously filtered gene dataset does not exist...")
+        logger.info("Importing unfiltered gene dataset from annotation file...")
+        Gene_Data = import_genes(genes_input_file)
+        Gene_Data.to_csv(cleaned_genes, sep='\t', header=True)
+    return Gene_Data
+
+
+def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer):
+    """Determine whether or not previously filtered TE data exists, if it
+    does, read it from disk. If it does not, read the raw annotation file and
+    make a filtered dataset for future import.
+
+    Args:
+        tes_input_file (str): A command line argument, this is the location
+            of the TE annotation file.
+
+        cleaned_tranposons (str): A string representing the path of a previously
+            filtered TE file via import_transposons().
+
+        te_annot_renamer (function containing a dictionary and other methods):
+            imported from separate file within the repository. This file
+            performs the more specific filtering steps on the TEs such as
+            changing the annotation details for specific TE types.
+    """
+    if os.path.exists(cleaned_transposons):
+        logger.info("Importing filtered transposons from disk...")
+        TE_Data = pd.read_csv(cleaned_transposons, header='infer', sep='\t')
+    else:
+        logger.info("Previously filtered TE dataset does not exist...")
+        logger.info("Importing unfiltered TE dataset from annotation file...")
+        TE_Data = import_transposons(args.tes_input_file, te_annot_renamer)
+        TE_Data.to_csv(cleaned_transposons, sep='\t', header=True)
+    return TE_Data
+
+
 def process(alg_parameters):
     """ Run the algorithm """
     grouped_genes = split(Gene_Data, 'Chromosome')  # check docstring for my split func
@@ -324,6 +376,10 @@ if __name__ == '__main__':
                         default=os.path.join(path_main, '../../',
                                              'config/test_run_config.ini'),
                         help='parent path of config file')
+    parser.add_argument('--filtered_input_data', '-f', type=str,
+                        default=os.path.join(path_main, '../..',
+                                             'filtered_input_data'),
+                        help='parent directory for cached input data')
     parser.add_argument('--output_dir', '-o', type=str,
                         default=os.path.join(path_main, '../..', 'results'),
                         help='parent directory to output results')
@@ -335,6 +391,7 @@ if __name__ == '__main__':
     args.genes_input_file = os.path.abspath(args.genes_input_file)
     args.tes_input_file = os.path.abspath(args.tes_input_file)
     args.config_file = os.path.abspath(args.config_file)
+    args.filtered_input_data = os.path.abspath(args.filtered_input_data)
     args.output_dir = os.path.abspath(args.output_dir)
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
@@ -347,10 +404,16 @@ if __name__ == '__main__':
 
     # NOTE Imports
     # FUTURE move this preprocessing to it's object
-    logger.info("Importing genes, this may take a moment...")
-    Gene_Data = import_genes(args.genes_input_file)
-    logger.info("Importing transposons, this may take a moment...")
-    TE_Data = import_transposons(args.tes_input_file, te_annot_renamer)
+
+    logger.info("Checking disk for previously filtered data...")
+    # NOTE hardcoded file names
+    # I default a name for the filtered dataset, but I think that is ok, maybe
+    # something to discuss.
+    cleaned_genes = os.path.join(args.filtered_input_data, 'Cleaned_Genes.tsv')
+    cleaned_transposons = os.path.join(args.filtered_input_data, 'Cleaned_TEs.tsv')
+    Gene_Data = verify_gene_cache(args.genes_input_file, cleaned_genes)
+    TE_Data = verify_TE_cache(args.tes_input_file, cleaned_transposons,
+                              te_annot_renamer)
 
     logger.info("Reading config file and making parameter dictionary...")
     parser = ConfigParser()
