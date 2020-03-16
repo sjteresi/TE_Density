@@ -268,7 +268,7 @@ def validate_args(args, logger):
         raise ValueError("%s is not a directory" % (args.output_dir))
 
 
-def process():
+def process(alg_parameters):
     """ Run the algorithm """
     grouped_genes = split(Gene_Data, 'Chromosome')  # check docstring for my split func
     grouped_TEs = split(TE_Data, 'Chromosome')  # check docstring for my split func
@@ -294,11 +294,14 @@ def process():
 
         # TODO validate the gene / te pair
 
-        window_it = lambda: range(first_window_size, last_window_size,
-                                  window_delta)
+        window_it = lambda: range(alg_parameters[first_window_size],
+                                  alg_parameters[last_window_size],
+                                  alg_parameters[window_delta])
+
         n_genes = sum(1 for g in gene_data.names)
         sub_progress = tqdm(total=n_genes, desc="  genes     ", position=1, ncols=80)
         overlap = OverlapData()
+
         def progress():
             sub_progress.update(1)
             gene_progress.refresh()
@@ -349,17 +352,16 @@ if __name__ == '__main__':
     logger.info("Importing transposons, this may take a moment...")
     TE_Data = import_transposons(args.tes_input_file, te_annot_renamer)
 
-    logger.info("Reading config file...")
-    # NOTE
-    # Michael we could always pass the parser object to the process() function
-    # however that sections seems likely to change, let me know what you think,
-    # if the below variable assignments ought to be moved
+    logger.info("Reading config file and making parameter dictionary...")
     parser = ConfigParser()
     parser.read(args.config_file)
     first_window_size = parser.getint('density_parameters', 'first_window_size')
     window_delta = parser.getint('density_parameters', 'window_delta')
     last_window_size = parser.getint('density_parameters', 'last_window_size')
+    alg_parameters = {first_window_size: first_window_size,
+                      window_delta: window_delta,
+                      last_window_size: last_window_size}
 
     # Process data
     logger.info("Process data...")
-    process()
+    process(alg_parameters)
