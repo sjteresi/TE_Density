@@ -14,6 +14,9 @@ Edit the `transposon/replace_names.py` dictionary to accomodate changes to the T
 ## Configuration File:
 A configuration file is required by the density algorithm to set the beginning window size, window delta, and max window size variables. Two configuration files are located in the `config` folder. `test_run_config.ini` contains a setup for quickly testing the code. `production_run_config.ini` contains the paradigm that we use for our implementation of the code. When running `density.py` the code defaults to `test_run_config.ini`, however with the `-c` option the path to an optional configuration file may be supplied.
 
+## Temporary Overlap Data Location:
+Gene and TE overlap values are an intermediate calculation in this pipeline. However the overlap values can become quite large, so they must be stored in a temporary location. The script defaults to storing the compressed overlap files at `/tmp` however with the `-s` option the user can specify a different directory to output the overlap files.
+
 # Requirements
 Please install Pip so that you may easily install Python packages.
 Then use Pip to go over our **requirements.txt** and install the needed Python packages: `pip install -r requirements.txt`.
