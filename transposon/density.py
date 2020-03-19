@@ -286,12 +286,13 @@ def verify_gene_cache(genes_input_file, cleaned_genes):
     """
     if os.path.exists(cleaned_genes):
         logger.info("Importing filtered gene dataset from disk...")
-        Gene_Data = pd.read_csv(cleaned_genes, header='infer', sep='\t')
+        Gene_Data = pd.read_csv(cleaned_genes, header='infer', sep='\t',
+                                index_col='Gene_Name')
     else:
         logger.info("Previously filtered gene dataset does not exist...")
         logger.info("Importing unfiltered gene dataset from annotation file...")
         Gene_Data = import_genes(genes_input_file)
-        Gene_Data.to_csv(cleaned_genes, sep='\t', header=True)
+        Gene_Data.to_csv(cleaned_genes, sep='\t', header=True, index=True)
     return Gene_Data
 
 
@@ -319,7 +320,7 @@ def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer):
         logger.info("Previously filtered TE dataset does not exist...")
         logger.info("Importing unfiltered TE dataset from annotation file...")
         TE_Data = import_transposons(args.tes_input_file, te_annot_renamer)
-        TE_Data.to_csv(cleaned_transposons, sep='\t', header=True)
+        TE_Data.to_csv(cleaned_transposons, sep='\t', header=True, index=False)
     return TE_Data
 
 
