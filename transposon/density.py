@@ -263,13 +263,28 @@ def validate_args(args, logger):
     if not os.path.isfile(args.tes_input_file):
         logger.critical("argument 'tes_input_dir' is not a file")
         raise ValueError("%s is not a directory" % (args.tes_input_file))
+    if not os.path.isdir(args.overlap_dir):
+        logger.critical("argument 'overlap_dir' is not a directory")
+        raise ValueError("%s is not a directory" % (args.overlap_dir))
     if not os.path.isdir(args.output_dir):
         logger.critical("argument 'output_dir' is not a directory")
         raise ValueError("%s is not a directory" % (args.output_dir))
 
 
-def process(alg_parameters):
-    """ Run the algorithm """
+def process(alg_parameters, overlap_dir):
+    """
+    Run the algorithm
+
+    Args:
+        alg_parameters (dict): A dictionary containing the parameters used to
+    tune the windowing function. This dictionary is created from the config
+    file in main.
+
+        overlap_dir (string): A string path of the directory path to output the
+        overlap files. This comes from the ArgumentParser obj and defaults to
+        /tmp. You can edit the location of the directory with the -s flag when
+        calling density.py. overlap_dir is used when calling OverlapData.
+    """
     grouped_genes = split(Gene_Data, 'Chromosome')  # check docstring for my split func
     grouped_TEs = split(TE_Data, 'Chromosome')  # check docstring for my split func
     check_groupings(grouped_genes, grouped_TEs, logger)
@@ -300,7 +315,7 @@ def process(alg_parameters):
 
         n_genes = sum(1 for g in gene_data.names)
         sub_progress = tqdm(total=n_genes, desc="  genes     ", position=1, ncols=80)
-        overlap = OverlapData()
+        overlap = OverlapData(overlap_dir)
 
         def progress():
             sub_progress.update(1)
@@ -324,6 +339,9 @@ if __name__ == '__main__':
                         default=os.path.join(path_main, '../../',
                                              'config/test_run_config.ini'),
                         help='parent path of config file')
+    parser.add_argument('--overlap_dir', '-s', type=str,
+                        default=os.path.abspath('/tmp'),
+                        help='parent directory to output overlap data')
     parser.add_argument('--output_dir', '-o', type=str,
                         default=os.path.join(path_main, '../..', 'results'),
                         help='parent directory to output results')
@@ -335,6 +353,7 @@ if __name__ == '__main__':
     args.genes_input_file = os.path.abspath(args.genes_input_file)
     args.tes_input_file = os.path.abspath(args.tes_input_file)
     args.config_file = os.path.abspath(args.config_file)
+    args.overlap_dir = os.path.abspath(args.overlap_dir)
     args.output_dir = os.path.abspath(args.output_dir)
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
@@ -364,4 +383,4 @@ if __name__ == '__main__':
 
     # Process data
     logger.info("Process data...")
-    process(alg_parameters)
+    process(alg_parameters, args.overlap_dir)

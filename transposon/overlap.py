@@ -199,17 +199,18 @@ class _OverlapDataSink():
 class OverlapData():
     """Contains the overlap between the genes and transposable elements."""
 
-    root_dir = '/media/data/genes/output'  # FUTURE standardize once args fleshed out
-
-    def __init__(self, logger=None):
+    def __init__(self, overlap_dir, logger=None):
         """Initialize.
 
         Args:
+            overlap_dir (str): A string path of the directory to output te
+            overlap files. This comes from the ArgParser obj in density.py and
+            defaults to tmp.
             gene_data(GeneData): the genes.
             transposon_data(TransposonData): the transposons.
             windows(list(int)):
         """
-
+        self.root_dir = overlap_dir
         self._logger = logger or logging.getLogger(__name__)
 
         self._data = None
