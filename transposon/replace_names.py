@@ -2,7 +2,8 @@ def te_annot_renamer(TE_Data):
     U = 'Unknown_Order'
     master_order = {
         # Custom changes
-        'unknown': 'Unknown',
+        'unknown': U,
+        'Unknown': U,
         'MITE': 'DNA_(TIR)',
         'RC?': 'DNA',
         'RC': 'DNA',
@@ -105,6 +106,11 @@ def te_annot_renamer(TE_Data):
     TE_Data = TE_Data[~to_drop]
     to_drop = TE_Data.Chromosome.str.contains('contig*')
     TE_Data = TE_Data[~to_drop]
+
+    TE_Data.loc[(TE_Data['Order'] == 'Unknown_Order') & (TE_Data['SuperFamily']
+                                                        ==
+                                                        'Unknown_SuperFam'),
+                                                        ['Order', 'SuperFamily']] = 'Completely_Unknown'
 
     TE_Data = TE_Data[TE_Data.Order != 'Simple_repeat']  # drop s repeat
     return TE_Data
