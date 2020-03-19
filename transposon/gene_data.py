@@ -105,7 +105,8 @@ class GeneData(object):
     def chromosome_unique_id(self):
         """Unique chromosome identifier for all the genes available.
 
-        Use only if the genes all are from the same chromosome.
+        This will raise f the genes are not from the same chromosome,
+        for example you you didn't split the dataset wrt this data.
 
         Returns:
             str: the unique identifier.

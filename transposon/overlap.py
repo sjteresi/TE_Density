@@ -15,6 +15,7 @@ import tempfile
 import numpy as np
 import h5py
 
+
 class Overlap():
     """Functions for calculating overlap."""
 
@@ -87,6 +88,7 @@ class Overlap():
         te_overlaps = np.maximum(0, (upper_bound - lower_bound + 1))
         return te_overlaps
 
+
 class _OverlapDataSink():
     """Destination for overlap calculations.
 
@@ -94,16 +96,15 @@ class _OverlapDataSink():
     The file is h5py and contains data sets named by the keys in `Overlap.Direction`.
     """
 
-    # FUTURE make implementation that just keeps it in ram?
-
     DTYPE = np.float32
-    COMPRESSION = 'lzf'  # MAGIC NUMBER experimental
-    LEFT = Overlap.Direction.LEFT.name
-    RIGHT = Overlap.Direction.RIGHT.name
-    INTRA = Overlap.Direction.INTRA.name
-    GENE_NAMES = 'GENE_NAMES'
+    COMPRESSION = 'lzf'  # MAGIC NUMBER experimental, fast w/ decent compression ratio
+    _LEFT = Overlap.Direction.LEFT.name
+    _RIGHT = Overlap.Direction.RIGHT.name
+    _INTRA = Overlap.Direction.INTRA.name
+    _GENE_NAMES = 'GENE_NAMES'
+    _WINDOWS = 'WINDOWS'
 
-    def __init__(self, gene_names, n_transposons, n_win, out_dir, logger=None):
+    def __init__(self, gene_names, n_transposons, windows, out_dir, logger=None):
 
         self._logger = logger or logging.getLogger(__name__)
         filename = next(tempfile._get_candidate_names()) + '.h5'
@@ -112,19 +113,22 @@ class _OverlapDataSink():
         self.left = None
         self.intra = None
         self.right = None
-        self.gene_names = list(gene_names)  # FUTURE require generator func instead
+        self.gene_names = list(gene_names)
         self._n_genes = len(gene_names)
         self._n_tes = int(n_transposons)
-        self._n_win = int(n_win)
+        self.windows = windows
+        self._n_win = len(windows)
 
     @classmethod
     def from_param(cls, gene_names, n_transposons, n_win, ram=2, logger=None):
         """Empty container when writing data to a new file."""
+
         raise NotImplementedError()
 
     @classmethod
     def from_file(cls, filepath, logger=None):
         """Target an existing data file."""
+
         raise NotImplementedError()
 
     @staticmethod
@@ -139,34 +143,14 @@ class _OverlapDataSink():
 
         return (gene, slice(None))
 
-    def _write_gene_names(self, h5_file, gene_names):
-        """Write list of gene names the file."""
-
-        # FUTURE consider ASCII (fixed len) for storage if non-python clients exist
-        vlen = h5py.special_dtype(vlen=str)
-        dset = h5_file.create_dataset(self.GENE_NAMES, (self._n_genes,), dtype=vlen)
-        dset[:] = gene_names
-
-    @classmethod
-    def _read_gene_names(cls, h5_file):
-        """Numpy ndarray of S type to generator of string."""
-
-        gene_array = h5_file[cls.GENE_NAMES][:]
-        return (gene_array[i] for i in range(gene_array.size))
-
-    def _write(self):
-        raise NotImplementedError()
-
-    def _read(self):
-        raise NotImplementedError()
-
     def __enter__(self):
+        """Context manager start."""
+
         # FUTURE do either reading or writing depending on file mode
 
         # TODO parametrize, allow one to specify pending their ram availability
         # MAGIC NUMBER about 2GB for ram cache, effects overall speed
         self.h5_file = h5py.File(self.filepath, 'w', rdcc_nbytes=2*1024*1024**2)
-        # MAGIC NUMBER lz4 compression looks good so far...
         create_set = partial(self.h5_file.create_dataset,
                              dtype=self.DTYPE,
                              compression=self.COMPRESSION)
@@ -175,24 +159,55 @@ class _OverlapDataSink():
         # TODO validate chunk dimensions, 4 * nwin * ntes may be too big pending inputs
         # (and probably already is, but it worked ok...)
         chunks = tuple((32, self._n_win, self._n_tes))  # MAGIC NUMBER experimental
-        self.left = create_set(self.LEFT, lr_shape, chunks=chunks)
-        self.right = create_set(self.RIGHT, lr_shape, chunks=chunks)
+        self.left = create_set(self._LEFT, lr_shape, chunks=chunks)
+        self.right = create_set(self._RIGHT, lr_shape, chunks=chunks)
         i_shape = (self._n_genes, self._n_tes)
-        self.intra = create_set(self.INTRA, i_shape)
+        self.intra = create_set(self._INTRA, i_shape)
+        self._write_gene_names()
+        self._write_windows()
 
-        self._write_gene_names(self.h5_file, self.gene_names)
-
-        # TODO output window map
         # TODO output chromosome ID
 
         return self
 
     def __exit__(self, exc_type, exc_val, exc_traceback):
+        """Context manager stop."""
+
         self.h5_file.flush()
         self.h5_file.close()
         self.left = None
         self.right = None
         self.intra = None
+
+    def _write_gene_names(self):
+        """Assign list of gene names to the file."""
+
+        # FUTURE consider ASCII (fixed len) for storage if non-python clients exist
+        vlen = h5py.special_dtype(vlen=str)
+        dset = self.h5_file.create_dataset(self._GENE_NAMES, (self._n_genes,), dtype=vlen)
+        dset[:] = self.gene_names
+
+    def _read_gene_names(self):
+        """Return list of gene names."""
+
+        return self.h5_file[self._GENE_NAMES][:]
+
+    def _write_windows(self):
+        """Assign list of windows to the file."""
+
+        self.h5_file.create_dataset(
+            self._WINDOWS, data=np.array(self.windows), dtype=np.uint32)
+
+    def _read_windows(self):
+        """Reeturn list of windows."""
+
+        return self.h5_file[self._WINDOWS][:].tolist()
+
+    def _write(self):
+        raise NotImplementedError()
+
+    def _read(self):
+        raise NotImplementedError()
 
 
 # REFACTOR rename to OverlapDataCalculator
@@ -294,7 +309,6 @@ class OverlapData():
         self._windows = list(self._filter_windows(windows))
         self._window_2_idx = self._map_windows_2_indices(self._windows)
 
-        n_win = len(self._windows)
-        n_gene = len(self._gene_names)
         n_te = transposons.number_elements
-        self._data = _OverlapDataSink(self._gene_names, n_te, n_win, self.root_dir)
+        self._data = _OverlapDataSink(
+            self._gene_names, n_te, self._windows, self.root_dir)
