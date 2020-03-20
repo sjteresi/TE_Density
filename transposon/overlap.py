@@ -103,8 +103,9 @@ class _OverlapDataSink():
     _INTRA = Overlap.Direction.INTRA.name
     _GENE_NAMES = 'GENE_NAMES'
     _WINDOWS = 'WINDOWS'
+    _CHROME_ID = 'CHROMOSOME_ID'
 
-    def __init__(self, gene_names, n_transposons, windows, out_dir, logger=None):
+    def __init__(self, gene_data, n_transposons, windows, out_dir, logger=None):
 
         self._logger = logger or logging.getLogger(__name__)
         filename = next(tempfile._get_candidate_names()) + '.h5'
@@ -113,8 +114,9 @@ class _OverlapDataSink():
         self.left = None
         self.intra = None
         self.right = None
-        self.gene_names = list(gene_names)
-        self._n_genes = len(gene_names)
+        self.gene_names = list(gene_data.names)
+        self._n_genes = len(self.gene_names)
+        self._chromosome_id = gene_data.chromosome_unique_id  # raises RuntimeError
         self._n_tes = int(n_transposons)
         self.windows = windows
         self._n_win = len(windows)
@@ -149,7 +151,7 @@ class _OverlapDataSink():
         # FUTURE do either reading or writing depending on file mode
 
         # TODO parametrize, allow one to specify pending their ram availability
-        # MAGIC NUMBER about 2GB for ram cache, effects overall speed
+        # MAGIC NUMBER situational, 2GB for ram cache
         self.h5_file = h5py.File(self.filepath, 'w', rdcc_nbytes=2*1024*1024**2)
         create_set = partial(self.h5_file.create_dataset,
                              dtype=self.DTYPE,
@@ -165,9 +167,7 @@ class _OverlapDataSink():
         self.intra = create_set(self._INTRA, i_shape)
         self._write_gene_names()
         self._write_windows()
-
-        # TODO output chromosome ID
-
+        self._write_chromosome_id()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_traceback):
@@ -196,12 +196,27 @@ class _OverlapDataSink():
         """Assign list of windows to the file."""
 
         self.h5_file.create_dataset(
-            self._WINDOWS, data=np.array(self.windows), dtype=np.uint32)
+            self._WINDOWS, data=np.array(self.windows), dtype=np.uint32
+        )
 
     def _read_windows(self):
-        """Reeturn list of windows."""
+        """Return list of windows."""
 
         return self.h5_file[self._WINDOWS][:].tolist()
+
+    def _write_chromosome_id(self):
+        """Assign chromosome identifier to the file."""
+
+        # FUTURE consider ASCII (fixed len) for storage if non-python clients exist
+        vlen = h5py.special_dtype(vlen=str)
+        # MAGIC NUMBER there can only be one unique ID
+        dset = self.h5_file.create_dataset(self._CHROME_ID, (1,), dtype=vlen)
+        dset[:] = self._chromosome_id
+
+    def _read_chromosome_id(self):
+        """Return the unique chromosome identifier."""
+
+        return self.h5_file[self._CHROME_ID][:].tolist()[0]  # MAGIC NUMBER only one ID
 
     def _write(self):
         raise NotImplementedError()
@@ -232,7 +247,7 @@ class OverlapData():
         self._windows = None
         self._gene_names = None
 
-        self._gene_name_2_idx = None  # NOTE Michael can you explain sometime?
+        self._gene_name_2_idx = None
         self._window_2_idx = None
 
     def calculate(self, genes, transposons, windows, gene_names, progress=None):
@@ -311,4 +326,4 @@ class OverlapData():
 
         n_te = transposons.number_elements
         self._data = _OverlapDataSink(
-            self._gene_names, n_te, self._windows, self.root_dir)
+            genes, n_te, self._windows, self.root_dir)

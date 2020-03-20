@@ -253,6 +253,11 @@ def check_groupings(grouped_genes, grouped_TEs, logger):
             msg = 'Chromosomes do not match for the grouped_genes or grouped_TEs'
             logger.critical(msg)
             raise ValueError(msg)
+        try:
+            subgene_uid = GeneData(g_element).chromosome_unique_id
+        except RuntimeError as r_err:
+            logging.critical("sub gene grouping is not unique: {}".format(sub_gene))
+            raise r_err
 
 
 def validate_args(args, logger):
@@ -355,10 +360,6 @@ def process(alg_parameters, overlap_dir):
     for sub_gene, sub_te in zip(grouped_genes, grouped_TEs):
         gene_data = GeneData(sub_gene)
         te_data = TransposonData(sub_te)
-        # filename = 'Test.hdf5'
-        # chromosome_identifier = gene_data.chrom_of_the_subset
-        # gene_data.write(filename, key=chromosome_identifier)
-        # X = GeneData.read(filename, key=chromosome_identifier)
 
         # TODO validate the gene / te pair
 
@@ -422,7 +423,6 @@ if __name__ == '__main__':
         logger.debug("%-12s: %s" % (argname, argval))
     validate_args(args, logger)
 
-    # NOTE Imports
     # FUTURE move this preprocessing to it's object
 
     logger.info("Checking disk for previously filtered data...")
@@ -445,6 +445,5 @@ if __name__ == '__main__':
                       window_delta: window_delta,
                       last_window_size: last_window_size}
 
-    # Process data
     logger.info("Process data...")
     process(alg_parameters, args.overlap_dir)
