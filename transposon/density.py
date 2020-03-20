@@ -426,11 +426,18 @@ if __name__ == '__main__':
     # FUTURE move this preprocessing to it's object
 
     logger.info("Checking disk for previously filtered data...")
-    # NOTE hardcoded file names
-    # I default a name for the filtered dataset, but I think that is ok, maybe
-    # something to discuss.
-    cleaned_genes = os.path.join(args.filtered_input_data, 'Cleaned_Genes.tsv')
-    cleaned_transposons = os.path.join(args.filtered_input_data, 'Cleaned_TEs.tsv')
+    # NOTE
+    # MAGIC NUMBER for g_fname, and t_fname trying to get filename without
+    # extension, will produce an unexpected, but functional filename if their
+    # input filename has multiple . in it
+    g_fname = os.path.basename(os.path.splitext(args.genes_input_file)[0])
+    t_fname = os.path.basename(os.path.splitext(args.tes_input_file)[0])
+    cleaned_genes = os.path.join(args.filtered_input_data, str('Cleaned_' +
+                                                               g_fname +
+                                                               '.tsv'))
+    cleaned_transposons = os.path.join(args.filtered_input_data, str('Cleaned_' +
+                                                                     t_fname +
+                                                                     '.tsv'))
     Gene_Data = verify_gene_cache(args.genes_input_file, cleaned_genes)
     TE_Data = verify_TE_cache(args.tes_input_file, cleaned_transposons,
                               te_annot_renamer)
