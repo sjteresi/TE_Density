@@ -13,21 +13,19 @@ __author__ = "Scott Teresi"
 import os
 import argparse
 import matplotlib.pyplot as plt
+import pandas as pd
 import coloredlogs
 import logging
 mpl_logger = logging.getLogger('matplotlib')
 mpl_logger.setLevel(logging.WARNING)
 
-from transposon.replace_names import TE_Renamer
+
+from transposon.gene_data import GeneData
+from transposon.transposon_data import TransposonData
 from transposon.import_genes import import_genes
 from transposon.import_transposons import import_transposons
-
-# PandaFrame Helper Functions
-
-
-def get_dtypes(my_df):
-    print(my_df.dtypes)
-
+from transposon.replace_names import te_annot_renamer
+from transposon.density import verify_TE_cache, verify_gene_cache
 
 def get_nulls(my_df):
     null_columns = my_df.columns[my_df.isnull().any()]
@@ -74,10 +72,25 @@ def split(df, group):
 # Graphing Functions
 
 
-def sum_genes_and_TEs(Gene_Data, TE_Data):
-    # The Genome Size is: 0.805489 gigabasepair
-    genome_size = 0.805489 # Cam which is 800 MB
-    # genome_size = 0.250
+def sum_genes_and_TEs(Gene_Data, TE_Data, selection):
+    if selection == 'Camarosa':
+        genome_size = 0.805489 # Cam which is 800 MB
+    elif selection == 'H4':
+        genome_size = 0.250
+    elif selection =='FDA':
+        genome_size = 0.29079
+    elif selection =='FII':
+        genome_size = 0.26556
+    elif selection =='FMA':
+        genome_size = 0.26575
+    elif selection =='FNG':
+        genome_size = 0.30590
+    elif selection =='FPE':
+        genome_size = 0.28233
+    elif selection =='FVI':
+        genome_size = 0.22961
+    else:
+        raise ValueError('What genome are you using?')
     gene_lengths = Gene_Data.Length.sum()
     TE_lengths = TE_Data.Length.sum()
 
@@ -91,10 +104,10 @@ def sum_genes_and_TEs(Gene_Data, TE_Data):
     my_lengths.append(TE_lengths)
     return my_lengths
 
-def main_fig(Gene_Data, TE_Data):
+def general_genome_stats(Gene_Data, TE_Data, output_dir, selection):
     order_labels = get_unique(TE_Data.Order)  # list
     superfamily_labels = get_unique(TE_Data.SuperFamily)  # list
-    sizes = sum_genes_and_TEs(Gene_Data, TE_Data)
+    sizes = sum_genes_and_TEs(Gene_Data, TE_Data, selection)
     total_num_TEs = len(TE_Data.index)
 
     # Plotting
@@ -104,21 +117,24 @@ def main_fig(Gene_Data, TE_Data):
     for size in sizes:
         new_sizes.append(size * 100)
     colors = ['forestgreen', 'cornflowerblue', 'crimson']
-    explode = (0, 0, 0.1)  # explode 3rd slice
-    patches, texts, autotext = plt.pie(new_sizes, colors=colors, shadow=True,
+    explode = []
+    for i in new_sizes:
+        explode.append(0)
+    # explode[1] = 0.1
+    explode = tuple(explode)
+    patches, texts, autotext = plt.pie(new_sizes, colors=colors, shadow=False,
                                 startangle=120, explode=explode,
                                 autopct='%1.1f%%', labels=labels)
     plt.legend(patches, labels, loc='best')
     plt.title('Contribution to Genome Size')
     plt.axis('equal')
     plt.tight_layout()
-    plt.savefig('Cam_Genome_Content.png')
-    plt.show()
+    plt.savefig(output_dir + '/' + selection + '_General_Genome_Content.png')
     plt.close()
 
-def te_fam_content():
-    # TE Distro Plot
-    my_family_counts = TE_Data.Family.value_counts()
+def te_order_content(TE_Data, output_dir, selection):
+    # TODO get rid of the family notation
+    my_family_counts = TE_Data.Order.value_counts()
     my_family_counts = my_family_counts.to_dict()
     family_sum = 0
     for key,val in my_family_counts.items():
@@ -129,29 +145,29 @@ def te_fam_content():
         new_sizes.append(my_family_counts[key])
 
     labels = my_family_counts.keys()
-    colors = ['seagreen', 'deepskyblue', 'lightcoral', 'darkviolet']
-    explode = (0.1, 0, 0, 0, 0)  # explode
-    patches, texts, autotext = plt.pie(new_sizes, colors=colors, shadow=True,
+    colors = ['seagreen', 'deepskyblue', 'lightcoral', 'darkviolet', 'crimson']
+    explode = []
+    for i in new_sizes:
+        explode.append(0)
+    #explode[0] = 0.1
+    explode = tuple(explode)
+    patches, texts, autotext = plt.pie(new_sizes, colors=colors, shadow=False,
                                 startangle=150, explode=explode,
                                 autopct='%1.1f%%', labels=labels)
     plt.legend(patches, labels, loc='best')
-    plt.title('Percentage of Number of TEs Compared to Total Number of TEs (Family)')
+    plt.title('Relative %s of TEs Compared to Total Number of TEs (Order)')
     plt.axis('equal')
     plt.tight_layout()
-    plt.savefig('H4_Family.png')
+    plt.savefig(output_dir + '/' + selection + '_TE_Average_Order_Content.png')
     plt.close()
-    # plt.show()
 
 
-def te_subfam_content():
+def te_subfam_content(TE_Data, output_dir, selection):
     # TE Distro Plot
-    subfamily_labels = get_unique(TE_Data.SubFamily)  # list
-    my_subfamily_counts = TE_Data.SubFamily.value_counts()
+    subfamily_labels = get_unique(TE_Data.SuperFamily)  # list
+    my_subfamily_counts = TE_Data.SuperFamily.value_counts()
     my_subfamily_counts = my_subfamily_counts.to_dict()
     subfamily_sum = 0
-
-
-    my_subfamily_counts['Pure Unknown'] = my_subfamily_counts.pop('Unknown_SubFam')
 
 
     for key,val in my_subfamily_counts.items():
@@ -162,32 +178,39 @@ def te_subfam_content():
         new_sizes.append(my_subfamily_counts[key])
 
     labels = my_subfamily_counts.keys()
-    colors = ['sienna', 'goldenrod', 'lightgreen', 'forestgreen',
-              'steelblue', 'darkslateblue', 'orchid', 'crimson', 'mistyrose' ]
-    explode = (0, 0.1, 0.1, 0, 0, 0, 0, 0, 0) # explode
-    patches, texts, autotext = plt.pie(new_sizes, colors=colors, shadow=True,
+    colors = ['saddlebrown', 'goldenrod', 'lightgreen', 'forestgreen',
+              'steelblue', 'darkslateblue', 'orchid', 'crimson', 'mistyrose',
+              'gold', 'darkmagenta' ]
+    explode = []
+    for i in new_sizes:
+        explode.append(0)
+    #explode[0] = 0.1
+    explode = tuple(explode)
+    patches, texts, autotext = plt.pie(new_sizes, colors=colors, shadow=False,
                                 startangle=210, explode=explode,
                                 autopct='%1.1f%%', labels=labels)
     # plt.legend(patches, labels, loc='best')
-    plt.title('Percentage of Number of TEs Compared to Total Number of TEs (Subfamily)')
+    plt.title('Relative %s of TEs Compared to Total Number of TEs (SuperFamily)')
     plt.axis('equal')
     plt.tight_layout()
-    plt.savefig('H4_Subfamily.png')
+    plt.savefig(output_dir + '/' + selection + '_TE_Average_SuperFam_Content.png')
     plt.close()
-    # plt.show()
 
 
-def graphs_chromosomes():
+def graphs_cam_chromosomes(TE_Data, output_dir):
+    selection = 'Camarosa'
     # Loop
     # n = 2.9
     # fig.subplots_adjust(hspace = n, wspace = n)
     # n = 4
     colors = ['sienna', 'goldenrod', 'lightgreen', 'forestgreen',
-              'steelblue', 'darkslateblue', 'orchid', 'crimson', 'mistyrose' ]
+              'steelblue', 'darkslateblue', 'orchid', 'crimson', 'mistyrose',
+              'darkmagenta']
 
-    explode = (0, 0.1, 0.1, 0, 0, 0, 0, 0, 0)  # explode
+    #explode = (0, 0.1, 0.1, 0, 0, 0, 0, 0, 0)  # explode
 
     all_c = get_unique(TE_Data.Chromosome)  # list
+    grouped_TEs = split(TE_Data, 'Chromosome')
 
     for xi in range(0, len(all_c), 4):
         fig, axes = plt.subplots(nrows=2, ncols=2)
@@ -200,10 +223,9 @@ def graphs_chromosomes():
             titles = get_unique(grouped_TEs[xi + i].Chromosome)  # list
             # print(f"Title is: {titles} \n")
             size_vals =  []
-            my_subfamily_counts = grouped_TEs[xi+i].SubFamily.value_counts()
+            my_subfamily_counts = grouped_TEs[xi+i].SuperFamily.value_counts()
             my_subfamily_counts = my_subfamily_counts.to_dict()
             subfamily_sum = 0
-            my_subfamily_counts['Pure Unknown'] = my_subfamily_counts.pop('Unknown')
 
             for key,val in my_subfamily_counts.items():
                 subfamily_sum += val
@@ -213,25 +235,72 @@ def graphs_chromosomes():
 
             labels = my_subfamily_counts.keys()
             ax.pie(size_vals,
-                   explode=explode,
                    labels=None,
                    autopct='%1.1f%%',
-                   shadow=True,
+                   shadow=False,
                    startangle=90,
                    radius=1.7,
                    pctdistance=0.84,
                    textprops={'fontsize': 6.8})
-            ax.set_title(titles[0], loc='left', pad=-10.0)
+            ax.set_title(titles[0], loc='left', pad=19)
             plt.tight_layout()
-        # plt.tight_layout(pad=n, w_pad = n, h_pad = n)
+        #n = 5
+        #plt.tight_layout(pad=n, w_pad = n, h_pad = n)
         fig.legend(labels=labels,
-                   loc = 'lower right',
-                   title='TEs',
-                  borderaxespad=0.1)
+                    loc = 'center right',
+                    title='TEs',
+                    borderaxespad=-0.2)
         n = 0.9
         plt.subplots_adjust(right=0.75, hspace = n)
-        plt.savefig(all_c[xi]+'_Cam_All.png')
-        # plt.show()
+        plt.savefig(output_dir + '/' + selection + '_' +  all_c[xi] + '_All_Chromosomes.png')
+        #plt.savefig(all_c[xi]+'_Cam_All.png')
+        plt.close()
+
+
+def graphs_diploid_chromosomes(TE_Data, output_dir, selection):
+    # Loop
+    # n = 2.9
+    # fig.subplots_adjust(hspace = n, wspace = n)
+    # n = 4
+    colors = ['sienna', 'goldenrod', 'lightgreen', 'forestgreen',
+              'steelblue', 'darkslateblue', 'orchid', 'crimson', 'mistyrose',
+              'darkmagenta']
+
+    #explode = (0, 0.1, 0.1, 0, 0, 0, 0, 0, 0)  # explode
+
+    grouped_TEs = split(TE_Data, 'Chromosome')
+    for chromosome_chunk in grouped_TEs:
+        size_vals =  []
+        my_chromosome = str(chromosome_chunk.Chromosome.unique()[0])
+        my_subfamily_counts = chromosome_chunk.SuperFamily.value_counts()
+        my_subfamily_counts = my_subfamily_counts.to_dict()
+        subfamily_sum = 0
+
+        for key,val in my_subfamily_counts.items():
+            subfamily_sum += val
+        new_sizes = []
+        for key,val in my_subfamily_counts.items():
+            my_subfamily_counts[key] = val/subfamily_sum*100  # normalize
+            new_sizes.append(my_subfamily_counts[key])
+
+        labels = my_subfamily_counts.keys()
+        colors = ['saddlebrown', 'goldenrod', 'lightgreen', 'forestgreen',
+                  'steelblue', 'darkslateblue', 'orchid', 'crimson', 'mistyrose',
+                  'gold', 'darkmagenta' ]
+        explode = []
+        for i in new_sizes:
+            explode.append(0)
+        #explode[0] = 0.1
+        explode = tuple(explode)
+        patches, texts, autotext = plt.pie(new_sizes, colors=colors, shadow=False,
+                                    startangle=210, explode=explode,
+                                    autopct='%1.1f%%', labels=labels)
+        # plt.legend(patches, labels, loc='best')
+        plt.title('Relative %s of TEs Compared to Total Number of TEs (SuperFamily)')
+        plt.axis('equal')
+        plt.tight_layout()
+        plt.savefig(output_dir + '/' + selection + '_TE_' + my_chromosome + '_SuperFam_Content.png')
+        plt.close()
 
 
 
@@ -246,10 +315,7 @@ def graphs_chromosomes():
 
 
 
-    # genome_content()
-    # te_fam_content()
-    # te_subfam_content()
-    # graphs_chromosomes()
+
 
 def check_groupings(grouped_genes,grouped_TEs):
     """
@@ -273,6 +339,7 @@ def check_groupings(grouped_genes,grouped_TEs):
     except AssertionError as error:
         raise ValueError('Chromosomes do not match for the grouped_genes or grouped_TEs')
 
+
 def validate_args(args, logger):
     """Raise if an input argument is invalid."""
 
@@ -287,38 +354,66 @@ def validate_args(args, logger):
         raise ValueError("%s is not a directory"%(abs_path))
 
 if __name__ == '__main__':
-    """Command line interface to create pie graphs."""
+    """Command line interface to generate pie graphs."""
 
-    parser = argparse.ArgumentParser(description="calculate TE density")
+    parser = argparse.ArgumentParser(description="""
+                                     Generate pie graphs of TE distribtutions
+                                     """)
     path_main = os.path.abspath(__file__)
     parser.add_argument('genes_input_file', type=str,
                         help='parent path of gene file')
     parser.add_argument('tes_input_file', type=str,
                         help='parent path of transposon file')
+    parser.add_argument('--contig_del', default=True)
+    parser.add_argument('--filtered_input_data', '-f', type=str,
+                        default=os.path.join(path_main, '../..',
+                                             'filtered_input_data'),
+                        help='parent directory for cached input data')
+    parser.add_argument('selection', type=str,
+                        help='Genome')
     parser.add_argument('--output_dir', '-o', type=str,
-                        default=os.path.join(path_main, '../..', 'results'),
+                        default=os.path.join(path_main, '../../results/pie'),
                         help='parent directory to output results')
     parser.add_argument('-v', '--verbose',
                         action='store_true',
                         help='set debugging level to DEBUG')
+
     args = parser.parse_args()
-    args.output_dir = os.path.abspath(args.output_dir)
     args.genes_input_file = os.path.abspath(args.genes_input_file)
     args.tes_input_file = os.path.abspath(args.tes_input_file)
+    args.selection = str(args.selection)
+    args.filtered_input_data = os.path.abspath(args.filtered_input_data)
+    args.output_dir = os.path.abspath(args.output_dir)
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
     coloredlogs.install(level=log_level)
-    # logger.info("Start processing directory '%s'"%(args.input_dir))
+
     for argname, argval in vars(args).items():
-        logger.debug("%-12s: %s"%(argname, argval))
+        logger.debug("%-12s: %s" % (argname, argval))
     validate_args(args, logger)
 
-    # FUTURE move this preprocessing to it's object
-    logger.info("Importing genes, this may take a moment...")
-    Gene_Data = import_genes(args.genes_input_file)
-    logger.info("Importing transposons, this may take a moment...")
-    TE_Data = import_transposons(args.tes_input_file)
-    logger.info("Done importing")
+    # Load Data
+    logger.info("Checking disk for previously filtered data...")
+    g_fname = os.path.basename(os.path.splitext(args.genes_input_file)[0])
+    t_fname = os.path.basename(os.path.splitext(args.tes_input_file)[0])
+    cleaned_genes = os.path.join(args.filtered_input_data, str('Cleaned_' +
+                                                               g_fname +
+                                                               '.tsv'))
+    cleaned_transposons = os.path.join(args.filtered_input_data, str('Cleaned_' +
+                                                                     t_fname +
+                                                                     '.tsv'))
+    Gene_Data = verify_gene_cache(args.genes_input_file, cleaned_genes,
+                                  args.contig_del, logger)
+    TE_Data = verify_TE_cache(args.tes_input_file, cleaned_transposons,
+                              te_annot_renamer, args.contig_del, logger)
+    #grouped_TEs = split(TE_Data, 'Chromosome')
 
-    main_fig(Gene_Data, TE_Data)
+    # Generate Graphs
+    general_genome_stats(Gene_Data, TE_Data, args.output_dir, args.selection)
+    te_order_content(TE_Data, args.output_dir, args.selection)
+    te_subfam_content(TE_Data, args.output_dir, args.selection)
+    if args.selection == 'Camarosa':
+        graphs_cam_chromosomes(TE_Data, args.output_dir)
+    else:
+        graphs_diploid_chromosomes(TE_Data, args.output_dir, args.selection)
 

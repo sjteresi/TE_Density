@@ -278,7 +278,7 @@ def validate_args(args, logger):
         raise ValueError("%s is not a directory" % (args.output_dir))
 
 
-def verify_gene_cache(genes_input_file, cleaned_genes):
+def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
     """Determine whether or not previously filtered gene data exists, if it
     does, read it from disk. If it does not, read the raw annotation file and
     make a filtered dataset for future import.
@@ -289,6 +289,8 @@ def verify_gene_cache(genes_input_file, cleaned_genes):
 
         cleaned_genes (str): A string representing the path of a previously
             filtered gene file via import_genes().
+
+        contig_del (bool): A boolean of whether to remove contigs on import
     """
     if os.path.exists(cleaned_genes):
         logger.info("Importing filtered gene dataset from disk...")
@@ -297,12 +299,13 @@ def verify_gene_cache(genes_input_file, cleaned_genes):
     else:
         logger.info("Previously filtered gene dataset does not exist...")
         logger.info("Importing unfiltered gene dataset from annotation file...")
-        Gene_Data = import_genes(genes_input_file)
+        Gene_Data = import_genes(genes_input_file, contig_del)
         Gene_Data.to_csv(cleaned_genes, sep='\t', header=True, index=True)
     return Gene_Data
 
 
-def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer):
+def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer,
+                    contig_del, logger):
     """Determine whether or not previously filtered TE data exists, if it
     does, read it from disk. If it does not, read the raw annotation file and
     make a filtered dataset for future import.
@@ -318,6 +321,8 @@ def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer):
             imported from separate file within the repository. This file
             performs the more specific filtering steps on the TEs such as
             changing the annotation details for specific TE types.
+
+        contig_del (bool): A boolean of whether to remove contigs on import
     """
     if os.path.exists(cleaned_transposons):
         logger.info("Importing filtered transposons from disk...")
@@ -325,7 +330,8 @@ def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer):
     else:
         logger.info("Previously filtered TE dataset does not exist...")
         logger.info("Importing unfiltered TE dataset from annotation file...")
-        TE_Data = import_transposons(args.tes_input_file, te_annot_renamer)
+        TE_Data = import_transposons(tes_input_file, te_annot_renamer,
+                                     contig_del)
         TE_Data.to_csv(cleaned_transposons, sep='\t', header=True, index=False)
     return TE_Data
 
@@ -392,6 +398,7 @@ if __name__ == '__main__':
                         help='parent path of gene file')
     parser.add_argument('tes_input_file', type=str,
                         help='parent path of transposon file')
+    parser.add_argument('--contig_del', default=True)
     parser.add_argument('--config_file', '-c', type=str,
                         default=os.path.join(path_main, '../../',
                                              'config/test_run_config.ini'),
@@ -426,6 +433,7 @@ if __name__ == '__main__':
         logger.debug("%-12s: %s" % (argname, argval))
     validate_args(args, logger)
 
+    # NOTE Imports
     # FUTURE move this preprocessing to it's object
 
     logger.info("Checking disk for previously filtered data...")
@@ -441,9 +449,9 @@ if __name__ == '__main__':
     cleaned_transposons = os.path.join(args.filtered_input_data, str('Cleaned_' +
                                                                      t_fname +
                                                                      '.tsv'))
-    Gene_Data = verify_gene_cache(args.genes_input_file, cleaned_genes)
+    Gene_Data = verify_gene_cache(args.genes_input_file, cleaned_genes, args.contig_del, logger)
     TE_Data = verify_TE_cache(args.tes_input_file, cleaned_transposons,
-                              te_annot_renamer)
+                              te_annot_renamer, args.contig_del, logger)
 
     logger.info("Reading config file and making parameter dictionary...")
     parser = ConfigParser()
@@ -455,5 +463,6 @@ if __name__ == '__main__':
                       window_delta: window_delta,
                       last_window_size: last_window_size}
 
+    # Process data
     logger.info("Process data...")
     process(alg_parameters, args.overlap_dir)
