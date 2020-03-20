@@ -20,7 +20,7 @@ from transposon.gene_data import GeneData
 from transposon.transposon_data import TransposonData
 from transposon.import_genes import import_genes
 from transposon.import_transposons import import_transposons
-from transposon.overlap import OverlapData
+from transposon.overlap import OverlapWorker
 from transposon.replace_names import te_annot_renamer
 
 
@@ -341,7 +341,7 @@ def process(alg_parameters, overlap_dir):
         overlap_dir (string): A string path of the directory path to output the
         overlap files. This comes from the ArgumentParser obj and defaults to
         /tmp. You can edit the location of the directory with the -s flag when
-        calling density.py. overlap_dir is used when calling OverlapData.
+        calling density.py. overlap_dir is used when calling OverlapWorker.
     """
     grouped_genes = split(Gene_Data, 'Chromosome')  # check docstring for my split func
     grouped_TEs = split(TE_Data, 'Chromosome')  # check docstring for my split func
@@ -369,7 +369,7 @@ def process(alg_parameters, overlap_dir):
 
         n_genes = sum(1 for g in gene_data.names)
         sub_progress = tqdm(total=n_genes, desc="  genes     ", position=1, ncols=80)
-        overlap = OverlapData(overlap_dir)
+        overlap = OverlapWorker(overlap_dir)
 
         def progress():
             sub_progress.update(1)

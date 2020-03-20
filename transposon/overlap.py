@@ -89,8 +89,8 @@ class Overlap():
         return te_overlaps
 
 
-class _OverlapDataSink():
-    """Destination for overlap calculations.
+class OverlapData():
+    """Contains the overlap values.
 
     Contains a numpy array for each `Overlap.Direction` buffered to a file.
     The file is h5py and contains data sets named by the keys in `Overlap.Direction`.
@@ -122,7 +122,7 @@ class _OverlapDataSink():
         self._n_win = len(windows)
 
     @classmethod
-    def from_param(cls, gene_names, n_transposons, n_win, ram=2, logger=None):
+    def from_param(cls, gene_names, n_transposons, windows, output_dir, ram=2, logger=None):
         """Empty container when writing data to a new file."""
 
         raise NotImplementedError()
@@ -225,9 +225,8 @@ class _OverlapDataSink():
         raise NotImplementedError()
 
 
-# REFACTOR rename to OverlapDataCalculator
-class OverlapData():
-    """Contains the overlap between the genes and transposable elements."""
+class OverlapWorker():
+    """Calculates the overlap values."""
 
     def __init__(self, overlap_dir, logger=None):
         """Initialize.
@@ -325,5 +324,5 @@ class OverlapData():
         self._window_2_idx = self._map_windows_2_indices(self._windows)
 
         n_te = transposons.number_elements
-        self._data = _OverlapDataSink(
+        self._data = OverlapData(
             genes, n_te, self._windows, self.root_dir)
