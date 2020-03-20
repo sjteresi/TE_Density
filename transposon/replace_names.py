@@ -75,6 +75,7 @@ def te_annot_renamer(TE_Data):
         'Helitron': U,
         'Maverick': U,
         'Harbinger': 'PIF_Harbinger',
+        'PIF-Harbinger': 'PIF_Harbinger',
         'TcMar-Pogo': U,
         'CR1': 'LINE',
         'hAT-Ac': 'hAT',
