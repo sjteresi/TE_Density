@@ -6,6 +6,7 @@ __author__ = "Michael Teresi"
 The no. base pairs that the transposable elements overlap the window for a gene.
 """
 
+from collections import namedtuple
 from enum import Enum, unique
 import logging
 import os
@@ -14,6 +15,12 @@ import tempfile
 
 import numpy as np
 import h5py
+
+
+_ConfigSink = namedtuple('_ConfigIn',
+                         ['genes', 'n_transposons', 'windows', 'filepath', 'ram_bytes'])
+_ConfigSource = namedtuple('_ConfigSource',
+                           ['filepath'])
 
 
 class Overlap():
@@ -90,10 +97,11 @@ class Overlap():
 
 
 class OverlapData():
-    """Contains the overlap values.
+    """Contains overlap values buffered to disk.
 
-    Contains a numpy array for each `Overlap.Direction` buffered to a file.
-    The file is h5py and contains data sets named by the keys in `Overlap.Direction`.
+    Use the factory methods to create an instance.
+    Use the context manager to activate the buffer.
+    Use the slice methods to provide slices for the array public instance variables.
     """
 
     DTYPE = np.float32
@@ -104,70 +112,69 @@ class OverlapData():
     _GENE_NAMES = 'GENE_NAMES'
     _WINDOWS = 'WINDOWS'
     _CHROME_ID = 'CHROMOSOME_ID'
+    _MAX_RAM_GB = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')/(1024.**3)
 
-    def __init__(self, gene_data, n_transposons, windows, out_dir, logger=None):
+    def __init__(self, configuration, logger=None):
+        """Initializer."""
 
         self._logger = logger or logging.getLogger(__name__)
-        filename = next(tempfile._get_candidate_names()) + '.h5'
-        self.filepath = os.path.join(out_dir, filename)
-        self.h5_file = None
+        self._config = configuration
+        self._h5_file = None
+
         self.left = None
         self.intra = None
         self.right = None
-        self.gene_names = list(gene_data.names)
-        self._n_genes = len(self.gene_names)
-        self._chromosome_id = gene_data.chromosome_unique_id  # raises RuntimeError
-        self._n_tes = int(n_transposons)
-        self.windows = windows
-        self._n_win = len(windows)
+        self.gene_names = None
+        self.chromosome_id = None
+        self.windows = None
 
     @classmethod
-    def from_param(cls, gene_names, n_transposons, windows, output_dir, ram=2, logger=None):
-        """Empty container when writing data to a new file."""
+    def from_param(cls, genes, n_transposons, windows, output_dir, ram=2, logger=None):
+        """Writable sink for a new file.
 
-        raise NotImplementedError()
+        Args:
+            genes (GeneData): genes container
+            n_transposons (int): transposon count
+            windows (list(int)): window sizes
+            output_dir (str): directory for output files
+            ram (int): upper limit for caching in gigabytes
+        """
+
+        filename = next(tempfile._get_candidate_names()) + '.h5'
+        filepath = os.path.join(output_dir, filename)
+        config = _ConfigSink(
+            genes=genes,
+            n_transposons=n_transposons,
+            windows=windows,
+            filepath=filepath,
+            ram_bytes=int(ram * (1024.**3))  # MAGIC NUMBER bytes to gigabytes
+        )
+        overlap = cls(config, logger)
+        overlap._check_ram(config.ram_bytes)
+        return overlap
 
     @classmethod
     def from_file(cls, filepath, logger=None):
-        """Target an existing data file."""
+        """Readable source for an existing file."""
 
         raise NotImplementedError()
 
     @staticmethod
-    def left_right_slice(window, gene):
+    def left_right_slice(window_idx, gene_idx):
         """Slice for left or right overlap for one window / gene."""
 
-        return (gene, window, slice(None))
+        return (gene_idx, window_idx, slice(None))
 
     @staticmethod
-    def intra_slice(gene):
+    def intra_slice(gene_idx):
         """Slice for intra overlap for one window / gene."""
 
-        return (gene, slice(None))
+        return (gene_idx, slice(None))
 
     def __enter__(self):
         """Context manager start."""
 
-        # FUTURE do either reading or writing depending on file mode
-
-        # TODO parametrize, allow one to specify pending their ram availability
-        # MAGIC NUMBER situational, 2GB for ram cache
-        self.h5_file = h5py.File(self.filepath, 'w', rdcc_nbytes=2*1024*1024**2)
-        create_set = partial(self.h5_file.create_dataset,
-                             dtype=self.DTYPE,
-                             compression=self.COMPRESSION)
-        # N.B. numpy uses row major by default
-        lr_shape = (self._n_genes, self._n_win, self._n_tes)
-        # TODO validate chunk dimensions, 4 * nwin * ntes may be too big pending inputs
-        # (and probably already is, but it worked ok...)
-        chunks = tuple((32, self._n_win, self._n_tes))  # MAGIC NUMBER experimental
-        self.left = create_set(self._LEFT, lr_shape, chunks=chunks)
-        self.right = create_set(self._RIGHT, lr_shape, chunks=chunks)
-        i_shape = (self._n_genes, self._n_tes)
-        self.intra = create_set(self._INTRA, i_shape)
-        self._write_gene_names()
-        self._write_windows()
-        self._write_chromosome_id()
+        self._open_dispatcher()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_traceback):
@@ -179,12 +186,72 @@ class OverlapData():
         self.right = None
         self.intra = None
 
+    def _create_sets(self):
+        """Initialize containers on the file.
+
+        Raises:
+            (RuntimeError): if the data sets already exist in the file
+        """
+
+        raise NotImplementedError()
+
+    def _open_dispatcher(self):
+        """Open the file.
+
+        NOTE when upgrading to python 3.8 refactor to use functools.singledispatchmethod.
+        """
+
+        if isinstance(self._config, _ConfigSink):
+            self._open_new_file(self._config)
+        elif isinstance(self._config, _ConfigSource):
+            self._open_existing_file(self._config)
+        else:
+            raise TypeError("expecting {} or {} but got {}".format(
+                type(_ConfigSink), type(_ConfigSource), type(self._config)))
+
+    def _open_existing_file(self, config):
+
+        raise NotImplementedError()
+
+    def _open_new_file(self, cfg):
+        """Initialize a new file for writing."""
+
+        self.chromosome_id = str(cfg.genes.chromosome_unique_id)
+
+        # FUTURE do either reading or writing depending on file mode
+        # TODO parametrize, allow one to specify pending their ram availability
+        # MAGIC NUMBER situational, 2GB for ram cache
+        self.h5_file = h5py.File(cfg.filepath, 'w', rdcc_nbytes=cfg.ram_bytes)
+        create_set = partial(self.h5_file.create_dataset,
+                             dtype=self.DTYPE,
+                             compression=self.COMPRESSION)
+        # N.B. numpy uses row major by default
+        self.gene_names = list(cfg.genes.names)
+        n_genes = len(self.gene_names)
+        self.windows = list(cfg.windows)
+        n_win = len(self.windows)
+        n_tes = cfg.n_transposons
+        left_right_shape = (n_genes, n_win, n_tes,)
+        # TODO validate chunk dimensions, 4 * nwin * ntes may be too big pending inputs
+        # (and probably already is, but it worked ok...)
+        gene_chunks = min(32, n_genes)
+        chunks = tuple((gene_chunks, n_win, n_tes))  # MAGIC NUMBER experimental
+        self.left = create_set(self._LEFT, left_right_shape, chunks=chunks)
+        self.right = create_set(self._RIGHT, left_right_shape, chunks=chunks)
+        intra_shape = (n_genes, n_tes)
+        self.intra = create_set(self._INTRA, intra_shape)
+
+        self._write_gene_names()
+        self._write_windows()
+        self._write_chromosome_id()
+
     def _write_gene_names(self):
         """Assign list of gene names to the file."""
 
         # FUTURE consider ASCII (fixed len) for storage if non-python clients exist
         vlen = h5py.special_dtype(vlen=str)
-        dset = self.h5_file.create_dataset(self._GENE_NAMES, (self._n_genes,), dtype=vlen)
+        dset = self.h5_file.create_dataset(
+            self._GENE_NAMES, (len(self.gene_names),), dtype=vlen)
         dset[:] = self.gene_names
 
     def _read_gene_names(self):
@@ -196,7 +263,7 @@ class OverlapData():
         """Assign list of windows to the file."""
 
         self.h5_file.create_dataset(
-            self._WINDOWS, data=np.array(self.windows), dtype=np.uint32
+            self._WINDOWS, data=np.array(self.windows), dtype=np.int64
         )
 
     def _read_windows(self):
@@ -211,18 +278,25 @@ class OverlapData():
         vlen = h5py.special_dtype(vlen=str)
         # MAGIC NUMBER there can only be one unique ID
         dset = self.h5_file.create_dataset(self._CHROME_ID, (1,), dtype=vlen)
-        dset[:] = self._chromosome_id
+        dset[:] = self.chromosome_id
 
     def _read_chromosome_id(self):
         """Return the unique chromosome identifier."""
 
         return self.h5_file[self._CHROME_ID][:].tolist()[0]  # MAGIC NUMBER only one ID
 
-    def _write(self):
-        raise NotImplementedError()
+    def _check_ram(self, ram_bytes):
+        """Raise if the requested RAM is negative or greater than the system."""
 
-    def _read(self):
-        raise NotImplementedError()
+        if ram_bytes < 0:
+            msg = "cache %i bytes < 0" % ram_bytes
+            self._logger.critical(msg)
+            raise ValueError()
+        elif ram_bytes/(1024.**3) > self._MAX_RAM_GB:
+            ram_gb = ram_bytes/(1024.**3)
+            msg = "cache %i GB > system %i GB" % ram_gb
+            self._logger.critical(msg)
+            raise ValueError(msg)
 
 
 class OverlapWorker():
@@ -324,5 +398,5 @@ class OverlapWorker():
         self._window_2_idx = self._map_windows_2_indices(self._windows)
 
         n_te = transposons.number_elements
-        self._data = OverlapData(
+        self._data = OverlapData.from_param(
             genes, n_te, self._windows, self.root_dir)
