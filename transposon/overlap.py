@@ -128,6 +128,12 @@ class OverlapData():
         self.chromosome_id = None
         self.windows = None
 
+    @property
+    def filepath(self):
+        """Return the active filepath, None if no open file."""
+
+        return self._h5_file.filename if self._h5_file is not None else None
+
     @classmethod
     def from_param(cls, genes, n_transposons, windows, output_dir, ram=2, logger=None):
         """Writable sink for a new file.
@@ -155,9 +161,14 @@ class OverlapData():
 
     @classmethod
     def from_file(cls, filepath, logger=None):
-        """Readable source for an existing file."""
+        """Read only source for an existing file."""
 
-        raise NotImplementedError()
+        file_abs = os.path.abspath(filepath)
+        if not os.path.isfile(file_abs):
+            raise ValueError("input filepath not a file: %s" % file_abs)
+        config = _ConfigSource(filepath=file_abs)
+        overlap = cls(config, logger)
+        return overlap
 
     @staticmethod
     def left_right_slice(window_idx, gene_idx):
@@ -180,20 +191,45 @@ class OverlapData():
     def __exit__(self, exc_type, exc_val, exc_traceback):
         """Context manager stop."""
 
-        self.h5_file.flush()
-        self.h5_file.close()
+        self._h5_file.flush()
+        self._h5_file.close()
+        self._h5_file = None
         self.left = None
         self.right = None
         self.intra = None
+        self.gene_names = None
+        self.chromosome_id = None
+        self.windows = None
 
-    def _create_sets(self):
-        """Initialize containers on the file.
+    def _create_sets(self, h5_file, cfg):
+        """Initialize instance variables from input configuration, mutates self.
 
-        Raises:
-            (RuntimeError): if the data sets already exist in the file
+        Args:
+            h5_file (hdf5.File): the open file.
+            cfg (_ConfigSink): the configuration for a new file.
         """
 
-        raise NotImplementedError()
+        self.chromosome_id = cfg.genes.chromosome_unique_id
+        create_set = partial(h5_file.create_dataset,
+                             dtype=self.DTYPE,
+                             compression=self.COMPRESSION)
+        self.gene_names = list(cfg.genes.names)
+        n_genes = len(self.gene_names)
+        self.windows = list(cfg.windows)
+        n_win = len(self.windows)
+        n_tes = cfg.n_transposons
+        # N.B. numpy uses row major by default, iterate over data accordingly
+        # this is coupled with OverlapWorker.calculate which iterates
+        # this is coupled with the slicing methods of self
+        left_right_shape = (n_genes, n_win, n_tes,)
+        # TODO validate chunk dimensions, 4 * nwin * ntes may be too big pending inputs
+        # (and probably already is, but it worked ok...)
+        gene_chunks = min(32, n_genes)
+        chunks = tuple((gene_chunks, n_win, n_tes))  # MAGIC NUMBER experimental
+        self.left = create_set(self._LEFT, left_right_shape, chunks=chunks)
+        self.right = create_set(self._RIGHT, left_right_shape, chunks=chunks)
+        intra_shape = (n_genes, n_tes)
+        self.intra = create_set(self._INTRA, intra_shape)
 
     def _open_dispatcher(self):
         """Open the file.
@@ -209,38 +245,22 @@ class OverlapData():
             raise TypeError("expecting {} or {} but got {}".format(
                 type(_ConfigSink), type(_ConfigSource), type(self._config)))
 
-    def _open_existing_file(self, config):
+    def _open_existing_file(self, cfg):
+        """Open the file, mutates self."""
 
-        raise NotImplementedError()
+        self._h5_file = h5py.File(cfg.filepath, 'r')
+        self.gene_names = self._read_gene_names()
+        self.windows = self._read_windows()
+        self.chromosome_id = self._read_chromosome_id()
+        self.left = self._h5_file[self._LEFT][:]
+        self.intra = self._h5_file[self._INTRA][:]
+        self.right= self._h5_file[self._RIGHT][:]
 
     def _open_new_file(self, cfg):
         """Initialize a new file for writing."""
 
-        self.chromosome_id = str(cfg.genes.chromosome_unique_id)
-
-        # FUTURE do either reading or writing depending on file mode
-        # TODO parametrize, allow one to specify pending their ram availability
-        # MAGIC NUMBER situational, 2GB for ram cache
-        self.h5_file = h5py.File(cfg.filepath, 'w', rdcc_nbytes=cfg.ram_bytes)
-        create_set = partial(self.h5_file.create_dataset,
-                             dtype=self.DTYPE,
-                             compression=self.COMPRESSION)
-        # N.B. numpy uses row major by default
-        self.gene_names = list(cfg.genes.names)
-        n_genes = len(self.gene_names)
-        self.windows = list(cfg.windows)
-        n_win = len(self.windows)
-        n_tes = cfg.n_transposons
-        left_right_shape = (n_genes, n_win, n_tes,)
-        # TODO validate chunk dimensions, 4 * nwin * ntes may be too big pending inputs
-        # (and probably already is, but it worked ok...)
-        gene_chunks = min(32, n_genes)
-        chunks = tuple((gene_chunks, n_win, n_tes))  # MAGIC NUMBER experimental
-        self.left = create_set(self._LEFT, left_right_shape, chunks=chunks)
-        self.right = create_set(self._RIGHT, left_right_shape, chunks=chunks)
-        intra_shape = (n_genes, n_tes)
-        self.intra = create_set(self._INTRA, intra_shape)
-
+        self._h5_file = h5py.File(cfg.filepath, 'w', rdcc_nbytes=cfg.ram_bytes)
+        self._create_sets(self._h5_file, cfg)
         self._write_gene_names()
         self._write_windows()
         self._write_chromosome_id()
@@ -250,26 +270,26 @@ class OverlapData():
 
         # FUTURE consider ASCII (fixed len) for storage if non-python clients exist
         vlen = h5py.special_dtype(vlen=str)
-        dset = self.h5_file.create_dataset(
+        dset = self._h5_file.create_dataset(
             self._GENE_NAMES, (len(self.gene_names),), dtype=vlen)
         dset[:] = self.gene_names
 
     def _read_gene_names(self):
         """Return list of gene names."""
 
-        return self.h5_file[self._GENE_NAMES][:]
+        return self._h5_file[self._GENE_NAMES][:].tolist()
 
     def _write_windows(self):
         """Assign list of windows to the file."""
 
-        self.h5_file.create_dataset(
+        self._h5_file.create_dataset(
             self._WINDOWS, data=np.array(self.windows), dtype=np.int64
         )
 
     def _read_windows(self):
         """Return list of windows."""
 
-        return self.h5_file[self._WINDOWS][:].tolist()
+        return self._h5_file[self._WINDOWS][:].tolist()
 
     def _write_chromosome_id(self):
         """Assign chromosome identifier to the file."""
@@ -277,13 +297,13 @@ class OverlapData():
         # FUTURE consider ASCII (fixed len) for storage if non-python clients exist
         vlen = h5py.special_dtype(vlen=str)
         # MAGIC NUMBER there can only be one unique ID
-        dset = self.h5_file.create_dataset(self._CHROME_ID, (1,), dtype=vlen)
+        dset = self._h5_file.create_dataset(self._CHROME_ID, (1,), dtype=vlen)
         dset[:] = self.chromosome_id
 
     def _read_chromosome_id(self):
         """Return the unique chromosome identifier."""
 
-        return self.h5_file[self._CHROME_ID][:].tolist()[0]  # MAGIC NUMBER only one ID
+        return self._h5_file[self._CHROME_ID][:].tolist()[0]  # MAGIC NUMBER only one ID
 
     def _check_ram(self, ram_bytes):
         """Raise if the requested RAM is negative or greater than the system."""
@@ -340,19 +360,22 @@ class OverlapWorker():
 
         self._reset(transposons, genes, windows, gene_names)
 
+        # N.B. the order of the loop nesting effects calculation speed
+        # it is coupled with the order that the data is stored in OverlapData
+        # NOTE consider decoupling?
+        # OverlapData is decently sized already but it wouldn't be that much more...
+        # OverlapWorker worker would then be empty but needs additions for multiproc
         with self._data as sink:
             for gene_name in self._gene_names:
                 gene_datum = genes.get_gene(gene_name)
                 g_idx = self._gene_name_2_idx[gene_name]
-                destination = sink.intra_slice(g_idx)
-                sink.intra[destination] = Overlap.intra(gene_datum, transposons)
+                out_slice = sink.intra_slice(g_idx)
+                sink.intra[out_slice] = Overlap.intra(gene_datum, transposons)
                 for window in self._windows:
-                    left = Overlap.left(gene_datum, transposons, window)
-                    right = Overlap.right(gene_datum, transposons, window)
                     w_idx = self._window_2_idx[window]
-                    destination = sink.left_right_slice(w_idx, g_idx)
-                    sink.left[destination] = left
-                    sink.right[destination] = right
+                    out_slice = sink.left_right_slice(w_idx, g_idx)
+                    sink.left[out_slice] = Overlap.left(gene_datum, transposons, window)
+                    sink.right[out_slice] = Overlap.right(gene_datum, transposons, window)
                 if progress is not None:
                     progress()
 
