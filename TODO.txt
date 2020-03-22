@@ -1,8 +1,13 @@
-# SCOTT, TODO 2020 02 22
+# SCOTT, TODO 2020 03 22
 
-- [ALMOST] run flake8 and fix all problems:  `$ cd TE_Density; flake8`
-        - fyi: flake8 warnings should be addressed, whereas `pylint` can *sometimes*
-               be too scrutinous
+- [ ] implement TransposonData.mock
+- [ ] bugfix failing tests in unit/test_density.py
+- [ ] implement chromosome id checks in unit/test_transposon_data.py
+- [ ] add to/from disk for GeneDatum
+- [ ] add property for "chromosome_unique_id" to GeneDatum (probably copy paste from GeneData)
+- [ ] add unit/test_gene_datum.py, implement GeneDatum.mock
+- [ ] run flake8 and fix all problems:  `$ cd TE_Density; flake8`
+        - fyi: flake8 warnings should be addressed, but `pylint` can *sometimes* be too scrutinous
 - [ ] run `plyint` and fix most warnings
 - [ ] add comments on magic numbers, like this:  # MAGIC NUMBER <explanation>
         - you don't need to do this to enums b/c an enum is used to store the constants,
@@ -14,15 +19,3 @@
         - Abstract Base Class (https://docs.python.org/3.4/library/abc.html) (@abstractmethod)
         - callable magic method `__call__`: (https://www.geeksforgeeks.org/callable-in-python/)
         - profiling (https://docs.python.org/3/library/profile.html)
-- [ ] add unit tests for everything
-- [X] add ConfigParser to __main__ of density.py (or similar module for reading configs)
-        - add param for window start, delta, stop
-- [X] modify requirements to be nested
-        - SEE https://stackoverflow.com/a/20720019
-        - add pylint to the dev requirements
-- [X] add (implement) to/from disk for GeneData
-- [X] refactor `import_transposons.py::import_trasnsposons` for input arg
-        - input callable for preprocessing instead so client doesn't have to modify the import
-        - see the comments on that function
-- [X] Clean up GeneDatum and the methods in Overlaps.py so that the window length value is less confusing
-- [ ] add a profiling test for GeneDatum accessing start/stop etc., then add memoization

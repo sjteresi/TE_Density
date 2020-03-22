@@ -14,6 +14,7 @@ import pandas as pd
 
 from transposon.gene_datum import GeneDatum
 
+
 class GeneData(object):
     """Wraps a data frame containing many genes.
     Provides an interface, attribute access, and to/from disk functionality.
@@ -21,7 +22,7 @@ class GeneData(object):
     Note the numpy views are not necessarily a no-copy (SEE pandas.DataFrame.to_numpy).
 
     Expects certain column identifiers (SEE self.__init__).
-    Subclasses of GeneData should conform to these column names or redefine the properties.
+    GeneData subclasses should conform to these column names or redefine the properties.
     """
 
     def __init__(self, gene_dataframe, logger=None):
@@ -105,7 +106,7 @@ class GeneData(object):
     def chromosome_unique_id(self):
         """Unique chromosome identifier for all the genes available.
 
-        This will raise f the genes are not from the same chromosome,
+        This will raise if the genes are not from the same chromosome,
         for example you you didn't split the dataset wrt this data.
 
         Returns:
@@ -118,11 +119,11 @@ class GeneData(object):
         if not chromosome_list:
             raise RuntimeError("column 'Chromosome' is empty")
         elif len(chromosome_list) > 1:
-            raise RuntimeError("chromosomes are not unique: %s"%chromosome_list)
+            raise RuntimeError("chromosomes are not unique: %s" % chromosome_list)
         else:
             return chromosome_list[0]  # MAGIC NUMBER list to string
 
     def __repr__(self):
         """String representation for developer."""
 
-        return  "GeneData{}".format(self.data_frame)
+        return "GeneData{}".format(self.data_frame)

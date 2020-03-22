@@ -254,7 +254,8 @@ def check_groupings(grouped_genes, grouped_TEs, logger):
             logger.critical(msg)
             raise ValueError(msg)
         try:
-            subgene_uid = GeneData(g_element).chromosome_unique_id
+            sub_gene = GeneData(g_element)
+            subgene_uid = sub_gene.chromosome_unique_id
         except RuntimeError as r_err:
             logging.critical("sub gene grouping is not unique: {}".format(sub_gene))
             raise r_err
@@ -354,18 +355,19 @@ def process(alg_parameters, overlap_dir):
     # chromosome, where the second number is the actual physical chromosome,
     # and we use the number to denote which subgenome it is assigned to.
 
-    gene_progress = tqdm(total=len(grouped_genes), desc="chromosome  ", position=0, ncols=80)
+    gene_progress = tqdm(
+        total=len(grouped_genes), desc="chromosome  ", position=0, ncols=80)
     _temp_count = 0
     # TODO need grouping ID for each GeneData and TransposonData (e.g. chromosome ID)
     for sub_gene, sub_te in zip(grouped_genes, grouped_TEs):
         gene_data = GeneData(sub_gene)
         te_data = TransposonData(sub_te)
-
         # TODO validate the gene / te pair
 
-        window_it = lambda: range(alg_parameters[first_window_size],
-                                  alg_parameters[last_window_size],
-                                  alg_parameters[window_delta])
+        def window_it(temp_param):
+            return range(temp_param[first_window_size],
+                         temp_param[last_window_size],
+                         temp_param[window_delta])
 
         n_genes = sum(1 for g in gene_data.names)
         sub_progress = tqdm(total=n_genes, desc="  genes     ", position=1, ncols=80)
@@ -374,7 +376,8 @@ def process(alg_parameters, overlap_dir):
         def progress():
             sub_progress.update(1)
             gene_progress.refresh()
-        overlap.calculate(gene_data, te_data, window_it(), gene_data.names, progress)
+        overlap.calculate(
+            gene_data, te_data, window_it(alg_parameters), gene_data.names, progress)
 
         _temp_count += 1
         gene_progress.update(1)

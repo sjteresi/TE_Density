@@ -9,7 +9,6 @@ Used to provide a common interface and fast calculations with numpy.
 __author__ = "Michael Teresi, Scott Teresi"
 
 import logging
-import numpy as np
 import pandas as pd
 
 
@@ -30,7 +29,7 @@ class TransposonData(object):
         """Initialize.
 
         Args:
-            transposable_elements (DataFrame): transposable element data frame.
+            transposable_elements (pandas.DataFrame): transposable element data frame.
         """
 
         self._logger = logger or logging.getLogger(__name__)
@@ -42,7 +41,6 @@ class TransposonData(object):
         self.orders = self.data_frame.Order.to_numpy(copy=False)
         self.superfamilies = self.data_frame.SuperFamily.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
-        self.chrom_of_the_subset = self.data_frame.Chromosome.unique()[0]
 
     def write(self, filename, key='default'):
         """Write a Pandaframe to disk.
@@ -51,10 +49,8 @@ class TransposonData(object):
             filename (str): a string of the filename to write.
             key (str): identifier for the group (dataset) in the hdf5 obj.
         """
-        # See comments for GeneData's write method for more detail
-        # self.data_frame is a PandaFrame that is why we can use to_hdf
+
         self.data_frame.to_hdf(filename, key=key, mode='w')
-        # NOTE consider for map reduce?
 
     @classmethod
     def read(cls, filename, key='default'):
@@ -64,9 +60,8 @@ class TransposonData(object):
             filename (str): a string of the filename to write.
             key (str): identifier for the group (dataset) in the hdf5 obj.
         """
-        panda_dataset = pd.read_hdf(filename, key=key)
-        return cls(panda_dataset)
-        # NOTE consider for map reduce?
+
+        return cls(pd.read_hdf(filename, key=key))
 
     @property
     def number_elements(self):
@@ -99,16 +94,28 @@ class TransposonData(object):
             raise ValueError(msg)
 
     def __repr__(self):
-        """Printable representation."""
+        """Printable representation for developers."""
 
         info = "Wrapped TE DataFrame: {self.data_frame}"
         return info.format(self=self)
 
-    def __add__(self, other):
-        """Combine transposon data."""
+    @property
+    def chromosome_unique_id(self):
+        """Unique chromosome identifier for all the genes available.
 
-        # SCOTT this may be useful for testing, would you take a look?
-        # for example, it's easy to make a mocked TE data for a specific family
-        # so if we wanted to handle multiple sub/families we could parametrize
-        # the function to produce one TE wrt sub/family and combine them after
-        raise NotImplementedError()
+        This will raise f the genes are not from the same chromosome,
+        for example you you didn't split the dataset wrt this data.
+
+        Returns:
+            str: the unique identifier.
+        Raises:
+            RuntimeError: if multiple chromosomes are in the data frame (i.e. no unique).
+        """
+
+        chromosome_list = self.data_frame.Chromosome.unique().tolist()
+        if not chromosome_list:
+            raise RuntimeError("column 'Chromosome' is empty")
+        elif len(chromosome_list) > 1:
+            raise RuntimeError("chromosomes are not unique: %s" % chromosome_list)
+        else:
+            return chromosome_list[0]  # MAGIC NUMBER list to string

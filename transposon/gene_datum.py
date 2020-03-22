@@ -10,7 +10,7 @@ __author__ = "Michael Teresi, Scott Teresi"
 
 import logging
 import numpy as np
-import pandas as pd
+
 
 class GeneDatum(object):
     """Wraps data frame containing one gene.
@@ -20,7 +20,7 @@ class GeneDatum(object):
     Note the numpy views are not necessarily a no-copy (SEE pandas.DataFrame.to_numpy).
 
     Expects certain column identifiers (SEE self.__init__).
-    Subclasses of GeneData should conform to these column names or redefine the properties.
+    GeneData subclasses should conform to these column names or redefine the properties.
     """
 
     def __init__(self, gene_dataframe, gene_id, logger=None):
@@ -56,9 +56,6 @@ class GeneDatum(object):
         # necessary for the density calculations later when you need to divide
         # by the window length, but for now I have simplified the notation for
         # the window calculations so that they are clearer.
-        # SCOTT it is clearer but my point is the semantics should be arranged so that the
-        # input window *is* the window length rather than adding one, then you already
-        # now the window length by virtue of having the window input value
         return np.add(window, 1)
 
     def left_win_start(self, window):

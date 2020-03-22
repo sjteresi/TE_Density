@@ -254,7 +254,7 @@ class OverlapData():
         self.chromosome_id = self._read_chromosome_id()
         self.left = self._h5_file[self._LEFT][:]
         self.intra = self._h5_file[self._INTRA][:]
-        self.right= self._h5_file[self._RIGHT][:]
+        self.right = self._h5_file[self._RIGHT][:]
 
     def _open_new_file(self, cfg):
         """Initialize a new file for writing."""
