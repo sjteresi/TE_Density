@@ -1,6 +1,5 @@
 # SCOTT, TODO 2020 03 22
 
-- [ ] implement TransposonData.mock
 - [ ] bugfix failing tests in unit/test_density.py
 - [ ] implement chromosome id checks in unit/test_transposon_data.py
 - [ ] add to/from disk for GeneDatum

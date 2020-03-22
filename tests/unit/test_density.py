@@ -21,41 +21,13 @@ from transposon.gene_datum import GeneDatum
 from transposon.transposon_data import TransposonData
 
 
-def mock_te_data(start_stop):
-    """Transposon data for given the start/stop indices
-        Creates one
-
-        Args:
-            start_stop (np.array): N gene x (start_idx, stop_idx). 2D array
-    """
-
-    n_genes = start_stop.shape[0]
-    data = []
-    family = "Family_0"  # FUTURE may want to parametrize family name later
-    # NB overall order is not important but the names are
-    columns = ['Start', 'Stop', 'Length', 'Order', 'SuperFamily', 'Chromosome']
-    for gi in range(n_genes):
-        g0 = start_stop[gi, 0]
-        g1 = start_stop[gi, 1]
-        gL = g1 - g0 + 1
-        # FUTURE may want to parametrize sub
-        # family name later
-        subfam_suffix = "A" if gi % 2 else "B"
-        subfamily = "SubFamily_{}".format(subfam_suffix)
-        chromosome = 'Chr_Test'
-        datum = [g0, g1, gL, family, subfamily, chromosome]
-        data.append(datum)
-    frame = pd.DataFrame(data, columns=columns)
-    return TransposonData(frame)
-
-
 class MockData(object):
 
     def __init__(self, g_start, g_stop, t_start, t_stop, window, expected_rho_left,
                  expected_rho_right, expected_rho_intra, description='Test'):
 
         self.Gene = GeneData.mock(np.array([[g_start, g_stop]]))
-        self.Transposon = mock_te_data(np.array([[t_start, t_stop]]))
+        self.Transposon = TransposonData.mock(np.array([[t_start, t_stop]]))
         self.gene_name = 'gene_0'  # TODO scott, add str
 
         self.window = window

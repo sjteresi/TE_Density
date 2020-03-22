@@ -9,6 +9,7 @@ Used to provide a common interface and fast calculations with numpy.
 __author__ = "Michael Teresi, Scott Teresi"
 
 import logging
+import numpy as np
 import pandas as pd
 
 
@@ -41,6 +42,33 @@ class TransposonData(object):
         self.orders = self.data_frame.Order.to_numpy(copy=False)
         self.superfamilies = self.data_frame.SuperFamily.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
+
+    @classmethod
+    def mock(cls, start_stop=np.array([[0, 9], [10, 19], [20, 29]]), chromosome='Chr_ID'):
+        """Mocked data for testing.
+
+        Args:
+            start_stop (numpy.array): N gene x (start_idx, stop_idx)
+        """
+
+        n_genes = start_stop.shape[0]
+        data = []
+        family = "Family_0"  # FUTURE may want to parametrize family name later
+        # NB overall order is not important but the names are
+        columns = ['Start', 'Stop', 'Length', 'Order', 'SuperFamily', 'Chromosome']
+        for gi in range(n_genes):
+            g0 = start_stop[gi, 0]
+            g1 = start_stop[gi, 1]
+            gL = g1 - g0 + 1
+            # FUTURE may want to parametrize sub
+            # family name later
+            subfam_suffix = "A" if gi % 2 else "B"
+            subfamily = "SubFamily_{}".format(subfam_suffix)
+            datum = [g0, g1, gL, family, subfamily, chromosome]
+            data.append(datum)
+        frame = pd.DataFrame(data, columns=columns)
+        return TransposonData(frame)
+
 
     def write(self, filename, key='default'):
         """Write a Pandaframe to disk.
