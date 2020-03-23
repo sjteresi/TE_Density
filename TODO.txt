@@ -1,7 +1,7 @@
 # SCOTT, TODO 2020 03 22
 
-- [ ] implement chromosome id checks in unit/test_transposon_data.py
-- [ ] add test_Overlap.py tests for the Overlap class (similar to density tests)
+- [X] implement chromosome id checks in unit/test_transposon_data.py
+- [X] add test_Overlap.py tests for the Overlap class (similar to density tests)
 - [ ] add to/from disk for GeneDatum
 - [ ] add property for "chromosome_unique_id" to GeneDatum (probably copy paste from GeneData)
 - [ ] add unit/test_gene_datum.py, implement GeneDatum.mock

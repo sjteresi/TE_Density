@@ -71,8 +71,8 @@ class Overlap():
 
         g_start = gene_datum.start
         g_stop = gene_datum.stop
-        lower_bound = np.minimum(g_start, transposons.stops)
-        upper_bound = np.maximum(g_stop, transposons.starts)
+        lower_bound = np.minimum(g_stop, transposons.stops)
+        upper_bound = np.maximum(g_start, transposons.starts)
         te_overlaps = np.maximum(0, (lower_bound - upper_bound + 1))
         return te_overlaps
 
