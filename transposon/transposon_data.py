@@ -63,7 +63,8 @@ class TransposonData(object):
             # FUTURE may want to parametrize sub
             # family name later
             subfam_suffix = "A" if gi % 2 else "B"
-            subfamily = "SubFamily_{}".format(subfam_suffix)
+            subfamily = "SubFamily_{}".format(subfam_suffix)  # TODO change to
+            # SuperFamily and verify it doesn't break anything
             datum = [g0, g1, gL, family, subfamily, chromosome]
             data.append(datum)
         frame = pd.DataFrame(data, columns=columns)
