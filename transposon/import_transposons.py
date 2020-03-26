@@ -18,7 +18,7 @@ def import_transposons(tes_input_path, te_annot_renamer, contig_del):
         Args: input_dir (command line argument) Specify the input directory of
         the TE annotation data, this is the same as the Gene annotation
         directory
-        
+
         contig_drop (bool): logical whether to drop rows with a contig as the
         chromosome id
     """
