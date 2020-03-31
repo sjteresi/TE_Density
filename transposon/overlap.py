@@ -16,11 +16,13 @@ import tempfile
 import numpy as np
 import h5py
 
+from transposon import MAX_SYSTEM_RAM_GB, check_ram
 
-_ConfigSink = namedtuple('_ConfigIn',
-                         ['genes', 'n_transposons', 'windows', 'filepath', 'ram_bytes'])
-_ConfigSource = namedtuple('_ConfigSource',
-                           ['filepath'])
+
+_OverlapConfigSink = namedtuple(
+    '_OverlapConfigIn', ['genes', 'n_transposons', 'windows', 'filepath', 'ram_bytes'])
+_OverlapConfigSource = namedtuple(
+    '_OverlapConfigSource', ['filepath'])
 
 
 class Overlap():
@@ -99,12 +101,13 @@ class Overlap():
 class OverlapData():
     """Contains overlap values buffered to disk.
 
-    Use the factory methods to create an instance.
-    Use the context manager to activate the buffer.
-    Use the slice methods to provide slices for the array public instance variables.
+    Usage:
+        Use the factory methods to create an instance (`from_param` | `from_file`).
+        Use the context manager to activate the buffer.
+        Use the slice methods to provide slices for the array public instance variables.
     """
 
-    DTYPE = np.float32
+    DTYPE = np.float32  # MAGIC NUMBER experimental, depends on your data
     COMPRESSION = 'lzf'  # MAGIC NUMBER experimental, fast w/ decent compression ratio
     _LEFT = Overlap.Direction.LEFT.name
     _RIGHT = Overlap.Direction.RIGHT.name
@@ -112,10 +115,14 @@ class OverlapData():
     _GENE_NAMES = 'GENE_NAMES'
     _WINDOWS = 'WINDOWS'
     _CHROME_ID = 'CHROMOSOME_ID'
-    _MAX_RAM_GB = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')/(1024.**3)
 
     def __init__(self, configuration, logger=None):
-        """Initializer."""
+        """Initializer.
+
+        Args:
+            configuration (tuple): `_OverlapConfigSink` || `_OverlapConfigSource`.
+            logger (logging.Logger): logger instance, creates one if None.
+        """
 
         self._logger = logger or logging.getLogger(__name__)
         self._config = configuration
@@ -146,18 +153,18 @@ class OverlapData():
             ram (int): upper limit for caching in gigabytes
         """
 
+        ram_bytes= int(ram * 1024. ** 3)  # MAGIC NUMBER bytes to gigabytes
+        check_ram(ram_bytes)
         filename = next(tempfile._get_candidate_names()) + '.h5'
         filepath = os.path.join(output_dir, filename)
-        config = _ConfigSink(
+        config = _OverlapConfigSink(
             genes=genes,
             n_transposons=n_transposons,
             windows=windows,
             filepath=filepath,
-            ram_bytes=int(ram * (1024.**3))  # MAGIC NUMBER bytes to gigabytes
+            ram_bytes=ram_bytes
         )
-        overlap = cls(config, logger)
-        overlap._check_ram(config.ram_bytes)
-        return overlap
+        return cls(config, logger)
 
     @classmethod
     def from_file(cls, filepath, logger=None):
@@ -166,7 +173,7 @@ class OverlapData():
         file_abs = os.path.abspath(filepath)
         if not os.path.isfile(file_abs):
             raise ValueError("input filepath not a file: %s" % file_abs)
-        config = _ConfigSource(filepath=file_abs)
+        config = _OverlapConfigSource(filepath=file_abs)
         overlap = cls(config, logger)
         return overlap
 
@@ -194,6 +201,8 @@ class OverlapData():
         self._h5_file.flush()
         self._h5_file.close()
         self._h5_file = None
+        self._config = None
+
         self.left = None
         self.right = None
         self.intra = None
@@ -206,7 +215,7 @@ class OverlapData():
 
         Args:
             h5_file (hdf5.File): the open file.
-            cfg (_ConfigSink): the configuration for a new file.
+            cfg (_OverlapConfigSink): the configuration for a new file.
         """
 
         self.chromosome_id = cfg.genes.chromosome_unique_id
@@ -237,13 +246,13 @@ class OverlapData():
         NOTE when upgrading to python 3.8 refactor to use functools.singledispatchmethod.
         """
 
-        if isinstance(self._config, _ConfigSink):
+        if isinstance(self._config, _OverlapConfigSink):
             self._open_new_file(self._config)
-        elif isinstance(self._config, _ConfigSource):
+        elif isinstance(self._config, _OverlapConfigSource):
             self._open_existing_file(self._config)
         else:
             raise TypeError("expecting {} or {} but got {}".format(
-                type(_ConfigSink), type(_ConfigSource), type(self._config)))
+                type(_OverlapConfigSink), type(_OverlapConfigSource), type(self._config)))
 
     def _open_existing_file(self, cfg):
         """Open the file, mutates self."""
@@ -269,6 +278,7 @@ class OverlapData():
         """Assign list of gene names to the file."""
 
         # FUTURE consider ASCII (fixed len) for storage if non-python clients exist
+        # TODO refactor into generic write / read variable len text?
         vlen = h5py.special_dtype(vlen=str)
         dset = self._h5_file.create_dataset(
             self._GENE_NAMES, (len(self.gene_names),), dtype=vlen)
@@ -305,18 +315,7 @@ class OverlapData():
 
         return self._h5_file[self._CHROME_ID][:].tolist()[0]  # MAGIC NUMBER only one ID
 
-    def _check_ram(self, ram_bytes):
-        """Raise if the requested RAM is negative or greater than the system."""
 
-        if ram_bytes < 0:
-            msg = "cache %i bytes < 0" % ram_bytes
-            self._logger.critical(msg)
-            raise ValueError()
-        elif ram_bytes/(1024.**3) > self._MAX_RAM_GB:
-            ram_gb = ram_bytes/(1024.**3)
-            msg = "cache %i GB > system %i GB" % ram_gb
-            self._logger.critical(msg)
-            raise ValueError(msg)
 
 
 class OverlapWorker():
@@ -371,7 +370,10 @@ class OverlapWorker():
                 g_idx = self._gene_name_2_idx[gene_name]
                 out_slice = sink.intra_slice(g_idx)
                 sink.intra[out_slice] = Overlap.intra(gene_datum, transposons)
+                # NOTE consider iterating on one array at a time? (L / I / R)
+                # for dest in l,r: for w in window...
                 for window in self._windows:
+
                     w_idx = self._window_2_idx[window]
                     out_slice = sink.left_right_slice(w_idx, g_idx)
                     sink.left[out_slice] = Overlap.left(gene_datum, transposons, window)

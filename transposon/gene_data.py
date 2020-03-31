@@ -39,6 +39,8 @@ class GeneData(object):
         self.stops = self.data_frame.Stop.to_numpy(copy=False)
         self.lengths = self.data_frame.Length.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
+        self.genome_id = "DEFAULT_GENOME_NAME"
+        # TODO SCOTT pls implement a variable for genome identifier, e.g. camarosa?
 
     @classmethod
     def mock(cls, start_stop=np.array([[0, 9], [10, 19], [20, 29]])):
