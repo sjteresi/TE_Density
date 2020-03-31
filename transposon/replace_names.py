@@ -4,7 +4,7 @@ def te_annot_renamer(TE_Data):
         # Custom changes
         'unknown': U,
         'Unknown': U,
-        'MITE': 'DNA_(TIR)',
+        'MITE': 'DNA',
         'RC?': 'DNA',
         'RC': 'DNA',
         'SINE?': U,
@@ -17,7 +17,7 @@ def te_annot_renamer(TE_Data):
         'PLE': 'PLE',
         'SINE': 'SINE',
         'LINE': 'LINE',
-        'TIR': 'DNA_(TIR)',
+        'TIR': 'DNA',
         'Crypton': 'Crypton',
         'Helitron': 'Helitron',
         'Maverick': 'Maverick'
@@ -113,5 +113,8 @@ def te_annot_renamer(TE_Data):
                                                         'Unknown_SuperFam'),
                                                         ['Order', 'SuperFamily']] = 'Completely_Unknown'
 
+    ltr_elements = ['Copia', 'Gypsy']
+    TE_Data.loc[(TE_Data['Order'] == 'LTR') &
+                (~TE_Data['SuperFamily'].isin(ltr_elements)), ['SuperFamily']] = 'Unknown_LTR_Superfam'
     TE_Data = TE_Data[TE_Data.Order != 'Simple_repeat']  # drop s repeat
     return TE_Data

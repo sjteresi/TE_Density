@@ -13,11 +13,14 @@ def check_nulls(my_df):
 # that way the client doesn't have to modify your code to get it to work
 # also use lower case for function names and start only classes with capital
 # letters
-def import_transposons(tes_input_path, te_annot_renamer):
+def import_transposons(tes_input_path, te_annot_renamer, contig_del):
     """Import TE File.
         Args: input_dir (command line argument) Specify the input directory of
         the TE annotation data, this is the same as the Gene annotation
         directory
+
+        contig_drop (bool): logical whether to drop rows with a contig as the
+        chromosome id
     """
     col_names = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop',
                  'Score', 'Strand', 'Frame', 'Attribute']
@@ -33,6 +36,8 @@ def import_transposons(tes_input_path, te_annot_renamer):
         names=col_names,
         usecols=col_to_use)
 
+    TE_Data = TE_Data[~TE_Data.Chromosome.str.contains('#')]  # remove comment
+    # rows in annotation
     TE_Data[['Order', 'SuperFamily']] = TE_Data.Feature.str.split('/', expand=True)
 
     TE_Data = TE_Data.drop(['Feature', 'Software'], axis=1)
@@ -41,5 +46,7 @@ def import_transposons(tes_input_path, te_annot_renamer):
     TE_Data.Start = TE_Data.Start.astype('uint32')
     TE_Data.Stop = TE_Data.Stop.astype('uint32')
     TE_Data['Length'] = TE_Data.Stop - TE_Data.Start + 1
+    if contig_del:
+        TE_Data = TE_Data[~TE_Data.Chromosome.str.contains('contig')]
     check_nulls(TE_Data)
     return TE_Data
