@@ -47,7 +47,9 @@ class TransposonData(object):
         self.genome_id = genome_id
 
     @classmethod
-    def mock(cls, start_stop=np.array([[0, 9], [10, 19], [20, 29]]), chromosome='Chr_ID'):
+    def mock(cls,
+             start_stop=np.array([[0, 9], [10, 19], [20, 29]]), chromosome='Chr_ID',
+             genome_id="fake_genome_id"):
         """Mocked data for testing.
 
         Args:
@@ -70,7 +72,7 @@ class TransposonData(object):
             datum = [g0, g1, gL, family, subfamily, chromosome]
             data.append(datum)
         frame = pd.DataFrame(data, columns=columns)
-        return TransposonData(frame)
+        return TransposonData(frame, genome_id)
 
 
     def write(self, filename, key='default'):
@@ -152,8 +154,8 @@ class TransposonData(object):
             return chromosome_list[0]  # MAGIC NUMBER list to string
 
     @property
-    def superfamily_set(self):
-        """The set of superfamilies.
+    def superfamily_name_set(self):
+        """The set of superfamily keys.
 
         Returns:
             set(str): superfamily grouping.
@@ -163,8 +165,8 @@ class TransposonData(object):
         return set(superfamilies)
 
     @property
-    def order_set(self):
-        """The set of orders.
+    def order_name_set(self):
+        """The set of order keys.
 
         Returns:
             set(str): order grouping.

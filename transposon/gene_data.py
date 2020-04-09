@@ -43,7 +43,9 @@ class GeneData(object):
         self.genome_id = genome_id
 
     @classmethod
-    def mock(cls, start_stop=np.array([[0, 9], [10, 19], [20, 29]])):
+    def mock(cls,
+             start_stop=np.array([[0, 9], [10, 19], [20, 29]]),
+             genome_id="fake_genome_id"):
         """Mocked data for testing.
 
         Args:
@@ -57,14 +59,14 @@ class GeneData(object):
             g1 = start_stop[gi, 1]
             gL = g1 - g0 + 1
             name = "gene_{}".format(gi)
-            chromosome = 'Chr_Test'
+            chromosome = genome_id
             datum = [name, g0, g1, gL, chromosome]
             data.append(datum)
 
         col_names = ['Gene_Name', 'Start', 'Stop', 'Length', 'Chromosome']
         frame = pd.DataFrame(data, columns=col_names)
         frame.set_index('Gene_Name', inplace=True)
-        return GeneData(frame)
+        return GeneData(frame, genome_id)
 
     def write(self, filename, key='default'):
         """Write a Pandaframe to disk.

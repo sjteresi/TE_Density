@@ -2,6 +2,10 @@
 
 - [X] implement chromosome id checks in unit/test_transposon_data.py
 - [X] add test_Overlap.py tests for the Overlap class (similar to density tests)
+- [ ] add relevant area matrix output for superfam/order, window, genes (L / I / R)
+      this can be a generator wrt window or something like that
+      basically something like this is needed to normalize the summation, using broadcasting
+      (also consider the different normalization values like we discussed)
 - [ ] add to/from disk for GeneDatum
 - [ ] add property for "chromosome_unique_id" to GeneDatum (probably copy paste from GeneData)
 - [ ] add unit/test_gene_datum.py, implement GeneDatum.mock
