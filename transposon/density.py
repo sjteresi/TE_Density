@@ -376,6 +376,8 @@ def process(alg_parameters, overlap_dir):
                          temp_param[window_delta])
 
         n_genes = sum(1 for g in gene_data.names)
+        # TODO create status bar above, reuse and reset here
+        # 'total' is a public member
         sub_progress = tqdm(total=n_genes, desc="  genes     ", position=1, ncols=80)
         overlap = OverlapWorker(overlap_dir)
 

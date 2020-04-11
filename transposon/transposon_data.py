@@ -42,6 +42,8 @@ class TransposonData(object):
         self.orders = self.data_frame.Order.to_numpy(copy=False)
         self.superfamilies = self.data_frame.SuperFamily.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
+        self.genome_id = "DEFAULT_GENOME_NAME"
+        # TODO SCOTT pls implement a variable for genome identifier, e.g. camarosa?
 
     @classmethod
     def mock(cls, start_stop=np.array([[0, 9], [10, 19], [20, 29]]), chromosome='Chr_ID'):
@@ -63,8 +65,7 @@ class TransposonData(object):
             # FUTURE may want to parametrize sub
             # family name later
             subfam_suffix = "A" if gi % 2 else "B"
-            subfamily = "SubFamily_{}".format(subfam_suffix)  # TODO change to
-            # SuperFamily and verify it doesn't break anything
+            subfamily = "SubFamily_{}".format(subfam_suffix)
             datum = [g0, g1, gL, family, subfamily, chromosome]
             data.append(datum)
         frame = pd.DataFrame(data, columns=columns)
@@ -125,7 +126,7 @@ class TransposonData(object):
     def __repr__(self):
         """Printable representation for developers."""
 
-        info = "Wrapped TE DataFrame: {self.data_frame}"
+        info = "TransposonData({self.data_frame})"
         return info.format(self=self)
 
     @property
@@ -148,3 +149,25 @@ class TransposonData(object):
             raise RuntimeError("chromosomes are not unique: %s" % chromosome_list)
         else:
             return chromosome_list[0]  # MAGIC NUMBER list to string
+
+    @property
+    def superfamily_set(self):
+        """The set of superfamilies.
+
+        Returns:
+            set(str): superfamily grouping.
+        """
+
+        superfamilies = pd.unique(self.superfamilies)
+        return set(superfamilies)
+
+    @property
+    def order_set(self):
+        """The set of orders.
+
+        Returns:
+            set(str): order grouping.
+        """
+
+        orders = pd.unique(self.orders)
+        return set(orders)
