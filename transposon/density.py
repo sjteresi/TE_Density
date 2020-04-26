@@ -237,7 +237,7 @@ def init_empty_densities(my_genes, my_tes, window):
     return my_genes
 
 
-def check_groupings(grouped_genes, grouped_TEs, logger):
+def check_groupings(grouped_genes, grouped_TEs, logger, genome_id):
     """Validates the gene / TE pairs.
 
     This is just to make sure that each pair of chromosomes are right.
@@ -246,6 +246,7 @@ def check_groupings(grouped_genes, grouped_TEs, logger):
     Args:
         grouped_genes (list of pandaframes): Gene dataframes separated by chromosome
         grouped_TEs (list of pandaframes): TE dataframes separated by chromosome
+        genome_id (str) a string of the genome name.
     """
     for g_element, t_element in zip(grouped_genes, grouped_TEs):
         # print(g_element.Chromosome.iloc[:].values[0])
@@ -254,7 +255,7 @@ def check_groupings(grouped_genes, grouped_TEs, logger):
             logger.critical(msg)
             raise ValueError(msg)
         try:
-            sub_gene = GeneData(g_element)
+            sub_gene = GeneData(g_element, genome_id)
             subgene_uid = sub_gene.chromosome_unique_id
         except RuntimeError as r_err:
             logging.critical("sub gene grouping is not unique: {}".format(sub_gene))
@@ -291,11 +292,15 @@ def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
             filtered gene file via import_genes().
 
         contig_del (bool): A boolean of whether to remove contigs on import
+
+    Returns:
+        Gene_Data (pandaframe): A pandas dataframe of the Gene data
     """
     if os.path.exists(cleaned_genes):
         logger.info("Importing filtered gene dataset from disk...")
         Gene_Data = pd.read_csv(cleaned_genes, header='infer', sep='\t',
-                                index_col='Gene_Name')
+                                dtype={'Start': 'float32', 'Stop': 'float32',
+                                     'Length': 'float32'}, index_col='Gene_Name')
     else:
         logger.info("Previously filtered gene dataset does not exist...")
         logger.info("Importing unfiltered gene dataset from annotation file...")
@@ -323,10 +328,15 @@ def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer,
             changing the annotation details for specific TE types.
 
         contig_del (bool): A boolean of whether to remove contigs on import
+
+    Returns:
+        TE_Data (pandaframe): A pandas dataframe of the TE data
     """
     if os.path.exists(cleaned_transposons):
         logger.info("Importing filtered transposons from disk...")
-        TE_Data = pd.read_csv(cleaned_transposons, header='infer', sep='\t')
+        TE_Data = pd.read_csv(cleaned_transposons, header='infer',
+                              dtype={'Start': 'float32', 'Stop': 'float32',
+                                     'Length': 'float32'}, sep='\t')
     else:
         logger.info("Previously filtered TE dataset does not exist...")
         logger.info("Importing unfiltered TE dataset from annotation file...")
@@ -336,7 +346,7 @@ def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer,
     return TE_Data
 
 
-def process(alg_parameters, overlap_dir):
+def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id):
     """
     Run the algorithm
 
@@ -352,7 +362,7 @@ def process(alg_parameters, overlap_dir):
     """
     grouped_genes = split(Gene_Data, 'Chromosome')  # check docstring for my split func
     grouped_TEs = split(TE_Data, 'Chromosome')  # check docstring for my split func
-    check_groupings(grouped_genes, grouped_TEs, logger)
+    check_groupings(grouped_genes, grouped_TEs, logger, genome_id)
     # Think of the 7 main "chromosomes" as "meta-chromosomes" in reality there
     # are 4 actual chromosomes per "meta-chromosome" label. So Fvb1 is
     # meta-chromosome 1, and within that Fvb1-1 of genes should only be
@@ -366,8 +376,8 @@ def process(alg_parameters, overlap_dir):
     _temp_count = 0
     # TODO need grouping ID for each GeneData and TransposonData (e.g. chromosome ID)
     for sub_gene, sub_te in zip(grouped_genes, grouped_TEs):
-        gene_data = GeneData(sub_gene)
-        te_data = TransposonData(sub_te)
+        gene_data = GeneData(sub_gene, genome_id)
+        te_data = TransposonData(sub_te, genome_id)
         # TODO validate the gene / te pair
 
         def window_it(temp_param):
@@ -400,6 +410,8 @@ if __name__ == '__main__':
                         help='parent path of gene file')
     parser.add_argument('tes_input_file', type=str,
                         help='parent path of transposon file')
+    parser.add_argument('genome_id', type=str,
+                        help='string of the genome to be run, for clarity')
     parser.add_argument('--contig_del', default=True)
     parser.add_argument('--config_file', '-c', type=str,
                         default=os.path.join(path_main, '../../',
@@ -445,6 +457,7 @@ if __name__ == '__main__':
     # input filename has multiple . in it
     g_fname = os.path.basename(os.path.splitext(args.genes_input_file)[0])
     t_fname = os.path.basename(os.path.splitext(args.tes_input_file)[0])
+    # the genome input file, maybe make it user provided
     cleaned_genes = os.path.join(args.filtered_input_data, str('Cleaned_' +
                                                                g_fname +
                                                                '.tsv'))
@@ -454,6 +467,7 @@ if __name__ == '__main__':
     Gene_Data = verify_gene_cache(args.genes_input_file, cleaned_genes, args.contig_del, logger)
     TE_Data = verify_TE_cache(args.tes_input_file, cleaned_transposons,
                               te_annot_renamer, args.contig_del, logger)
+    # NOTE neither Gene_Data or TE_Data are wrapped yet
 
     logger.info("Reading config file and making parameter dictionary...")
     parser = ConfigParser()
@@ -467,4 +481,4 @@ if __name__ == '__main__':
 
     # Process data
     logger.info("Process data...")
-    process(alg_parameters, args.overlap_dir)
+    process(alg_parameters, Gene_Data, TE_Data, args.overlap_dir, args.genome_id)

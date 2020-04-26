@@ -232,14 +232,14 @@ class MergeData():
 
         self.windows = list(cfg.windows)
         self.gene_names = list(cfg.gene_names)
-        self.chromsome_id = cfg.transposons.chromosome_unique_id
+        self.chromosome_id = cfg.transposons.chromosome_unique_id
         self.superfamily_names = cfg.transposons.superfamily_set
         self.order_names = cfg.transposons.order_set
         self._h5_file = h5py.File(cfg.filepath, 'w', rdcc_nbytes=cfg.ram_bytes)
         self._create_sets(self._h5_file, cfg)
         transposon.write_vlen_str_h5py(self._h5_file, self.windows, self._WINDOWS)
         transposon.write_vlen_str_h5py(self._h5_file, self.gene_names, self._GENE_NAMES)
-        transposon.write_vlen_str_h5py(self._h5_file, self.chromsome_id, self._CHROME_ID)
+        transposon.write_vlen_str_h5py(self._h5_file, self.chromosome_id, self._CHROME_ID)
         self._window_2_idx = {w: i for i, w in enumerate(self.windows)}
         self._gene_2_idx = {g: i for i, g in enumerate(self.gene_names)}
 
@@ -330,6 +330,9 @@ class MergeData():
             density.intra,
             density.right
         ]
+
+        # NOTE for MICHAEL, overlap is not provided in this function's
+        # arguments, is this a mistake?
         input_arrays = [
             overlap.left,
             overlap.intra,
@@ -349,23 +352,38 @@ class MergeData():
         This is because the genes may be different, and more importantly the density is
             not defined between chromosomes as they are different locations.
         """
+        if self.chromosome_id is None:
+            raise ValueError(f"MergeData.chromosome_id (self) is None")
+        elif overlap.chromosome_id is None:
+            raise ValueError(f"overlap.chromosome_id is None")
+        elif self.chromosome_id != overlap.chromosome_id:
+            raise ValueError(f"""The chromosome identifier for MergeData,
+                             {self.chromosome_id} does not match with the
+                             chromosome identifier of overlap:
+                             {overlap.chromosome_id}""")
 
-        pass  # TODO SCOTT
 
     def _validate_windows(self, overlap):
         """ValueError if the overlap windows are not in the destination."""
-
-        pass  # TODO SCOTT
+        if self.windows is None:
+            raise ValueError(f"MergeData.windows (self) is None")
+        elif overlap.windows is None:
+            raise ValueError(f"overlap.windows is None")
+        elif self.windows != overlap.windows:
+            raise ValueError(f"""The windows for MergeData, {self.windows},
+                             do not match with the windows of overlap:
+                             {overlap.windows}""")
 
     def _validate_gene_names(self, overlap):
         """ValueError if the overlap genes are not in the destination."""
-
-        pass  # TODO SCOTT
-
-
-
-
-
+        if self.gene_names is None:
+            raise ValueError(f"MergeData.gene_names (self) is None")
+        elif overlap.gene_names is None:
+            raise ValueError(f"overlap.gene_names is None")
+        elif self.gene_names != overlap.gene_names:
+            raise ValueError(f"""The gene_names of MergeData,
+                             {self.gene_names}, do not match with the
+                             gene_names of overlap: {overlap.gene_names}""")
 
 
 class MergeWorker():

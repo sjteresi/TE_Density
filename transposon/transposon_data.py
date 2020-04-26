@@ -26,11 +26,13 @@ class TransposonData(object):
     # max gene stop with the TE start? for optimization
     # FUTURE split one TE file into multiple if memory becomes and issue?
 
-    def __init__(self, transposable_elements_dataframe, logger=None):
+    def __init__(self, transposable_elements_dataframe, genome_id, logger=None):
         """Initialize.
 
         Args:
             transposable_elements (pandas.DataFrame): transposable element data frame.
+            genome_id (str): a string of the genome name, provided via arg
+            parser in density.py
         """
 
         self._logger = logger or logging.getLogger(__name__)
@@ -42,8 +44,7 @@ class TransposonData(object):
         self.orders = self.data_frame.Order.to_numpy(copy=False)
         self.superfamilies = self.data_frame.SuperFamily.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
-        self.genome_id = "DEFAULT_GENOME_NAME"
-        # TODO SCOTT pls implement a variable for genome identifier, e.g. camarosa?
+        self.genome_id = genome_id
 
     @classmethod
     def mock(cls, start_stop=np.array([[0, 9], [10, 19], [20, 29]]), chromosome='Chr_ID'):

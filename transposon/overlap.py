@@ -154,7 +154,7 @@ class OverlapData():
         """
 
         ram_bytes= int(ram * 1024. ** 3)  # MAGIC NUMBER bytes to gigabytes
-        check_ram(ram_bytes)
+        check_ram(ram_bytes, logger)
         filename = next(tempfile._get_candidate_names()) + '.h5'
         filepath = os.path.join(output_dir, filename)
         config = _OverlapConfigSink(

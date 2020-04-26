@@ -37,8 +37,8 @@ def import_genes(genes_input_path, contig_del):
     Gene_Data = Gene_Data.drop(['FullName', 'Name1', 'Software'], axis=1)
 
     Gene_Data.Strand = Gene_Data.Strand.astype(str)
-    Gene_Data.Start = Gene_Data.Start.astype('uint32')
-    Gene_Data.Stop = Gene_Data.Stop.astype('uint32')
+    Gene_Data.Start = Gene_Data.Start.astype('float32')
+    Gene_Data.Stop = Gene_Data.Stop.astype('float32')
     Gene_Data['Length'] = Gene_Data.Stop - Gene_Data.Start + 1
 
     if contig_del:

@@ -25,11 +25,12 @@ class GeneData(object):
     GeneData subclasses should conform to these column names or redefine the properties.
     """
 
-    def __init__(self, gene_dataframe, logger=None):
+    def __init__(self, gene_dataframe, genome_id, logger=None):
         """Initialize.
 
         Args:
             gene_dataframe (DataFrame): gene data frame.
+            genome_id (str): a string of the genome name.
         """
 
         self._logger = logger or logging.getLogger(__name__)
@@ -39,8 +40,7 @@ class GeneData(object):
         self.stops = self.data_frame.Stop.to_numpy(copy=False)
         self.lengths = self.data_frame.Length.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
-        self.genome_id = "DEFAULT_GENOME_NAME"
-        # TODO SCOTT pls implement a variable for genome identifier, e.g. camarosa?
+        self.genome_id = genome_id
 
     @classmethod
     def mock(cls, start_stop=np.array([[0, 9], [10, 19], [20, 29]])):

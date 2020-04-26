@@ -49,6 +49,52 @@ class MockData(object):
     def transposon_stop(self):
         return self.Transposon.stops[0]
 
+Left_Win_Only_FLOAT = MockData(
+    g_start=float(1000),
+    g_stop=float(2000),
+    t_start=float(700),
+    t_stop=float(800),
+    window=500,
+    expected_overlap_left=float(101),
+    expected_overlap_intra=float(0),
+    expected_overlap_right=float(0),
+    description='In left window only')
+
+Left_Win_Only_INT = MockData(
+    g_start=int(1000),
+    g_stop=int(2000),
+    t_start=int(700),
+    t_stop=int(800),
+    window=500,
+    expected_overlap_left=int(101),
+    expected_overlap_intra=int(0),
+    expected_overlap_right=int(0),
+    description='In left window only')
+
+Left_Win_Only_heterogenous_INT_FLOAT = MockData(
+    g_start=int(1000),
+    g_stop=int(2000),
+    t_start=int(700),
+    t_stop=int(800),
+    window=500,
+    expected_overlap_left=float(101),
+    expected_overlap_intra=float(0),
+    expected_overlap_right=float(0),
+    description='In left window only')
+
+Left_Win_Only_heterogenous_FLOAT_INT = MockData(
+    g_start=float(1000),
+    g_stop=float(2000),
+    t_start=float(700),
+    t_stop=float(800),
+    window=500,
+    expected_overlap_left=int(101),
+    expected_overlap_intra=int(0),
+    expected_overlap_right=int(0),
+    description='In left window only')
+
+
+
 
 Left_Win_Only = MockData(
     g_start=1000,
@@ -386,6 +432,77 @@ def test_overlap_intra_window(MockData_Obj):
     expected_overlap_intra = np.array([MockData_Obj.expected_overlap_intra])
     assert np.all(overlaps == expected_overlap_intra)
 
+
+
+@pytest.mark.parametrize("MockData_Obj",
+                         [
+                            Left_Win_Only_FLOAT,
+                            Left_Win_Only_INT,
+                            Left_Win_Only_heterogenous_INT_FLOAT,
+                            Left_Win_Only_heterogenous_FLOAT_INT
+                         ]
+                         )
+def test_overlap_left_window_data_types(MockData_Obj):
+    """
+    LEFT
+    Test the data types
+    Test to see if uint32 and float32 produce the same number for overlap
+    I have a hunch that numbers that are supposed to be 0 get returned
+    incorrectly.
+    """
+    gene_datum = MockData_Obj.Gene.get_gene('gene_0')
+    overlaps = Overlap.left(gene_datum,
+                            MockData_Obj.Transposon,
+                            MockData_Obj.window)
+    expected_overlap_lefts = np.array([MockData_Obj.expected_overlap_left])
+    assert np.all(overlaps == expected_overlap_lefts)
+
+
+@pytest.mark.parametrize("MockData_Obj",
+                         [
+                            Left_Win_Only_FLOAT,
+                            Left_Win_Only_INT,
+                            Left_Win_Only_heterogenous_INT_FLOAT,
+                            Left_Win_Only_heterogenous_FLOAT_INT
+                         ]
+                         )
+def test_overlap_intra_window_data_types(MockData_Obj):
+    """
+    INTRA
+    Test the data types
+    Test to see if uint32 and float32 produce the same number for overlap
+    I have a hunch that numbers that are supposed to be 0 get returned
+    incorrectly.
+    """
+    gene_datum = MockData_Obj.Gene.get_gene('gene_0')
+    overlaps = Overlap.intra(gene_datum,
+                            MockData_Obj.Transposon)
+    expected_overlap_intra = np.array([MockData_Obj.expected_overlap_intra])
+    assert np.all(overlaps == expected_overlap_intra)
+
+
+@pytest.mark.parametrize("MockData_Obj",
+                         [
+                            Left_Win_Only_FLOAT,
+                            Left_Win_Only_INT,
+                            Left_Win_Only_heterogenous_INT_FLOAT,
+                            Left_Win_Only_heterogenous_FLOAT_INT
+                         ]
+                         )
+def test_overlap_right_window_data_types(MockData_Obj):
+    """
+    RIGHT
+    Test the data types
+    Test to see if uint32 and float32 produce the same number for overlap
+    I have a hunch that numbers that are supposed to be 0 get returned
+    incorrectly.
+    """
+    gene_datum = MockData_Obj.Gene.get_gene('gene_0')
+    overlaps = Overlap.right(gene_datum,
+                            MockData_Obj.Transposon,
+                            MockData_Obj.window)
+    expected_overlap_rights = np.array([MockData_Obj.expected_overlap_right])
+    assert np.all(overlaps == expected_overlap_rights)
 
 if __name__ == "__main__":
     pytest.main(['-s', __file__])  # for convenience
