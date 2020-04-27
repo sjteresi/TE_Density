@@ -10,6 +10,7 @@ from collections import namedtuple
 import logging
 import os
 from functools import partial
+import pprint
 
 import h5py
 import numpy as np
@@ -22,61 +23,15 @@ _MergeConfigSink = namedtuple('_MergeConfigSink',
 _MergeConfigSource = namedtuple('_MergeConfigSource',
                                ['filepath'])
 _Density = namedtuple('_Density', ['left', 'intra', 'right'])
+_SummationArgs = namedtuple('_SummationArgs',
+                            ['input', 'output', 'windows', 'te_idx_name',
+                             'slice_in', 'slice_out', 'where'])
 
 """ Scott
 please implement the items marked TODO SCOTT in this file
 please add tests for said items
 please implement the items marked TODO SCOTT in transposon_data.py & gene_data.py
 """
-
-class _SumOverlaps():
-    """Adds the overlaps with respect to each order || superfamily entry."""
-
-    def __init__(self, overlap, transposon_group, transposon_subset, density, logger):
-        """
-
-        Args:
-            overlap(OverlapData): active overlap file
-            transposon_group(numpy.array): superfamily || order array of TransposonData
-            transposon_subset(list(str)): superfamily || order set of identifiers
-            density(_Density): container to output sums
-        """
-
-        self._overlap = overlap
-        self._te_group = transposon_group
-        self._te_subset = transposon_subset
-        self.density = density
-        self._logger = logger
-
-    def _zip_input_outputs(self, windows):
-
-        output_arrays = [
-            self.density.left,
-            self.density.intra,
-            self.density.right
-        ]
-        input_arrays = [
-            self._overlap.left,
-            self._overlap.intra,
-            self._overlap.right
-        ]
-        window_list = [
-            windows,
-            [1],  # TODO need gene len? or something else?
-            windows
-        ]
-        where = [  # compare the ID to the array of names
-            *(partial(numpy.equal, self._te_group),)*3,
-        ]
-
-    def sum(self, windows, genes, progress_bar):
-
-        pass
-        # for input, output, win, where in self._zip_input_outputs(windows):
-        #   for te_group_id in self._te_subset
-        #       for w_ in win  # track progress here? max of n_te_subset * windows?
-        #           for gene in genes
-        #               numpy.sum using where=where(te_group_id) out=output
 
 
 class MergeData():
@@ -182,6 +137,25 @@ class MergeData():
 
         raise NotImplementedError()
 
+    @classmethod
+    def left_right_slice(cls, group_idx=None, gene_idx=None, window_idx=None):
+        """Provides a slice to a left || right density to a superfamily|order / window, gene."""
+
+        if group_idx is None or gene_idx is None or window_idx is None:
+            kwargs = {'group_idx': group_idx, 'gene_idx': gene_idx, 'window_idx': window_idx}
+            raise ValueError("cannot slice with input of None: %s" % kwargs)
+
+        # SEE numpy basic indexing
+        return (group_idx, window_idx, slice(gene_idx, gene_idx+1, 1))
+
+    @classmethod
+    def intra_slice(cls, group_idx=None, gene_idx=None, window_idx=None):
+        """Provides a slice for an intra densitiy to a superfamily|order / window, gene."""
+
+        if window_idx is not None:
+            raise ValueError("intra window must be None but is %s" % window_idx)
+        return cls.left_right_slice(group_idx=group_idx, gene_idx=gene_idx, window_idx=0)
+
     def __enter__(self):
         """Context manager begin."""
 
@@ -233,8 +207,10 @@ class MergeData():
         self.windows = list(cfg.windows)
         self.gene_names = list(cfg.gene_names)
         self.chromosome_id = cfg.transposons.chromosome_unique_id
-        self.superfamily_names = cfg.transposons.superfamily_set
-        self.order_names = cfg.transposons.order_set
+        self.superfamily_names = sorted(cfg.transposons.superfamily_name_set)
+        self._superfam_2_idx = {s: i for i, s in enumerate(self.superfamily_names)}
+        self.order_names = sorted(cfg.transposons.order_name_set)
+        self._order_2_idx = {o: i for i, o in enumerate(self.order_names)}
         self._h5_file = h5py.File(cfg.filepath, 'w', rdcc_nbytes=cfg.ram_bytes)
         self._create_sets(self._h5_file, cfg)
         transposon.write_vlen_str_h5py(self._h5_file, self.windows, self._WINDOWS)
@@ -273,26 +249,19 @@ class MergeData():
         n_win = len(self.windows)
         n_genes = sum(1 for n in self.gene_names)
         lr_shape = (n_win, n_genes)
+        i_shape = (1, n_genes)
 
-        superfamilies = cfg.transposons.superfamily_set
-        n_sfams = len(superfamilies)
+        n_sfams = len(self.superfamily_names)
         s_left = create_set(self._S_LEFT, (n_sfams, *lr_shape))
-        s_intra = create_set(self._S_INTRA, (n_sfams, *lr_shape))
+        s_intra = create_set(self._S_INTRA, (n_sfams, *i_shape))
         s_right = create_set(self._S_RIGHT, (n_sfams, *lr_shape))
-        self.superfamily = _Density(left=s_left, intra=s_intra, right=s_right)
+        self.superfamily = _Density(left=s_left[:], intra=s_intra[:], right=s_right[:])
 
-        orders = cfg.transposons.order_set
-        n_orders = len(orders)
+        n_orders = len(self.order_names)
         o_left = create_set(self._O_LEFT, (n_orders, *lr_shape))
-        o_intra = create_set(self._O_INTRA, (n_orders, *lr_shape))
+        o_intra = create_set(self._O_INTRA, (n_orders, *i_shape))
         o_right = create_set(self._O_RIGHT, (n_orders, *lr_shape))
-        self.order = _Density(left=o_left, intra=o_intra, right=o_right)
-
-    def _sum_superfam(self, overlap):
-        raise NotImplementedError()
-
-    def _sum_order(self, overlap):
-        raise NotImplementedError()
+        self.order = _Density(left=o_left[:], intra=o_intra[:], right=o_right[:])
 
     def sum(self, overlap, progress_bar):
         """Sum across the superfamily / order dimension."""
@@ -301,49 +270,119 @@ class MergeData():
         self._validate_windows(overlap)
         self._validate_gene_names(overlap)
 
-        o_windows = overlap.windows
-        o_genes = overlap.gene_names
+        sum_list = self._list_sum_args(overlap)
+        n_genes = len(overlap.gene_names)
+        iter_max = sum(len(arg.windows) * n_genes * len(arg.te_idx_name) for arg in sum_list)
+        # TODO set progress bar
+        for args in sum_list:
+            self._process_sum(overlap, args, progress_bar)
 
-        sfam_set = self._config.transposons.superfamily_set
-        n_sfam = len(sfam)
-
-
-        order_set = self._config.transposons.order_set
-
-        # for in, out, windows, genes
-        #
-
-    def _zip_density_inputs(subset_names, transposons, te_subset, density):
-        """Zip the names for calculating density.
+    def _process_sum(self, overlap, sum_args, progress):
+        """Calculate the sum for one (left | intra | right) & (superfamily | order).
 
         Args:
-            subset_names(list(str)): list of superfamily or order identifiers
-            transposons(TransposonData): the transposon container
-            te_subset(numpy.array): superfamily or order column of transposon container
+            overlap (OverlapData): input data
+            sum_args (_SummationArgs): container for arguments wrt sum
+            progress (tqdm.std.tqdm): progress bar
+        """
+
+        # N.B. loop order affects speed wrt order in data set (SEE self._create_sets)
+        # N.B. also affected by memory layout, default row major (SEE numpy.array)
+
+        # FUTURE could use refactoring or a redesign, unfortunately it was rushed
+        # the point of the _SummationArgs tuple was to have the same syntax to deal with
+        # a) left / intra / right, and, b) superfamily / order
+        # although there are so few intra calcs it might be easier to do that separately
+
+        for te_ in zip(*sum_args.te_idx_name):  # for every superfam | order
+            te_idx, te_name = te_  # the supefamily / order index and string
+            for window in sum_args.windows:  # for every window
+                w_idx = self._window_2_idx.get(window, None)
+                for gene in overlap.gene_names:  # for every gene
+                    g_idx = self._gene_2_idx[gene]
+                    slice_out = sum_args.slice_out(\
+                        window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx)
+                    slice_in = sum_args.slice_in(w_idx, g_idx)
+                    # find which genes match the superfam | order, and sum those
+                    superfam_or_order_match = sum_args.where(te_name)
+                    slice_in_only_te = (superfam_or_order_match, *slice_in[1:])
+                    result = np.sum(sum_args.input[slice_in_only_te])
+                    sum_args.output[slice_out] = result
+
+    def _list_sum_args(self, overlap):
+
+        superfam = self._list_sum_input_outputs(
+            overlap,
+            self.superfamily,
+            self._config.transposons.superfamilies,
+            self._config.transposons.superfamily_name_set,
+            self._superfam_2_idx,
+            overlap.windows
+        )
+        order = self._list_sum_input_outputs(
+            overlap,
+            self.order,
+            self._config.transposons.orders,
+            self._config.transposons.order_name_set,
+            self._order_2_idx,
+            overlap.windows
+        )
+        return superfam + order
+
+    @classmethod
+    def _list_sum_input_outputs(cls, overlap, density, te_group, te_set, te_idx_map, windows):
+        """
+
+        Args:
+            overlap(OverlapData): input overlap container
             density(_Density): density output container
+            te_group(numpy.array): superfamily or order column of transposon container
+            te_set(list(str)): set of superfamily or order identifiers
+            windows(list(int)): window sizes
+
         Returns:
 
         """
-
-        output_arrays = [
-            density.left,
-            density.intra,
-            density.right
+        # NOTE this could be (very) improved, but for now let's get a first iteration...
+        arr_in = [overlap.left, overlap.intra, overlap.right]
+        arr_out = [density.left, density.intra, density.right]
+        win_idx = []  # need the idx mapping, probably should make _list_sun_input_outputs an instance method
+        win_idx_list = [
+            overlap.windows,
+            [None],  # NOTE need gene len here?
+            overlap.windows
         ]
-
-        # NOTE for MICHAEL, overlap is not provided in this function's
-        # arguments, is this a mistake?
-        input_arrays = [
-            overlap.left,
-            overlap.intra,
-            overlap.right
+        # we need to know the index of the subset (order|family) and the name
+        te_set_names = list(te_set)
+        te_set_idx = [te_idx_map[t] for t in te_set_names]
+        te_set_idx_name = zip([te_set_idx]*3, [te_set_names]*3)
+        # use this lambda to make the interface for all directions the same
+        _slice_intra = lambda w, g : overlap.intra_slice(g)
+        slice_in = [
+            overlap.left_right_slice,
+            _slice_intra,
+            overlap.left_right_slice,
         ]
-        where = [
-            *(partial(numpy.equal, te_subset),)*3,  #
+        slice_out = [
+            cls.left_right_slice,
+            cls.intra_slice,
+            cls.left_right_slice,
         ]
-        return zip(subset_names, output_arrays, input_arrays, where)
-
-
+        where_out = [*(partial(np.equal, te_group),)*3,]  # compare ID to name
+        summation_args = []
+        for i, o, w, te, si, so, wo in \
+            zip(arr_in, arr_out, win_idx_list, te_set_idx_name, slice_in, slice_out, where_out):
+            s = _SummationArgs(
+                input=i,
+                output=o,
+                windows=w,
+                te_idx_name=te,
+                slice_in=si,
+                slice_out=so,
+                where=wo
+            )
+            summation_args.append(s)
+        return summation_args
 
     def _validate_chromosome(self, overlap):
         """ValueError if the chromosome ID of the overlap data does not match this.
@@ -361,7 +400,6 @@ class MergeData():
                              {self.chromosome_id} does not match with the
                              chromosome identifier of overlap:
                              {overlap.chromosome_id}""")
-
 
     def _validate_windows(self, overlap):
         """ValueError if the overlap windows are not in the destination."""

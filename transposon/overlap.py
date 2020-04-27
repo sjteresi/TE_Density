@@ -7,6 +7,7 @@ The no. base pairs that the transposable elements overlap the window for a gene.
 """
 
 from collections import namedtuple
+import copy
 from enum import Enum, unique
 import logging
 import os
@@ -153,6 +154,7 @@ class OverlapData():
             ram (int): upper limit for caching in gigabytes
         """
 
+        logger = logger or logging.getLogger(__name__)
         ram_bytes= int(ram * 1024. ** 3)  # MAGIC NUMBER bytes to gigabytes
         check_ram(ram_bytes, logger)
         filename = next(tempfile._get_candidate_names()) + '.h5'
@@ -187,8 +189,8 @@ class OverlapData():
     def intra_slice(gene_idx):
         """Slice for intra overlap for one window / gene."""
 
+      # TODO really should just have one window so the interfaces are consistent...
         return (gene_idx, slice(None))
-
     def __enter__(self):
         """Context manager start."""
 
@@ -252,7 +254,7 @@ class OverlapData():
             self._open_existing_file(self._config)
         else:
             raise TypeError("expecting {} or {} but got {}".format(
-                type(_OverlapConfigSink), type(_OverlapConfigSource), type(self._config)))
+                _OverlapConfigSink, _OverlapConfigSource, self._config))
 
     def _open_existing_file(self, cfg):
         """Open the file, mutates self."""
@@ -316,8 +318,6 @@ class OverlapData():
         return self._h5_file[self._CHROME_ID][:].tolist()[0]  # MAGIC NUMBER only one ID
 
 
-
-
 class OverlapWorker():
     """Calculates the overlap values."""
 
@@ -364,7 +364,9 @@ class OverlapWorker():
         # NOTE consider decoupling?
         # OverlapData is decently sized already but it wouldn't be that much more...
         # OverlapWorker worker would then be empty but needs additions for multiproc
+        path = None
         with self._data as sink:
+            path = copy.copy(self._data.filepath)
             for gene_name in self._gene_names:
                 gene_datum = genes.get_gene(gene_name)
                 g_idx = self._gene_name_2_idx[gene_name]
@@ -380,6 +382,8 @@ class OverlapWorker():
                     sink.right[out_slice] = Overlap.right(gene_datum, transposons, window)
                 if progress is not None:
                     progress()
+
+        return path
 
     def _filter_gene_names(self, gene_names_requested, gene_names_available):
         """Yield only the valid gene names."""
