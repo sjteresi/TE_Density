@@ -92,7 +92,7 @@ def check_density_shape(densities, transposon_data):
         raise ValueError(msg)
 
 
-def validate_window(window_start, g_start, window_length):
+def validate_window(left_window_start, left_window_stop, window_length):
     """
     Validate the window specifically to make sure it doesn't go into the
     negative values. Function invoked to validate the left-hand window.
@@ -100,15 +100,17 @@ def validate_window(window_start, g_start, window_length):
     Args:
         window_start (int): integer value for the left window start value, we need
         to make sure it isn't negative.
-        g_start (int): gene start value
+
+        TODO add description
+
         window_length (int)
     """
-    if window_start < 0:
+    if left_window_start < 0:
         msg = ("window_start is not 0 or a positive value")
         logger.critical(msg)
         raise ValueError(msg)
-    if window_start == 0:
-        window_length = g_start - window_start + 1
+    if left_window_start == 0:
+        window_length = left_window_stop - left_window_start + 1
     return window_length
 
 
