@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-def import_genes(genes_input_path, contig_del):
+def import_genes(genes_input_path, contig_del=False):
     """Import genes file.
 
     Args:
