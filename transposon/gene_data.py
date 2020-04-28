@@ -42,6 +42,17 @@ class GeneData(object):
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
         self.genome_id = None
 
+
+    # TODO candidate for deletion? --- Scott will take care of this
+    @classmethod
+    def sample_camarosa_genome(cls,
+                 gene_dataframe,
+                 genome_id='Fake_Camarosa'):
+        """
+        This is from a sample of the Camarosa gene annotation.
+        """
+        return GeneData(gene_dataframe, genome_id)
+
     @classmethod
     def mock(cls,
              start_stop=np.array([[0, 9], [10, 19], [20, 29]]),
