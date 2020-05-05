@@ -3,10 +3,13 @@
 Sundry helper functions.
 """
 
-from os import sysconf
+import errno
+from functools import partial
+from os import sysconf, strerror
 import h5py
 
 MAX_SYSTEM_RAM_GB = sysconf('SC_PAGE_SIZE') * sysconf('SC_PHYS_PAGES')/(1024.**3)
+FILE_DNE = partial(FileNotFoundError, errno.ENOENT, strerror(errno.ENOENT))
 
 
 def check_ram(ram_bytes, logger):

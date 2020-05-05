@@ -42,7 +42,6 @@ class GeneData(object):
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
         self.genome_id = genome_id
 
-
     @classmethod
     def mock(cls,
              start_stop=np.array([[0, 9], [10, 19], [20, 29]]),
