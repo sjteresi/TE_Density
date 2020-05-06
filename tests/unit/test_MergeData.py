@@ -15,8 +15,8 @@ import coloredlogs
 import numpy as np
 import pandas as pd
 
-from transposon.merge import MergeData
-from transposon.merge import _MergeConfigSink, _MergeConfigSource, _SummationArgs
+from transposon.merge_data import MergeData
+from transposon.merge_data import _MergeConfigSink, _MergeConfigSource, _SummationArgs
 from transposon.transposon_data import TransposonData
 from transposon.gene_data import GeneData
 from transposon.overlap import OverlapData, OverlapWorker

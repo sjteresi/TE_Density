@@ -172,6 +172,7 @@ class OverlapData():
     def from_file(cls, filepath, logger=None):
         """Read only source for an existing file."""
 
+        # FUTURE specify ram usage in order to scrape components instead of reading all
         file_abs = os.path.abspath(filepath)
         if not os.path.isfile(file_abs):
             raise ValueError("input filepath not a file: %s" % file_abs)
@@ -203,7 +204,6 @@ class OverlapData():
         self._h5_file.flush()
         self._h5_file.close()
         self._h5_file = None
-        self._config = None
 
         self.left = None
         self.right = None
@@ -263,9 +263,9 @@ class OverlapData():
         self.gene_names = self._read_gene_names()
         self.windows = self._read_windows()
         self.chromosome_id = self._read_chromosome_id()
-        self.left = self._h5_file[self._LEFT][:]
-        self.intra = self._h5_file[self._INTRA][:]
-        self.right = self._h5_file[self._RIGHT][:]
+        self.left = self._h5_file[self._LEFT]
+        self.intra = self._h5_file[self._INTRA]
+        self.right = self._h5_file[self._RIGHT]
 
     def _open_new_file(self, cfg):
         """Initialize a new file for writing."""
