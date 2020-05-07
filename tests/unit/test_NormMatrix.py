@@ -23,7 +23,7 @@ def GeneData_test_obj():
     # this if you want to use the full real dataset
     default_path = os.path.abspath(default_path)
     genes_input_dataframe = import_genes(default_path)
-    sample_genome = GeneData.sample_camarosa_genome(genes_input_dataframe)
+    sample_genome = GeneData(genes_input_dataframe, 'Mock_Camarosa')
     return sample_genome
 
 
