@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from configparser import ConfigParser
+import sys
 import time
 
 from transposon.gene_data import GeneData
@@ -22,7 +23,8 @@ from transposon.transposon_data import TransposonData
 from transposon.overlap import OverlapWorker
 from transposon.replace_names import te_annot_renamer
 from transposon.verify_cache import (verify_chromosome_h5_cache,
-    verify_TE_cache, verify_gene_cache)
+    verify_TE_cache, verify_gene_cache, revise_annotation)
+from transposon.revise_annotation import Revise_Anno
 
 
 def get_nulls(my_df):
@@ -67,10 +69,13 @@ def swap_columns(dataframe, col_condition, col_1, col_2):
 
 
 def split(dataframe, group):
-    """Return list of the dataframe with each element being a subset of the df.
+    """Return list of dataframes with each element being a subset of the df.
 
     I use this function to split by chromosome so that we may later do
     chromosome element-wise operations.
+
+    This function is also used in revise_annotation.py to split on transposon
+    identities.
     """
 
     grouped_df = dataframe.groupby(group)
@@ -270,10 +275,10 @@ def validate_args(args, logger):
 
     if not os.path.isfile(args.genes_input_file):
         logger.critical("argument 'genes_input_dir' is not a file")
-        raise ValueError("%s is not a directory" % (args.genes_input_file))
+        raise ValueError("%s is not a file" % (args.genes_input_file))
     if not os.path.isfile(args.tes_input_file):
         logger.critical("argument 'tes_input_dir' is not a file")
-        raise ValueError("%s is not a directory" % (args.tes_input_file))
+        raise ValueError("%s is not a file" % (args.tes_input_file))
     if not os.path.isdir(args.overlap_dir):
         logger.critical("argument 'overlap_dir' is not a directory")
         raise ValueError("%s is not a directory" % (args.overlap_dir))
@@ -376,13 +381,18 @@ if __name__ == '__main__':
     # TODO if the user sets their own filtered_input_data location, this
     # h5_cache_loc location will not exactly follow their filtered_input_data
     # convention
-    parser.add_argument('--h5_cache_loc', '-h5', type=str,
+    parser.add_argument('--input_h5_cache_loc', '-h5', type=str,
                         default=os.path.join(path_main, '../..',
                                              'filtered_input_data/input_h5_cache'),
                         help='parent directory for h5 cached input data')
     parser.add_argument('--reset_h5', action='store_true')
     parser.add_argument('--contig_del', action='store_false')
+    parser.add_argument('--revise_anno', action='store_true')
 
+    parser.add_argument('--revised_input_data', '-r', type=str,
+                        default=os.path.join(path_main, '../..',
+                                             'filtered_input_data/revised_input_data'),
+                        help='parent directory for cached revised input data')
     parser.add_argument('--output_dir', '-o', type=str,
                         default=os.path.join(path_main, '../..', 'results'),
                         help='parent directory to output results')
@@ -396,12 +406,15 @@ if __name__ == '__main__':
     args.config_file = os.path.abspath(args.config_file)
     args.overlap_dir = os.path.abspath(args.overlap_dir)
     args.filtered_input_data = os.path.abspath(args.filtered_input_data)
-    args.h5_cache_loc = os.path.abspath(args.h5_cache_loc)
+    args.input_h5_cache_loc = os.path.abspath(args.input_h5_cache_loc)
+    args.revised_input_data = os.path.abspath(args.revised_input_data)
     args.output_dir = os.path.abspath(args.output_dir)
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
     coloredlogs.install(level=log_level)
 
+    # Want a higher recursion limit for the code
+    sys.setrecursionlimit(11**6)
 
     # logger.info("Start processing directory '%s'"%(args.input_dir))
     for argname, argval in vars(args).items():
@@ -425,9 +438,22 @@ if __name__ == '__main__':
     cleaned_transposons = os.path.join(args.filtered_input_data, str('Cleaned_' +
                                                                      t_fname +
                                                                      '.tsv'))
-    gene_data_unwrapped = verify_gene_cache(args.genes_input_file, cleaned_genes, args.contig_del, logger)
+    revised_transposons = os.path.join(args.revised_input_data, str('Revised_'
+                                                                    + t_fname
+                                                                     + '.tsv'))
+    gene_data_unwrapped = verify_gene_cache(args.genes_input_file,
+                                            cleaned_genes, args.contig_del,
+                                            logger)
     te_data_unwrapped = verify_TE_cache(args.tes_input_file, cleaned_transposons,
-                              te_annot_renamer, args.contig_del, logger)
+                              te_annot_renamer, args.contig_del,
+                              logger)
+
+    # Revise the TE annotation
+    te_data_unwrapped = revise_annotation(te_data_unwrapped, args.revise_anno,
+                                          revised_transposons,
+                                          args.revised_input_data,
+                                          logger, args.genome_id)
+
     # NOTE neither Gene_Data or TE_Data are wrapped yet
 
     logger.info("Reading config file and making parameter dictionary...")
@@ -444,5 +470,5 @@ if __name__ == '__main__':
     logger.info("Process data...")
     process(alg_parameters, gene_data_unwrapped, te_data_unwrapped,
             args.overlap_dir, args.genome_id, args.filtered_input_data,
-            args.reset_h5, args.h5_cache_loc, args.genes_input_file,
+            args.reset_h5, args.input_h5_cache_loc, args.genes_input_file,
             args.tes_input_file)

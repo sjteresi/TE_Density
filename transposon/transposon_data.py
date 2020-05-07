@@ -97,12 +97,56 @@ class TransposonData(object):
         new_instance.add_genome_id(genome_id)
         return new_instance
 
+    def write_human_readable(self, filename):
+        """
+        Write the Pandaframe to disk as a tsv.
+
+        Args:
+            filename (str): a string of the filename to write.
+        """
+
+        self.data_frame.to_csv(filename, header=True, index=False, sep='\t')
+
+    def write_gff(self, filename):
+        """
+        Write the Pandaframe to disk as a GFF.
+
+        Args:
+            filename (str): a string of the filename to write.
+        """
+        self.gff_data_frame = self.data_frame.copy(deep=True)
+        self.gff_data_frame.rename(columns={"Stop": "End"}, inplace=True)
+        self.gff_data_frame['Source'] = 'Test'
+        self.gff_data_frame['Score'] = '.'
+        self.gff_data_frame['Phase'] = '1'
+        self.gff_data_frame['Attributes'] = 'Test'
+        self.gff_data_frame['Feature'] = self.gff_data_frame['Order'] + '/' + self.gff_data_frame['SuperFamily']
+
+        self.gff_data_frame = self.gff_data_frame.astype({"Start": int, "End":
+                                                          int, 'Phase': int})
+
+        self.gff_data_frame = self.gff_data_frame[['Chromosome', 'Source',
+                                                   'Feature', 'Start', 'End',
+                                                   'Score', 'Strand', 'Phase',
+                                                   'Attributes']]
+        self.gff_data_frame = self.gff_data_frame.sort_values(by=['Start'])
+        self.gff_data_frame.to_csv(filename, header=False, index=False, sep='\t')
+
     @property
     def number_elements(self):
         """The number of transposable elements."""
 
         # TODO verify
         return self.indices.shape[0]  # MAGIC NUMBER it's one column
+
+    def subset_by_superfam(self):
+        """
+        Return a list of dataframes containing only one type of superfamily
+        at a time
+        """
+        pass
+        #for superfamily in self.superfamily_name_set:
+
 
     def check_shape(self):
         """Checks to make sure the columns of the TE data are the same size.
