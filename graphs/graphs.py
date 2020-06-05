@@ -522,6 +522,117 @@ def graph_table_superfam_lengths_genome_wide(Camarosa, list_of_genome_data,
                 '_' + 'Subgenome_Table.png')
     plt.close()
 
+def graph_table_mean_TE_lengths(Camarosa, list_of_genome_data,
+                                             selection,
+                                             output_dir):
+    # TODO Edit the arg list and try to reduce the number of ifs.
+    """
+    Args:
+    """
+
+    fig, ax = plt.subplots()
+    ax.axis('off')
+    ax.axis('tight')
+
+    frames = []
+    for GenomeData in list_of_genome_data:
+        if selection == 'superfam':
+            mean_length_dict = GenomeData.average_superfam_length.to_dict()
+        if selection == 'order':
+            mean_length_dict = GenomeData.average_order_length.to_dict()
+        subset_df = \
+        pd.DataFrame.from_dict(mean_length_dict,
+                               orient='index',
+                               columns=[GenomeData.subgenome_identity])
+        if selection == 'superfam':
+            subset_df.index.name = 'SuperFamily'
+        if selection == 'order':
+            subset_df.index.name = 'Order'
+        frames.append(subset_df)
+
+    if selection == 'superfam':
+        mean_length_dict = Camarosa.average_superfam_length.to_dict()
+    if selection == 'order':
+        mean_length_dict = Camarosa.average_order_length.to_dict()
+    Cam_data = pd.DataFrame.from_dict(mean_length_dict,
+                                         orient='index',
+                                         columns=[Camarosa.genome_id])
+    if selection == 'superfam':
+        Cam_data.index.name = 'SuperFamily'
+    if selection == 'order':
+        Cam_data.index.name = 'Order'
+    frames.append(Cam_data)
+
+    if selection == 'superfam':
+        my_table = reduce(lambda x,y: pd.merge(x,y, on='SuperFamily'), frames)
+    if selection == 'order':
+        my_table = reduce(lambda x,y: pd.merge(x,y, on='Order'), frames)
+    my_table = my_table.round(2)
+    ax.table(cellText=my_table.values,
+             colLabels=my_table.columns,
+             loc='center', rowLabels=my_table.index)
+    plt.title('Mean TE Length (bp)')
+    fig.tight_layout()
+    plt.savefig(output_dir + '/' + Camarosa.genome_id +
+                '_' + selection + '_Mean_Subgenome_Table.png')
+    plt.close()
+
+
+def graph_table_median_TE_lengths(Camarosa, list_of_genome_data,
+                                             selection,
+                                             output_dir):
+    # TODO Edit the arg list and try to reduce the number of ifs.
+    """
+    Args:
+    """
+
+    fig, ax = plt.subplots()
+    ax.axis('off')
+    ax.axis('tight')
+
+    frames = []
+    for GenomeData in list_of_genome_data:
+        if selection == 'superfam':
+            median_length_dict = GenomeData.median_superfam_length.to_dict()
+        if selection == 'order':
+            median_length_dict = GenomeData.median_order_length.to_dict()
+        subset_df = \
+        pd.DataFrame.from_dict(median_length_dict,
+                               orient='index',
+                               columns=[GenomeData.subgenome_identity])
+        if selection == 'superfam':
+            subset_df.index.name = 'SuperFamily'
+        if selection == 'order':
+            subset_df.index.name = 'Order'
+        frames.append(subset_df)
+
+    if selection == 'superfam':
+        median_length_dict = Camarosa.median_superfam_length.to_dict()
+    if selection == 'order':
+        median_length_dict = Camarosa.median_order_length.to_dict()
+    Cam_data = pd.DataFrame.from_dict(median_length_dict,
+                                         orient='index',
+                                         columns=[Camarosa.genome_id])
+    if selection == 'superfam':
+        Cam_data.index.name = 'SuperFamily'
+    if selection == 'order':
+        Cam_data.index.name = 'Order'
+    frames.append(Cam_data)
+
+    if selection == 'superfam':
+        my_table = reduce(lambda x,y: pd.merge(x,y, on='SuperFamily'), frames)
+    if selection == 'order':
+        my_table = reduce(lambda x,y: pd.merge(x,y, on='Order'), frames)
+    my_table = my_table.round(2)
+    ax.table(cellText=my_table.values,
+             colLabels=my_table.columns,
+             loc='center', rowLabels=my_table.index)
+    plt.title('Median TE Length (bp)')
+    fig.tight_layout()
+    plt.savefig(output_dir + '/' + Camarosa.genome_id +
+                '_' + selection + '_Median_Subgenome_Table.png')
+    plt.close()
+
 
 
 if __name__ == '__main__':
@@ -534,11 +645,15 @@ if __name__ == '__main__':
     parser.add_argument('--pie_output_dir', '-p', type=str,
                         default=os.path.join(path_main, '../../results/pie'),
                         help='Parent directory to output pie results')
+    parser.add_argument('--table_output_dir', '-ta', type=str,
+                        default=os.path.join(path_main, '../../results/table'),
+                        help='Parent directory to output table results')
 
 
     args = parser.parse_args()
     args.bar_output_dir = os.path.abspath(args.bar_output_dir)
     args.pie_output_dir = os.path.abspath(args.pie_output_dir)
+    args.table_output_dir = os.path.abspath(args.table_output_dir)
     # Load Data
 
     data_place = '/home/scott/Documents/Uni/Research/Projects/TE_Density/filtered_input_data/'
@@ -613,9 +728,23 @@ if __name__ == '__main__':
     graph_average_LTR_length_H4_Cam(H4, Camarosa, args.bar_output_dir)
 
     graph_table_superfam_lengths_genome_wide(Camarosa, list_of_subgenomes,
-                                             args.bar_output_dir)
+                                             args.table_output_dir)
 
+    graph_table_mean_TE_lengths(Camarosa, list_of_subgenomes,
+                                             'order',
+                                             args.table_output_dir)
 
+    graph_table_mean_TE_lengths(Camarosa, list_of_subgenomes,
+                                             'superfam',
+                                             args.table_output_dir)
+
+    graph_table_median_TE_lengths(Camarosa, list_of_subgenomes,
+                                             'order',
+                                             args.table_output_dir)
+
+    graph_table_median_TE_lengths(Camarosa, list_of_subgenomes,
+                                             'superfam',
+                                             args.table_output_dir)
 
     #------------------
 
