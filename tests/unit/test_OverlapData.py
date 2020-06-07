@@ -155,6 +155,12 @@ def test_io_chromosome_id(serialized_deserialized):
     input, output = serialized_deserialized
     assert input.chromosome_id == output.chromosome_id
 
+def test_io_chromosome_id(serialized_deserialized):
+    """Can it serialize / deserialize the chromosome id?"""
+
+    input, output = serialized_deserialized
+    assert input.genome_id == output.genome_id
+
 def test_io_left(serialized_deserialized):
     """Can it serialize / deserialize the left overlap"""
 

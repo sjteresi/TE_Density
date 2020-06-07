@@ -102,6 +102,9 @@ class Overlap():
 class OverlapData():
     """Contains overlap values buffered to disk.
 
+    Contains a file resource which must be acquired before writing | reading.
+    Use the context manager or start/stop methods to manage the file resource.
+
     Usage:
         Use the factory methods to create an instance (`from_param` | `from_file`).
         Use the context manager to activate the buffer.
@@ -116,6 +119,7 @@ class OverlapData():
     _GENE_NAMES = 'GENE_NAMES'
     _WINDOWS = 'WINDOWS'
     _CHROME_ID = 'CHROMOSOME_ID'
+    _GENOME_ID = 'GENOME_ID'
 
     def __init__(self, configuration, logger=None):
         """Initializer.
@@ -134,7 +138,13 @@ class OverlapData():
         self.right = None
         self.gene_names = None
         self.chromosome_id = None
+        self.genome_id = None
         self.windows = None
+
+    def __str__(self):
+        """User representation."""
+
+        return ("{}".format(self._config))
 
     @property
     def filepath(self):
@@ -172,7 +182,6 @@ class OverlapData():
     def from_file(cls, filepath, logger=None):
         """Read only source for an existing file."""
 
-        # FUTURE specify ram usage in order to scrape components instead of reading all
         file_abs = os.path.abspath(filepath)
         if not os.path.isfile(file_abs):
             raise ValueError("input filepath not a file: %s" % file_abs)
@@ -192,18 +201,19 @@ class OverlapData():
 
       # TODO really should just have one window so the interfaces are consistent...
         return (gene_idx, slice(None))
-    def __enter__(self):
-        """Context manager start."""
+
+    def start(self):
+        """Obtain the resource by opening the file."""
 
         self._open_dispatcher()
-        return self
 
-    def __exit__(self, exc_type, exc_val, exc_traceback):
-        """Context manager stop."""
+    def stop(self):
+        """Release resources by closing the file."""
 
         self._h5_file.flush()
         self._h5_file.close()
         self._h5_file = None
+        self._config = None
 
         self.left = None
         self.right = None
@@ -211,6 +221,17 @@ class OverlapData():
         self.gene_names = None
         self.chromosome_id = None
         self.windows = None
+
+    def __enter__(self):
+        """Context manager start."""
+
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_traceback):
+        """Context manager stop."""
+
+        self.stop()
 
     def _create_sets(self, h5_file, cfg):
         """Initialize instance variables from input configuration, mutates self.
@@ -221,6 +242,7 @@ class OverlapData():
         """
 
         self.chromosome_id = cfg.genes.chromosome_unique_id
+        self.genome_id = cfg.genes.genome_id
         create_set = partial(h5_file.create_dataset,
                              dtype=self.DTYPE,
                              compression=self.COMPRESSION)
@@ -263,6 +285,7 @@ class OverlapData():
         self.gene_names = self._read_gene_names()
         self.windows = self._read_windows()
         self.chromosome_id = self._read_chromosome_id()
+        self.genome_id = self._read_genome_id()
         self.left = self._h5_file[self._LEFT]
         self.intra = self._h5_file[self._INTRA]
         self.right = self._h5_file[self._RIGHT]
@@ -275,6 +298,7 @@ class OverlapData():
         self._write_gene_names()
         self._write_windows()
         self._write_chromosome_id()
+        self._write_genome_id()
 
     def _write_gene_names(self):
         """Assign list of gene names to the file."""
@@ -317,6 +341,18 @@ class OverlapData():
 
         return self._h5_file[self._CHROME_ID][:].tolist()[0]  # MAGIC NUMBER only one ID
 
+    def _write_genome_id(self):
+        """Assign genome identifier to file."""
+
+        vlen = h5py.special_dtype(vlen=str)
+        # MAGIC NUMBER there can only be one unique ID
+        dset = self._h5_file.create_dataset(self._GENOME_ID, (1,), dtype=vlen)
+        dset[:] = self.genome_id
+
+    def _read_genome_id(self):
+        """Read genome identifier."""
+
+        return self._h5_file[self._GENOME_ID][:].tolist()[0]  # MAGIC NUMBER only one ID
 
 class OverlapWorker():
     """Calculates the overlap values."""
