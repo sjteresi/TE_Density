@@ -86,15 +86,16 @@ class GeneData(object):
         self.data_frame.to_hdf(filename, key=key, mode='w')
 
     @classmethod
-    def read(cls, filename, key='default'):
+    def read(cls, filename, genome_id, key='default'):
         """Read from disk. Returns a wrapped Pandaframe from an hdf5 file
 
         Args:
             filename (str): a string of the filename to write.
+            genome_id (str): a string of the genome id.
             key (str): identifier for the group (dataset) in the hdf5 obj.
         """
         panda_dataset = pd.read_hdf(filename, key=key)
-        return cls(panda_dataset)
+        return cls(panda_dataset, genome_id)
 
     def get_gene(self, gene_id):
         """Return a GeneDatum for the gene identifier."""

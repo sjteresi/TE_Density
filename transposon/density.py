@@ -362,6 +362,10 @@ def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id):
         /tmp. You can edit the location of the directory with the -s flag when
         calling density.py. overlap_dir is used when calling OverlapWorker.
     """
+    complete_genedata = GeneData(Gene_Data, genome_id)
+    complete_genedata.write('Complete_GeneData.h5')
+
+
     grouped_genes = split(Gene_Data, 'Chromosome')  # check docstring for my split func
     grouped_TEs = split(TE_Data, 'Chromosome')  # check docstring for my split func
     check_groupings(grouped_genes, grouped_TEs, logger, genome_id)
@@ -377,10 +381,20 @@ def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id):
         total=len(grouped_genes), desc="chromosome  ", position=0, ncols=80)
     _temp_count = 0
     # TODO need grouping ID for each GeneData and TransposonData (e.g. chromosome ID)
+    # At this point we are starting to iterate over subsets of the gene
+    # dataframe, these subsets are on a chromosome-by-chromosome basis
     for sub_gene, sub_te in zip(grouped_genes, grouped_TEs):
         gene_data = GeneData(sub_gene, genome_id)
         te_data = TransposonData(sub_te, genome_id)
+        current_chromosome = gene_data.data_frame.Chromosome.unique()[0]
+        current_gene_data = current_chromosome + '_GeneData.h5'
+        # TODO make the current chromosome naming scheme more robust and not
+        # use a magic number
+
+
         # TODO validate the gene / te pair
+
+        gene_data.write(current_gene_data, key=gene_data.genome_id)
 
         def window_it(temp_param):
             return range(temp_param[first_window_size],
