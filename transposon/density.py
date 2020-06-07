@@ -15,13 +15,14 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from configparser import ConfigParser
+import time
 
 from transposon.gene_data import GeneData
 from transposon.transposon_data import TransposonData
-from transposon.import_genes import import_genes
-from transposon.import_transposons import import_transposons
 from transposon.overlap import OverlapWorker
 from transposon.replace_names import te_annot_renamer
+from transposon.verify_cache import (verify_chromosome_h5_cache,
+    verify_TE_cache, verify_gene_cache)
 
 
 def get_nulls(my_df):
@@ -281,74 +282,9 @@ def validate_args(args, logger):
         raise ValueError("%s is not a directory" % (args.output_dir))
 
 
-def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
-    """Determine whether or not previously filtered gene data exists, if it
-    does, read it from disk. If it does not, read the raw annotation file and
-    make a filtered dataset for future import.
-
-    Args:
-        genes_input_file (str): A command line argument, this is the location
-            of the gene annotation file.
-
-        cleaned_genes (str): A string representing the path of a previously
-            filtered gene file via import_genes().
-
-        contig_del (bool): A boolean of whether to remove contigs on import
-
-    Returns:
-        Gene_Data (pandaframe): A pandas dataframe of the Gene data
-    """
-    if os.path.exists(cleaned_genes):
-        logger.info("Importing filtered gene dataset from disk...")
-        Gene_Data = pd.read_csv(cleaned_genes, header='infer', sep='\t',
-                                dtype={'Start': 'float32', 'Stop': 'float32',
-                                     'Length': 'float32'}, index_col='Gene_Name')
-    else:
-        logger.info("Previously filtered gene dataset does not exist...")
-        logger.info("Importing unfiltered gene dataset from annotation file...")
-        Gene_Data = import_genes(genes_input_file, contig_del)
-        Gene_Data.to_csv(cleaned_genes, sep='\t', header=True, index=True)
-    return Gene_Data
-
-
-def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer,
-                    contig_del, logger):
-    """Determine whether or not previously filtered TE data exists, if it
-    does, read it from disk. If it does not, read the raw annotation file and
-    make a filtered dataset for future import.
-
-    Args:
-        tes_input_file (str): A command line argument, this is the location
-            of the TE annotation file.
-
-        cleaned_tranposons (str): A string representing the path of a previously
-            filtered TE file via import_transposons().
-
-        te_annot_renamer (function containing a dictionary and other methods):
-            imported from separate file within the repository. This file
-            performs the more specific filtering steps on the TEs such as
-            changing the annotation details for specific TE types.
-
-        contig_del (bool): A boolean of whether to remove contigs on import
-
-    Returns:
-        TE_Data (pandaframe): A pandas dataframe of the TE data
-    """
-    if os.path.exists(cleaned_transposons):
-        logger.info("Importing filtered transposons from disk...")
-        TE_Data = pd.read_csv(cleaned_transposons, header='infer',
-                              dtype={'Start': 'float32', 'Stop': 'float32',
-                                     'Length': 'float32'}, sep='\t')
-    else:
-        logger.info("Previously filtered TE dataset does not exist...")
-        logger.info("Importing unfiltered TE dataset from annotation file...")
-        TE_Data = import_transposons(tes_input_file, te_annot_renamer,
-                                     contig_del)
-        TE_Data.to_csv(cleaned_transposons, sep='\t', header=True, index=False)
-    return TE_Data
-
-
-def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id):
+def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id,
+            filtered_input_data, reset_h5, h5_cache_location, genes_input_file,
+            tes_input_file):
     """
     Run the algorithm
 
@@ -361,6 +297,9 @@ def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id):
         overlap files. This comes from the ArgumentParser obj and defaults to
         /tmp. You can edit the location of the directory with the -s flag when
         calling density.py. overlap_dir is used when calling OverlapWorker.
+
+        reset_h5 (bool): True/False whether or not to overwrite the H5 cache of
+        GeneData and TransposonData if it currently exists
     """
 
 
@@ -380,18 +319,32 @@ def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id):
     gene_progress = tqdm(
         total=len(grouped_genes), desc="chromosome  ", position=0, ncols=80)
     _temp_count = 0
-    # TODO need grouping ID for each GeneData and TransposonData (e.g. chromosome ID)
-    for sub_gene, sub_te in zip(grouped_genes, grouped_TEs):
-        gene_data = GeneData(sub_gene, genome_id)
-        te_data = TransposonData(sub_te, genome_id)
-        # TODO validate the gene / te pair
+
+    for chromosome_of_gene_data, chromosome_of_te_data in zip(grouped_genes,
+                                                              grouped_TEs):
+        wrapped_genedata_by_chrom = GeneData(chromosome_of_gene_data.copy(deep=True))
+        wrapped_genedata_by_chrom.add_genome_id(genome_id)
+        wrapped_tedata_by_chrom = TransposonData(chromosome_of_te_data.copy(deep=True))
+        wrapped_tedata_by_chrom.add_genome_id(genome_id)
+
+        chrom_id = wrapped_genedata_by_chrom.chromosome_unique_id
+        # NOTE
+        # MICHAEL, these are how the H5 files are saved
+        h5_g_filename = os.path.join(h5_cache_location, str(chrom_id +
+                                     '_GeneData.h5'))
+        h5_t_filename = os.path.join(h5_cache_location, str(chrom_id +
+                                     '_TEData.h5'))
+
+        verify_chromosome_h5_cache(wrapped_genedata_by_chrom, wrapped_tedata_by_chrom,
+                                   h5_g_filename, h5_t_filename, reset_h5, h5_cache_location,
+                                   genes_input_file, tes_input_file, chrom_id, logger)
 
         def window_it(temp_param):
             return range(temp_param[first_window_size],
                          temp_param[last_window_size],
                          temp_param[window_delta])
 
-        n_genes = sum(1 for g in gene_data.names)
+        n_genes = sum(1 for g in wrapped_genedata_by_chrom.names)
         # TODO create status bar above, reuse and reset here
         # 'total' is a public member
         sub_progress = tqdm(total=n_genes, desc="  genes     ", position=1, ncols=80)
@@ -401,11 +354,24 @@ def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id):
             sub_progress.update(1)
             gene_progress.refresh()
         overlap.calculate(
-            gene_data, te_data, window_it(alg_parameters), gene_data.names, progress)
+            wrapped_genedata_by_chrom, wrapped_tedata_by_chrom,
+            window_it(alg_parameters), wrapped_genedata_by_chrom.names, progress)
 
         _temp_count += 1
         gene_progress.update(1)
 
+def str2bool(v):
+    """
+    Make sure the argparse boolean arguments work correctly.
+    """
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('True', 'true'):
+        return True
+    elif v.lower() in ('False', 'false'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected')
 
 if __name__ == '__main__':
     """Command line interface to calculate density."""
@@ -418,7 +384,8 @@ if __name__ == '__main__':
                         help='parent path of transposon file')
     parser.add_argument('genome_id', type=str,
                         help='string of the genome to be run, for clarity')
-    parser.add_argument('--contig_del', default=True)
+    parser.add_argument('--contig_del', nargs='?', type=str2bool, const=True,
+                        default=True)
     parser.add_argument('--config_file', '-c', type=str,
                         default=os.path.join(path_main, '../../',
                                              'config/test_run_config.ini'),
@@ -430,6 +397,11 @@ if __name__ == '__main__':
                         default=os.path.join(path_main, '../..',
                                              'filtered_input_data'),
                         help='parent directory for cached input data')
+    parser.add_argument('--h5_cache_loc', '-h5', type=str,
+                        default=os.path.join(path_main, '../..',
+                                             'filtered_input_data/h5_cache'),
+                        help='parent directory for h5 cached input data')
+    parser.add_argument('--reset_h5', nargs='?', type=str2bool, const=True, default=False)
     parser.add_argument('--output_dir', '-o', type=str,
                         default=os.path.join(path_main, '../..', 'results'),
                         help='parent directory to output results')
@@ -443,10 +415,12 @@ if __name__ == '__main__':
     args.config_file = os.path.abspath(args.config_file)
     args.overlap_dir = os.path.abspath(args.overlap_dir)
     args.filtered_input_data = os.path.abspath(args.filtered_input_data)
+    args.h5_cache_loc = os.path.abspath(args.h5_cache_loc)
     args.output_dir = os.path.abspath(args.output_dir)
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
     coloredlogs.install(level=log_level)
+
 
     # logger.info("Start processing directory '%s'"%(args.input_dir))
     for argname, argval in vars(args).items():
@@ -487,4 +461,6 @@ if __name__ == '__main__':
 
     # Process data
     logger.info("Process data...")
-    process(alg_parameters, Gene_Data, TE_Data, args.overlap_dir, args.genome_id)
+    process(alg_parameters, Gene_Data, TE_Data, args.overlap_dir,
+            args.genome_id, args.filtered_input_data, args.reset_h5,
+            args.h5_cache_loc, args.genes_input_file, args.tes_input_file)

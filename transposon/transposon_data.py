@@ -26,7 +26,7 @@ class TransposonData(object):
     # max gene stop with the TE start? for optimization
     # FUTURE split one TE file into multiple if memory becomes and issue?
 
-    def __init__(self, transposable_elements_dataframe, genome_id, logger=None):
+    def __init__(self, transposable_elements_dataframe, logger=None):
         """Initialize.
 
         Args:
@@ -44,7 +44,7 @@ class TransposonData(object):
         self.orders = self.data_frame.Order.to_numpy(copy=False)
         self.superfamilies = self.data_frame.SuperFamily.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
-        self.genome_id = genome_id
+        self.genome_id = None
 
     @classmethod
     def mock(cls,
@@ -82,7 +82,6 @@ class TransposonData(object):
             filename (str): a string of the filename to write.
             key (str): identifier for the group (dataset) in the hdf5 obj.
         """
-
         self.data_frame.to_hdf(filename, key=key, mode='w')
 
     @classmethod
@@ -131,6 +130,33 @@ class TransposonData(object):
 
         info = "TransposonData({self.data_frame})"
         return info.format(self=self)
+
+    def add_genome_id(self, genome_id):
+        """Add the genome_id as an extra column to the gene_dataframe"""
+        self.data_frame.loc[:,'Genome_ID'] = genome_id
+        self.genome_id = genome_id
+
+
+    @property
+    def genome_unique_id(self):
+        """Return the unique genome identifier for all the TEs.
+
+        Returns:
+            str: the unique identifier.
+        Raises:
+            RuntimeError: if multiple TEs have different genome_id labels
+            (not unique), I do not know how this could occur but want to be
+            safe.
+        """
+
+        genome_id_list = self.data_frame.Genome_ID.unique().tolist()
+        if not genome_id_list:
+            raise RuntimeError("column 'Geneome_ID' is empty")
+        elif len(genome_id_list) > 1:
+            raise RuntimeError("Genome IDs are are not unique: %s" %
+                               genome_id_list)
+        else:
+            return genome_id_list[0]  # MAGIC NUMBER list to string
 
     @property
     def chromosome_unique_id(self):
