@@ -221,6 +221,21 @@ class GenomeData(object):
     def superfam_sum_seq_len_dict_MB(self):
         return self.transposon_dataframe.groupby(['SuperFamily']).Length.sum().divide(1000000000).to_dict()
 
+    @property
+    def average_order_length(self):
+        return self.transposon_dataframe.groupby(['Order']).Length.mean()
+
+    @property
+    def average_superfam_length(self):
+        return self.transposon_dataframe.groupby(['SuperFamily']).Length.mean()
+
+    @property
+    def median_order_length(self):
+        return self.transposon_dataframe.groupby(['Order']).Length.median()
+
+    @property
+    def median_superfam_length(self):
+        return self.transposon_dataframe.groupby(['SuperFamily']).Length.median()
 
     @property
     def orders_as_percent_sequences(self):
