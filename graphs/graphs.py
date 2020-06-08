@@ -153,14 +153,12 @@ def graph_order_numbers_as_percents(GenomeData, output_dir, explode_bool=False):
         the pie graph segments, purely visual. Defaults to explode the LTR
         section of the pie graph.
     """
-
-
     orders = list(sorted(GenomeData.transposon_Order_number_dictionary.keys()))
     values = [GenomeData.transposon_Order_number_dictionary[order] for order in
-                orders]
+              orders]
     normalized_numbers_as_percents = [(val /
-                                         GenomeData.num_of_TEs)*100 for
-                                         val in values]
+                                      GenomeData.num_of_TEs)*100 for
+                                      val in values]
     colors = ['seagreen', 'royalblue', 'khaki', 'crimson', 'peru']
     explode = [0 for item in normalized_numbers_as_percents]
     if explode_bool:
@@ -170,7 +168,7 @@ def graph_order_numbers_as_percents(GenomeData, output_dir, explode_bool=False):
                                        colors=colors, shadow=False,
                                        startangle=150, explode=explode,
                                        autopct='%1.1f%%', labels=orders)
-    #plt.legend(patches, labels, loc='best')
+    # plt.legend(patches, labels, loc='best')
     plt.title('# of TE Orders Relative to Total # of TEs (Order)')
     plt.axis('equal')
     plt.tight_layout()
@@ -199,10 +197,10 @@ def graph_order_sequences_as_percents(GenomeData, output_dir,
 
     orders = list(sorted(GenomeData.order_sum_seq_len_dict_MB.keys()))
     values = [GenomeData.order_sum_seq_len_dict_MB[order] for order in
-                orders]
+              orders]
     normalized_sequences_as_percents = [(val /
-                                         GenomeData.total_T_lengths_MB)*100 for
-                                         val in values]
+                                        GenomeData.total_T_lengths_MB)*100 for
+                                        val in values]
     colors = ['seagreen', 'royalblue', 'khaki', 'crimson', 'peru']
     explode = [0 for item in normalized_sequences_as_percents]
     if explode_bool:
@@ -212,7 +210,7 @@ def graph_order_sequences_as_percents(GenomeData, output_dir,
                                        colors=colors, shadow=False,
                                        startangle=150, explode=explode,
                                        autopct='%1.1f%%', labels=orders)
-    #plt.legend(patches, labels, loc='best')
+    # plt.legend(patches, labels, loc='best')
     plt.title('Basepairs of TE Orders Relative to Total Basepairs of TEs')
     plt.axis('equal')
     plt.tight_layout()
@@ -220,8 +218,9 @@ def graph_order_sequences_as_percents(GenomeData, output_dir,
                 '_WG_TE_Order_SequencePercent.png')
     plt.close()
 
+
 def graph_superfam_sequences_as_percents(GenomeData, output_dir,
-                                      explode_bool=False):
+                                         explode_bool=False):
     """
     Creates a pie chart displaying TE sequences as percents of the entire
     TE_nome.
@@ -239,12 +238,12 @@ def graph_superfam_sequences_as_percents(GenomeData, output_dir,
     """
 
     superfamilies = list(sorted(GenomeData.superfam_sum_seq_len_dict_MB.keys(),
-                               key=str.lower))
+                         key=str.lower))
     values = [GenomeData.superfam_sum_seq_len_dict_MB[superfam] for superfam in
-                superfamilies]
+              superfamilies]
     normalized_sequences_as_percents = [(val /
-                                         GenomeData.total_T_lengths_MB)*100 for
-                                         val in values]
+                                        GenomeData.total_T_lengths_MB)*100 for
+                                        val in values]
     colors = ['mediumblue', 'dimgrey', 'darkorange', 'crimson', 'forestgreen',
               'darkmagenta', 'saddlebrown', 'peachpuff', 'cornflowerblue',
               'khaki', 'darkturquoise', 'maroon']
@@ -256,13 +255,14 @@ def graph_superfam_sequences_as_percents(GenomeData, output_dir,
                                        colors=colors, shadow=False,
                                        startangle=150, explode=explode,
                                        autopct='%1.1f%%', labels=superfamilies)
-    #plt.legend(patches, labels, loc='best')
+    # plt.legend(patches, labels, loc='best')
     plt.title('Basepairs of TE Superfamilies Relative to Total BP of TEs')
     plt.axis('equal')
     plt.tight_layout()
     plt.savefig(output_dir + '/' + GenomeData.genome_id +
                 '_WG_TE_Superfam_SequencePercent.png')
     plt.close()
+
 
 def graph_superfam_numbers_as_percents(GenomeData, output_dir, explode_bool=False):
     """
@@ -283,12 +283,12 @@ def graph_superfam_numbers_as_percents(GenomeData, output_dir, explode_bool=Fals
         section of the pie graph.
     """
     superfamilies = list(sorted(GenomeData.transposon_SuperFam_number_dictionary.keys(),
-                               key=str.lower))
+                         key=str.lower))
     values = [GenomeData.transposon_SuperFam_number_dictionary[superfam] for superfam in
-                superfamilies]
+              superfamilies]
     normalized_numbers_as_percents = [(val /
-                                         GenomeData.num_of_TEs)*100 for
-                                         val in values]
+                                      GenomeData.num_of_TEs)*100 for
+                                      val in values]
     colors = ['mediumblue', 'dimgrey', 'darkorange', 'crimson', 'forestgreen',
               'darkmagenta', 'saddlebrown', 'peachpuff', 'cornflowerblue',
               'khaki', 'darkturquoise', 'maroon']
@@ -301,13 +301,14 @@ def graph_superfam_numbers_as_percents(GenomeData, output_dir, explode_bool=Fals
                                        colors=colors, shadow=False,
                                        startangle=150, explode=explode,
                                        autopct='%1.1f%%', labels=superfamilies)
-    #plt.legend(patches, labels, loc='best')
+    # plt.legend(patches, labels, loc='best')
     plt.title('# of TE Superfamilies Relative to Total # of TEs')
     plt.axis('equal')
     plt.tight_layout()
     plt.savefig(output_dir + '/' + GenomeData.genome_id +
                 '_WG_TE_Superfam_NumberPercent.png')
     plt.close()
+
 
 def graph_bar_superfam_lengths_genome_wide(list_of_genome_data, file_name, output_dir):
     """
@@ -330,22 +331,19 @@ def graph_bar_superfam_lengths_genome_wide(list_of_genome_data, file_name, outpu
               'khaki', 'darkturquoise', 'maroon']
     ax.set_prop_cycle(color=colors)
     for GenomeData in list_of_genome_data:
-        #print(GenomeData)
         i = 0
         main_label = [GenomeData.subgenome_identity]
         gene_lengths = [GenomeData.total_G_lengths_MB]
         width = 0.15
         ax.bar(main_label, gene_lengths, width, label='Genes', color=colors[i])
         margin_bottom = gene_lengths.pop()
-        i+=1
+        i += 1
 
         for key, val in sorted(GenomeData.superfam_sum_seq_len_dict_MB.items()):
             ax.bar(main_label, val, width, bottom=margin_bottom,
                    label=key, color=colors[i])
-            i+=1
+            i += 1
             margin_bottom += val
-        #i = 0
-
 
     handles, labels = plt.gca().get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
@@ -358,8 +356,8 @@ def graph_bar_superfam_lengths_genome_wide(list_of_genome_data, file_name, outpu
 
 
 def graph_cam_superfam_chromosomes(Camarosa, output_dir,
-                                  F_vesca, F_iinumae,
-                                  F_viridis, F_nipponica):
+                                   F_vesca, F_iinumae,
+                                   F_viridis, F_nipponica):
     # NOTE could use some heavy cleanup when I have the time
 
     gene_chrom_list = Camarosa.split(Camarosa.gene_dataframe, 'Chromosome')
@@ -379,14 +377,13 @@ def graph_cam_superfam_chromosomes(Camarosa, output_dir,
 
     # explode = (0, 0.1, 0.1, 0, 0, 0, 0, 0, 0)  # explode
 
-
     for xi in range(0, len(all_chromosomes), 4):
         fig, axes = plt.subplots(nrows=2, ncols=2)
         # print(f"XI is: {xi}")
 
         for i, ax in enumerate(axes.ravel()):
             titles = all_chromosomes[xi+i].Chromosomes[0]
-            #print(f"Title is: {titles} \n")
+            # print(f"Title is: {titles} \n")
 
             if titles in F_vesca:
                 all_chromosomes[xi+i].genome_id = 'F_vesca'
@@ -404,6 +401,7 @@ def graph_cam_superfam_chromosomes(Camarosa, output_dir,
             normalized_numbers_as_percents = [(val / all_chromosomes[xi+i].num_of_TEs)*100 for val in values]
 
             labels = superfamilies
+            # NOTE labels is unused here
             ax.pie(values,
                    labels=None,
                    autopct='%1.1f%%',
@@ -415,7 +413,7 @@ def graph_cam_superfam_chromosomes(Camarosa, output_dir,
                    textprops={'fontsize': 6.8})
             ax.set_title((all_chromosomes[xi+i].genome_id + ' (' + str(titles)
                          + ')'),
-                             loc='left', pad=19)
+                         loc='left', pad=19)
             plt.tight_layout()
         # n = 5
         # plt.tight_layout(pad=n, w_pad = n, h_pad = n)
@@ -436,33 +434,28 @@ def graph_average_LTR_length_H4_Cam(H4, Camarosa, output_dir):
     is the counts and x-axis is binned sizes in KB. Overlay the H4 and Camarosa
     genomes on top of one another in different translucent colors.
     """
-    #print(Camarosa.transposon_dataframe.groupby(['Order']).Length.mean()['LTR'])
-
-    #x = pd.cut(Camarosa.transposon_dataframe.groupby(['Order']).Length'LTR'], bins=5)
-
-    #print(H4.transposon_dataframe.groupby(['Order']).Length)
-
+    # print(Camarosa.transposon_dataframe.groupby(['Order']).Length.mean()['LTR'])
+    # x = pd.cut(Camarosa.transposon_dataframe.groupby(['Order']).Length'LTR'], bins=5)
+    # print(H4.transposon_dataframe.groupby(['Order']).Length)
     ltr_cam = Camarosa.order_transposon_subset('LTR')
     ltr_h4 = H4.order_transposon_subset('LTR')
-    #print(ltr_cam.loc[ltr_cam['Length']==48384])
+    # print(ltr_cam.loc[ltr_cam['Length']==48384])
     ltr_cam['Length'] = ltr_cam['Length'].div(1000)
     ltr_h4['Length'] = ltr_h4['Length'].div(1000)
-    bin_sizes = np.arange(0,10,0.25)
-
+    bin_sizes = np.arange(0, 10, 0.25)
 
     # What is the ratio between the bin sizes values in Cam and H4
     ltr_cam_value_counts = pd.cut(ltr_cam.Length,
                                   bins=bin_sizes).value_counts()
     ltr_h4_value_counts = pd.cut(ltr_h4.Length,
-                                  bins=bin_sizes).value_counts()
+                                 bins=bin_sizes).value_counts()
 
-    #print(ltr_cam_value_counts[0] / ltr_h4_value_counts[0])
-
+    # print(ltr_cam_value_counts[0] / ltr_h4_value_counts[0])
 
     plt.hist(ltr_cam.Length, bins=bin_sizes, alpha=0.5,
-                    histtype='bar', ec='black')
+             histtype='bar', ec='black')
     plt.hist(ltr_h4.Length, bins=bin_sizes, alpha=0.5,
-                    histtype='bar', ec='black')
+             histtype='bar', ec='black')
     plt.ylabel('Count')
     plt.legend(['Camarosa', 'H4'])
     plt.xlabel('Length of LTR retrotransposons in KB')
@@ -505,13 +498,13 @@ def graph_table_superfam_lengths_genome_wide(Camarosa, list_of_genome_data,
     cam_superfam_and_genes['Genes'] = Camarosa.total_G_lengths_MB
     cam_superfam_and_genes['Other'] = Camarosa.total_G_lengths_MB
     Cam_data = pd.DataFrame.from_dict(cam_superfam_and_genes,
-                                         orient='index',
-                                         columns=[Camarosa.genome_id])
+                                      orient='index',
+                                      columns=[Camarosa.genome_id])
     Cam_data.index.name = 'SuperFamily'
     Cam_data = Cam_data / Camarosa.genome_size * 100
     frames.append(Cam_data)
 
-    my_table = reduce(lambda x,y: pd.merge(x,y, on='SuperFamily'), frames)
+    my_table = reduce(lambda x, y: pd.merge(x, y, on='SuperFamily'), frames)
     my_table = my_table.round(2)
     ax.table(cellText=my_table.values,
              colLabels=my_table.columns,
@@ -522,9 +515,10 @@ def graph_table_superfam_lengths_genome_wide(Camarosa, list_of_genome_data,
                 '_' + 'Subgenome_Table.png')
     plt.close()
 
+
 def graph_table_mean_TE_lengths(Camarosa, list_of_genome_data,
-                                             selection,
-                                             output_dir):
+                                selection,
+                                output_dir):
     # TODO Edit the arg list and try to reduce the number of ifs.
     """
     Args:
@@ -555,8 +549,8 @@ def graph_table_mean_TE_lengths(Camarosa, list_of_genome_data,
     if selection == 'order':
         mean_length_dict = Camarosa.average_order_length.to_dict()
     Cam_data = pd.DataFrame.from_dict(mean_length_dict,
-                                         orient='index',
-                                         columns=[Camarosa.genome_id])
+                                      orient='index',
+                                      columns=[Camarosa.genome_id])
     if selection == 'superfam':
         Cam_data.index.name = 'SuperFamily'
     if selection == 'order':
@@ -564,9 +558,9 @@ def graph_table_mean_TE_lengths(Camarosa, list_of_genome_data,
     frames.append(Cam_data)
 
     if selection == 'superfam':
-        my_table = reduce(lambda x,y: pd.merge(x,y, on='SuperFamily'), frames)
+        my_table = reduce(lambda x, y: pd.merge(x, y, on='SuperFamily'), frames)
     if selection == 'order':
-        my_table = reduce(lambda x,y: pd.merge(x,y, on='Order'), frames)
+        my_table = reduce(lambda x, y: pd.merge(x, y, on='Order'), frames)
     my_table = my_table.round(2)
     ax.table(cellText=my_table.values,
              colLabels=my_table.columns,
@@ -579,8 +573,8 @@ def graph_table_mean_TE_lengths(Camarosa, list_of_genome_data,
 
 
 def graph_table_median_TE_lengths(Camarosa, list_of_genome_data,
-                                             selection,
-                                             output_dir):
+                                  selection,
+                                  output_dir):
     # TODO Edit the arg list and try to reduce the number of ifs.
     """
     Args:
@@ -611,8 +605,8 @@ def graph_table_median_TE_lengths(Camarosa, list_of_genome_data,
     if selection == 'order':
         median_length_dict = Camarosa.median_order_length.to_dict()
     Cam_data = pd.DataFrame.from_dict(median_length_dict,
-                                         orient='index',
-                                         columns=[Camarosa.genome_id])
+                                      orient='index',
+                                      columns=[Camarosa.genome_id])
     if selection == 'superfam':
         Cam_data.index.name = 'SuperFamily'
     if selection == 'order':
@@ -620,9 +614,9 @@ def graph_table_median_TE_lengths(Camarosa, list_of_genome_data,
     frames.append(Cam_data)
 
     if selection == 'superfam':
-        my_table = reduce(lambda x,y: pd.merge(x,y, on='SuperFamily'), frames)
+        my_table = reduce(lambda x, y: pd.merge(x, y, on='SuperFamily'), frames)
     if selection == 'order':
-        my_table = reduce(lambda x,y: pd.merge(x,y, on='Order'), frames)
+        my_table = reduce(lambda x, y: pd.merge(x, y, on='Order'), frames)
     my_table = my_table.round(2)
     ax.table(cellText=my_table.values,
              colLabels=my_table.columns,
@@ -632,7 +626,6 @@ def graph_table_median_TE_lengths(Camarosa, list_of_genome_data,
     plt.savefig(output_dir + '/' + Camarosa.genome_id +
                 '_' + selection + '_Median_Subgenome_Table.png')
     plt.close()
-
 
 
 if __name__ == '__main__':
@@ -649,7 +642,6 @@ if __name__ == '__main__':
                         default=os.path.join(path_main, '../../results/table'),
                         help='Parent directory to output table results')
 
-
     args = parser.parse_args()
     args.bar_output_dir = os.path.abspath(args.bar_output_dir)
     args.pie_output_dir = os.path.abspath(args.pie_output_dir)
@@ -657,7 +649,6 @@ if __name__ == '__main__':
     # Load Data
 
     data_place = '/home/scott/Documents/Uni/Research/Projects/TE_Density/filtered_input_data/'
-
 
     # NOTE Genome Sizes in MB:
     cam_size = 0.805489
@@ -671,18 +662,18 @@ if __name__ == '__main__':
 
     # NOTE Camarosa Information, Import Camarosa Data:
     Gene_Data_Cam = pd.read_csv(os.path.join(data_place,
-                                             'Cleaned_Cam_Genes.tsv'),
+                                'Cleaned_Cam_Genes.tsv'),
                                 header='infer', sep='\t',
                                 index_col='Gene_Name')
     TE_Data_Cam = pd.read_csv(os.path.join(data_place,
-                                           'Cleaned_Cam_TEs.tsv'),
-                                header='infer', sep='\t')
+                              'Cleaned_Cam_TEs.tsv'),
+                              header='infer', sep='\t')
     Camarosa = GenomeData('Camarosa', Gene_Data_Cam, TE_Data_Cam, cam_size)
     # NOTE Camarosa subgenome chromosomes
-    F_vesca = ['Fvb1-4','Fvb2-2','Fvb3-4','Fvb4-3','Fvb5-1','Fvb6-1','Fvb7-2']
-    F_nipponica = ['Fvb1-3','Fvb2-1','Fvb3-3','Fvb4-2','Fvb5-4','Fvb6-2','Fvb7-1']
-    F_iinumae = ['Fvb1-2','Fvb2-4','Fvb3-2','Fvb4-4','Fvb5-4','Fvb6-3','Fvb7-3']
-    F_viridis = ['Fvb1-1','Fvb2-3','Fvb3-1','Fvb4-1','Fvb5-2','Fvb6-4','Fvb7-4']
+    F_vesca = ['Fvb1-4', 'Fvb2-2', 'Fvb3-4', 'Fvb4-3', 'Fvb5-1', 'Fvb6-1', 'Fvb7-2']
+    F_nipponica = ['Fvb1-3', 'Fvb2-1', 'Fvb3-3', 'Fvb4-2', 'Fvb5-4', 'Fvb6-2', 'Fvb7-1']
+    F_iinumae = ['Fvb1-2', 'Fvb2-4', 'Fvb3-2', 'Fvb4-4', 'Fvb5-4', 'Fvb6-3', 'Fvb7-3']
+    F_viridis = ['Fvb1-1', 'Fvb2-3', 'Fvb3-1', 'Fvb4-1', 'Fvb5-2', 'Fvb6-4', 'Fvb7-4']
 
     Vesca = SubgenomeData('Camarosa', Gene_Data_Cam,
                           TE_Data_Cam, F_vesca, 'F_vesca')
@@ -694,17 +685,15 @@ if __name__ == '__main__':
                             TE_Data_Cam, F_viridis, 'F_viridis')
     list_of_subgenomes = [Vesca, Nipponica, Iinumae, Viridis]
 
-
     # NOTE H4 Information, Import H4 Data:
     Gene_Data_H4 = pd.read_csv(os.path.join(data_place,
-                                            'Cleaned_H4_Genes.tsv'),
-                                            header='infer', sep='\t',
-                                            index_col='Gene_Name')
+                               'Cleaned_H4_Genes.tsv'),
+                               header='infer', sep='\t',
+                               index_col='Gene_Name')
     TE_Data_H4 = pd.read_csv(os.path.join(data_place,
-                                            'Cleaned_H4_TEs.tsv'),
-                                            header='infer', sep='\t')
+                             'Cleaned_H4_TEs.tsv'),
+                             header='infer', sep='\t')
     H4 = GenomeData('H4', Gene_Data_H4, TE_Data_H4, h4_size)
-
 
     graph_general_genome_stats_pie(Camarosa, args.pie_output_dir, explode_bool=False)
     graph_order_sequences_as_percents(Camarosa, args.pie_output_dir)
@@ -712,8 +701,8 @@ if __name__ == '__main__':
     graph_order_numbers_as_percents(Camarosa, args.pie_output_dir)
     graph_superfam_numbers_as_percents(Camarosa, args.pie_output_dir)
     graph_cam_superfam_chromosomes(Camarosa, args.pie_output_dir,
-                                    F_vesca, F_iinumae,
-                                    F_viridis, F_nipponica)
+                                   F_vesca, F_iinumae,
+                                   F_viridis, F_nipponica)
 
     graph_general_genome_stats_pie(H4, args.pie_output_dir, explode_bool=False)
     graph_order_numbers_as_percents(H4, args.pie_output_dir)
@@ -731,27 +720,17 @@ if __name__ == '__main__':
                                              args.table_output_dir)
 
     graph_table_mean_TE_lengths(Camarosa, list_of_subgenomes,
-                                             'order',
-                                             args.table_output_dir)
+                                'order',
+                                args.table_output_dir)
 
     graph_table_mean_TE_lengths(Camarosa, list_of_subgenomes,
-                                             'superfam',
-                                             args.table_output_dir)
+                                'superfam',
+                                args.table_output_dir)
 
     graph_table_median_TE_lengths(Camarosa, list_of_subgenomes,
-                                             'order',
-                                             args.table_output_dir)
+                                  'order',
+                                  args.table_output_dir)
 
     graph_table_median_TE_lengths(Camarosa, list_of_subgenomes,
-                                             'superfam',
-                                             args.table_output_dir)
-
-    #------------------
-
-
-
-    #graph_order_sequences_as_percents(Camarosa, args.pie_output_dir)
-
-    #graph_bar_superfam_lengths_genome_wide(Camarosa,
-                                           #'Camarosa_Subgenome_Content_Bar',
-                                           #args.bar_output_dir)
+                                  'superfam',
+                                  args.table_output_dir)
