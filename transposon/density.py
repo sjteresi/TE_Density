@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from configparser import ConfigParser
+import time
 
 from transposon.gene_data import GeneData
 from transposon.transposon_data import TransposonData
@@ -280,6 +281,56 @@ def validate_args(args, logger):
         logger.critical("argument 'output_dir' is not a directory")
         raise ValueError("%s is not a directory" % (args.output_dir))
 
+def verify_H5_cache(GeneData_obj, TE_Data_obj, chrom_id, filtered_input_data,
+                    reset_h5, genes_input_file, tes_input_file, logger):
+    """Determine whether or not previously saved GeneData and TransposonData
+    exist in H5 format. Each h5 file represents either GeneData or
+    TransposonData for one chromosome at a time.
+
+    When are H5 files written?
+    1. H5 files will be written if there are no current corresponding H5 files
+    saved on disk.
+    2. If a command-line option is passed to density.py to re-write the H5
+    files, this option defaults to not re-write.
+    3. If enough time has passed between the creation of the H5 file and the
+    current run-time of the program. TODO talk to Michael more about this.
+
+    Args:
+        filtered_input_data (
+
+        reset_h5 (bool):
+
+        logger (logging object):
+    """
+    g_filename = os.path.join(filtered_input_data, str(chrom_id +
+                              '_GeneData.h5'))
+    t_filename = os.path.join(filtered_input_data, str(chrom_id +
+                              '_TEData.h5'))
+    if not reset_h5:
+        return
+
+    elif os.path.exists(g_filename) and os.path.exists(t_filename):
+        gene_annot_time = os.path.getmtime(genes_input_file)
+        te_annot_time = os.path.getmtime(tes_input_file)
+        gene_h5_time = os.path.getmtime(g_filename)
+        te_h5_time = os.path.getmtime(t_filename)
+
+        if (gene_annot_time > gene_h5_time) and (te_annot_time > te_h5_time):
+            logger.info("""Chromosome: %s: Writing Gene_Data and TE_Data to disk
+                        in H5 format because annotation file is newer than h5
+                        cache.""", chrom_id)
+            GeneData_obj.write(g_filename)
+            TE_Data_obj.write(t_filename)
+
+    elif reset_h5 or (not(os.path.exists(g_filename) and
+                          os.path.exists(t_filename))):
+        logger.info("Chromosome: %s: Writing Gene_Data and TE_Data to disk in H5 format", chrom_id)
+        GeneData_obj.write(g_filename)
+        TE_Data_obj.write(t_filename)
+    else:
+        logger.warning('Nothing was saved because 0 conditions were met.')
+
+
 
 def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
     """Determine whether or not previously filtered gene data exists, if it
@@ -299,10 +350,21 @@ def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
         Gene_Data (pandaframe): A pandas dataframe of the Gene data
     """
     if os.path.exists(cleaned_genes):
-        logger.info("Importing filtered gene dataset from disk...")
-        Gene_Data = pd.read_csv(cleaned_genes, header='infer', sep='\t',
-                                dtype={'Start': 'float32', 'Stop': 'float32',
-                                     'Length': 'float32'}, index_col='Gene_Name')
+        gene_annot_time = os.path.getmtime(genes_input_file)
+        cleaned_gene_time = os.path.getmtime(cleaned_genes)
+        if gene_annot_time > cleaned_gene_time:
+            logger.info("""Gene annotation file is newer than the previously
+                        filtered data set. Importing gene data from the
+                        annotation file and re-writing the filtered input
+                        data""")
+            Gene_Data = import_genes(genes_input_file, contig_del)
+            Gene_Data.to_csv(cleaned_genes, sep='\t', header=True, index=True)
+
+        else:
+            logger.info("Importing filtered gene dataset from disk...")
+            Gene_Data = pd.read_csv(cleaned_genes, header='infer', sep='\t',
+                                    dtype={'Start': 'float32', 'Stop': 'float32',
+                                         'Length': 'float32'}, index_col='Gene_Name')
     else:
         logger.info("Previously filtered gene dataset does not exist...")
         logger.info("Importing unfiltered gene dataset from annotation file...")
@@ -335,10 +397,21 @@ def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer,
         TE_Data (pandaframe): A pandas dataframe of the TE data
     """
     if os.path.exists(cleaned_transposons):
-        logger.info("Importing filtered transposons from disk...")
-        TE_Data = pd.read_csv(cleaned_transposons, header='infer',
-                              dtype={'Start': 'float32', 'Stop': 'float32',
-                                     'Length': 'float32'}, sep='\t')
+        te_annot_time = os.path.getmtime(tes_input_file)
+        cleaned_te_time = os.path.getmtime(cleaned_transposons)
+        if te_annot_time > cleaned_te_time:
+            logger.info("""TE annotation file is newer than the previously
+                        filtered data set. Importing TE data from the
+                        annotation file and re-writing the filtered input
+                        data""")
+            TE_Data = import_transposons(tes_input_file, te_annot_renamer,
+                                         contig_del)
+            TE_Data.to_csv(cleaned_transposons, sep='\t', header=True, index=False)
+        else:
+            logger.info("Importing filtered transposons from disk...")
+            TE_Data = pd.read_csv(cleaned_transposons, header='infer',
+                                  dtype={'Start': 'float32', 'Stop': 'float32',
+                                         'Length': 'float32'}, sep='\t')
     else:
         logger.info("Previously filtered TE dataset does not exist...")
         logger.info("Importing unfiltered TE dataset from annotation file...")
@@ -348,7 +421,8 @@ def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer,
     return TE_Data
 
 
-def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id):
+def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id,
+            filtered_input_data, reset_h5, genes_input_file, tes_input_file):
     """
     Run the algorithm
 
@@ -361,9 +435,14 @@ def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id):
         overlap files. This comes from the ArgumentParser obj and defaults to
         /tmp. You can edit the location of the directory with the -s flag when
         calling density.py. overlap_dir is used when calling OverlapWorker.
+
+        reset_h5 (bool): True/False whether or not to overwrite the H5 cache of
+        GeneData and TransposonData if it currently exists
     """
-    complete_genedata = GeneData(Gene_Data, genome_id)
+    complete_genedata = GeneData(Gene_Data)
+    complete_genedata.add_genome_id(genome_id)
     complete_genedata.write('Complete_GeneData.h5')
+    # TODO get this part in the verification scheme
 
 
     grouped_genes = split(Gene_Data, 'Chromosome')  # check docstring for my split func
@@ -380,28 +459,28 @@ def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id):
     gene_progress = tqdm(
         total=len(grouped_genes), desc="chromosome  ", position=0, ncols=80)
     _temp_count = 0
-    # TODO need grouping ID for each GeneData and TransposonData (e.g. chromosome ID)
-    # At this point we are starting to iterate over subsets of the gene
-    # dataframe, these subsets are on a chromosome-by-chromosome basis
-    for sub_gene, sub_te in zip(grouped_genes, grouped_TEs):
-        gene_data = GeneData(sub_gene, genome_id)
-        te_data = TransposonData(sub_te, genome_id)
-        current_chromosome = gene_data.data_frame.Chromosome.unique()[0]
-        current_gene_data = current_chromosome + '_GeneData.h5'
-        # TODO make the current chromosome naming scheme more robust and not
-        # use a magic number
 
+    for chromosome_of_gene_data, chromosome_of_te_data in zip(grouped_genes,
+                                                              grouped_TEs):
+        wrapped_genedata_by_chrom = GeneData(chromosome_of_gene_data.copy(deep=True))
+        wrapped_genedata_by_chrom.add_genome_id(genome_id)
+        wrapped_tedata_by_chrom = TransposonData(chromosome_of_te_data.copy(deep=True))
+        wrapped_tedata_by_chrom.add_genome_id(genome_id)
+        #current_gene_data_ID = wrapped_genedata_by_chrom.chromosome_unique_id + '_GeneData.h5'
+        #wrapped_tedata_by_chrom.write(current_gene_data_ID)
 
-        # TODO validate the gene / te pair
+        # TODO verify h5
+        verify_H5_cache(wrapped_genedata_by_chrom, wrapped_tedata_by_chrom,
+                        wrapped_genedata_by_chrom.chromosome_unique_id, filtered_input_data,
+                        reset_h5, genes_input_file, tes_input_file, logger)
 
-        gene_data.write(current_gene_data, key=gene_data.genome_id)
 
         def window_it(temp_param):
             return range(temp_param[first_window_size],
                          temp_param[last_window_size],
                          temp_param[window_delta])
 
-        n_genes = sum(1 for g in gene_data.names)
+        n_genes = sum(1 for g in wrapped_genedata_by_chrom.names)
         # TODO create status bar above, reuse and reset here
         # 'total' is a public member
         sub_progress = tqdm(total=n_genes, desc="  genes     ", position=1, ncols=80)
@@ -411,7 +490,8 @@ def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id):
             sub_progress.update(1)
             gene_progress.refresh()
         overlap.calculate(
-            gene_data, te_data, window_it(alg_parameters), gene_data.names, progress)
+            wrapped_genedata_by_chrom, wrapped_tedata_by_chrom,
+            window_it(alg_parameters), wrapped_genedata_by_chrom.names, progress)
 
         _temp_count += 1
         gene_progress.update(1)
@@ -440,6 +520,7 @@ if __name__ == '__main__':
                         default=os.path.join(path_main, '../..',
                                              'filtered_input_data'),
                         help='parent directory for cached input data')
+    parser.add_argument('--reset_h5', default=False)
     parser.add_argument('--output_dir', '-o', type=str,
                         default=os.path.join(path_main, '../..', 'results'),
                         help='parent directory to output results')
@@ -497,4 +578,6 @@ if __name__ == '__main__':
 
     # Process data
     logger.info("Process data...")
-    process(alg_parameters, Gene_Data, TE_Data, args.overlap_dir, args.genome_id)
+    process(alg_parameters, Gene_Data, TE_Data, args.overlap_dir,
+            args.genome_id, args.filtered_input_data, args.reset_h5,
+            args.genes_input_file, args.tes_input_file)
