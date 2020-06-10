@@ -30,5 +30,5 @@ def temp_dir():
 
 @pytest.fixture(scope="module")
 def overlap_data():
+    pass
     # scope=module b/c we can reuse the files b/c they are read only
-    
