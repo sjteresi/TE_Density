@@ -362,6 +362,10 @@ def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id):
         /tmp. You can edit the location of the directory with the -s flag when
         calling density.py. overlap_dir is used when calling OverlapWorker.
     """
+
+
+
+
     grouped_genes = split(Gene_Data, 'Chromosome')  # check docstring for my split func
     grouped_TEs = split(TE_Data, 'Chromosome')  # check docstring for my split func
     check_groupings(grouped_genes, grouped_TEs, logger, genome_id)
