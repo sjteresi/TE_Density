@@ -15,6 +15,8 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from configparser import ConfigParser
+import sys
+import time
 
 from transposon.gene_data import GeneData
 from transposon.transposon_data import TransposonData
@@ -22,6 +24,9 @@ from transposon.import_genes import import_genes
 from transposon.import_transposons import import_transposons
 from transposon.overlap import OverlapWorker
 from transposon.replace_names import te_annot_renamer
+
+from transposon.overlap_normalization import O_NormMatrix
+from transposon.revise_annotation import Revise_Anno
 
 
 def get_nulls(my_df):
@@ -66,10 +71,13 @@ def swap_columns(dataframe, col_condition, col_1, col_2):
 
 
 def split(dataframe, group):
-    """Return list of the dataframe with each element being a subset of the df.
+    """Return list of dataframes with each element being a subset of the df.
 
     I use this function to split by chromosome so that we may later do
     chromosome element-wise operations.
+
+    This function is also used in revise_annotation.py to split on transposon
+    identities.
     """
 
     grouped_df = dataframe.groupby(group)
@@ -269,10 +277,10 @@ def validate_args(args, logger):
 
     if not os.path.isfile(args.genes_input_file):
         logger.critical("argument 'genes_input_dir' is not a file")
-        raise ValueError("%s is not a directory" % (args.genes_input_file))
+        raise ValueError("%s is not a file" % (args.genes_input_file))
     if not os.path.isfile(args.tes_input_file):
         logger.critical("argument 'tes_input_dir' is not a file")
-        raise ValueError("%s is not a directory" % (args.tes_input_file))
+        raise ValueError("%s is not a file" % (args.tes_input_file))
     if not os.path.isdir(args.overlap_dir):
         logger.critical("argument 'overlap_dir' is not a directory")
         raise ValueError("%s is not a directory" % (args.overlap_dir))
@@ -312,7 +320,7 @@ def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
 
 
 def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer,
-                    contig_del, logger):
+                    contig_del, revise_anno, revised_transposons, logger):
     """Determine whether or not previously filtered TE data exists, if it
     does, read it from disk. If it does not, read the raw annotation file and
     make a filtered dataset for future import.
@@ -330,6 +338,15 @@ def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer,
             changing the annotation details for specific TE types.
 
         contig_del (bool): A boolean of whether to remove contigs on import
+            Option set in command line-arguments, defaults to True.
+
+        revise_anno (bool): A boolean of whether or not to use the
+            revised annotation so that there are no overlapping TEs
+            of similar identity. Option set in command line-arguments,
+            defaults to True.
+
+        revised_transposons (str): A string representing the path of a
+            previously filtered (cleaned) and revised TE annotation.
 
     Returns:
         TE_Data (pandaframe): A pandas dataframe of the TE data
@@ -345,6 +362,50 @@ def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer,
         TE_Data = import_transposons(tes_input_file, te_annot_renamer,
                                      contig_del)
         TE_Data.to_csv(cleaned_transposons, sep='\t', header=True, index=False)
+
+    if revise_anno:
+        TE_Data = revise_annotation(TE_Data, revise_anno, revised_transposons)
+    return TE_Data
+
+def revise_annotation(TE_Data, revise_anno, revised_transposons):
+    """
+    Revises the annotation so that elements of the same type do not overlap at
+    all. Will essentially merge elements together, elongating them. This is
+    done so that the mathematics of density make sense. You can elect to not
+    use the revised annotation through a command-line argument to density.py,
+    however given that TEs often overlap with one another in annotatios (not
+    just being nested in one another) it can lead to some difficulties in
+    accurately assessing density and obfuscate the density results.
+
+    Args:
+        TE_Data (pandas.core.DataFrame): A PandaFrame of the TE data,
+        previously imported from raw and filtered or imported from a previously
+        filtered data file that was saved to disk.
+
+        revise_anno (bool): A boolean of whether or not to use/create a revised
+        annotation
+
+        revised_transposons (str): A string representing the path of a
+        previously filtered (cleaned) and revised TE annotation.
+
+    Returns:
+        TE_Data (pandaframe): A pandas dataframe of the TE data
+    """
+    # Want a higher recursion limit for the code
+    sys.setrecursionlimit(11**6)
+    logger.info("Checking to see if revised TE dataset exists...")
+    if os.path.exists(revised_transposons):
+        logger.info("Importing revised TE dataset from disk...")
+        TE_Data = pd.read_csv(cleaned_transposons, header='infer',
+                              dtype={'Start': 'float32', 'Stop': 'float32',
+                                     'Length': 'float32'}, sep='\t')
+    else:
+        logger.info("Previously revised TE dataset does not exist...")
+        logger.info("Creating revised TE dataset...")
+        revised_TE_Data = Revise_Anno(TE_Data, logger)
+        logger.info("Saving revised TE dataset...")
+        revised_TE_Data.save_whole_te_annotation(revised_transposons)
+        TE_Data = revised_TE_Data.whole_te_annotation
     return TE_Data
 
 
@@ -376,11 +437,18 @@ def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id):
     gene_progress = tqdm(
         total=len(grouped_genes), desc="chromosome  ", position=0, ncols=80)
     _temp_count = 0
+
     # TODO need grouping ID for each GeneData and TransposonData (e.g. chromosome ID)
+    # The below part is a good candidate for multiprocessing, especially the
+    # TE Annotation revision.
     for sub_gene, sub_te in zip(grouped_genes, grouped_TEs):
         gene_data = GeneData(sub_gene, genome_id)
         te_data = TransposonData(sub_te, genome_id)
-        # TODO validate the gene / te pair
+
+        raise ValueError
+
+
+
 
         def window_it(temp_param):
             return range(temp_param[first_window_size],
@@ -415,6 +483,7 @@ if __name__ == '__main__':
     parser.add_argument('genome_id', type=str,
                         help='string of the genome to be run, for clarity')
     parser.add_argument('--contig_del', default=True)
+    parser.add_argument('--revise_anno', default=True)
     parser.add_argument('--config_file', '-c', type=str,
                         default=os.path.join(path_main, '../../',
                                              'config/test_run_config.ini'),
@@ -426,6 +495,10 @@ if __name__ == '__main__':
                         default=os.path.join(path_main, '../..',
                                              'filtered_input_data'),
                         help='parent directory for cached input data')
+    parser.add_argument('--revised_input_data', '-r', type=str,
+                        default=os.path.join(path_main, '../..',
+                                             'filtered_input_data/revised_input_data'),
+                        help='parent directory for cached revised input data')
     parser.add_argument('--output_dir', '-o', type=str,
                         default=os.path.join(path_main, '../..', 'results'),
                         help='parent directory to output results')
@@ -439,6 +512,7 @@ if __name__ == '__main__':
     args.config_file = os.path.abspath(args.config_file)
     args.overlap_dir = os.path.abspath(args.overlap_dir)
     args.filtered_input_data = os.path.abspath(args.filtered_input_data)
+    args.revised_input_data = os.path.abspath(args.revised_input_data)
     args.output_dir = os.path.abspath(args.output_dir)
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
@@ -466,11 +540,22 @@ if __name__ == '__main__':
     cleaned_transposons = os.path.join(args.filtered_input_data, str('Cleaned_' +
                                                                      t_fname +
                                                                      '.tsv'))
+    revised_transposons = os.path.join(args.revised_input_data, str('Revised_'
+                                                                    + t_fname
+                                                                     + '.tsv'))
     Gene_Data = verify_gene_cache(args.genes_input_file, cleaned_genes, args.contig_del, logger)
     TE_Data = verify_TE_cache(args.tes_input_file, cleaned_transposons,
-                              te_annot_renamer, args.contig_del, logger)
+                              te_annot_renamer, args.contig_del,
+                              args.revise_anno, revised_transposons,
+                              logger)
+
     # NOTE neither Gene_Data or TE_Data are wrapped yet
 
+    print()
+    print()
+    print()
+    print('If you got here that means everything went alright')
+    raise ValueError
     logger.info("Reading config file and making parameter dictionary...")
     parser = ConfigParser()
     parser.read(args.config_file)
@@ -480,6 +565,13 @@ if __name__ == '__main__':
     alg_parameters = {first_window_size: first_window_size,
                       window_delta: window_delta,
                       last_window_size: last_window_size}
+
+
+
+    # Revise the annotation
+    # Returns a pandaframe
+
+
 
     # Process data
     logger.info("Process data...")
