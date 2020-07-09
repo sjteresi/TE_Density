@@ -8,8 +8,17 @@ Used to provide a common interface and fast calculations with numpy.
 
 __author__ = "Michael Teresi, Scott Teresi"
 
+from collections import namedtuple
 import logging
 import numpy as np
+
+
+_GeneDataConfigSink = namedtuple(
+    '_GeneDataConfigSink', ['start', 'stop', 'length', 'chromosome']
+)
+_GeneDataConfigSource = namedtuple(
+    '_GeneDataConfigSource', ['filepath']
+)
 
 
 class GeneDatum(object):
@@ -23,19 +32,30 @@ class GeneDatum(object):
     GeneData subclasses should conform to these column names or redefine the properties.
     """
 
-    def __init__(self, gene_dataframe, gene_id, logger=None):
+    def __init__(self, configuration, logger=None):
 
         self._logger = logger or logging.getLogger(__name__)
-        self.name = str(gene_id)
-        self.start = gene_dataframe.Start[str(gene_id)]
-        self.stop = gene_dataframe.Stop[str(gene_id)]
-        self.length = gene_dataframe.Length[str(gene_id)]
-        self.chromosome = gene_dataframe.Chromosome[str(gene_id)]
+
+
+    @classmethod
+    def from_dataframe(cls, data_frame, gene_id):
+
+        name = str(gene_id)
+        start = data_frame.Start[name]
+        stop = data_frame.Stop[name]
+        length = data_frame.Length[name]
+        chromosome = data_frame.Chromosome[name]
 
         # For the left side, window stop is one digit before gene start
-        self.left_win_stop = np.subtract(self.start, 1)
+        left_win_stop = np.subtract(self.start, 1)
         # For the right side, window start is one digit after gene stop
-        self.right_win_start = np.add(self.stop, 1)
+        right_win_start = np.add(self.stop, 1)
+
+
+    @classmethod
+    def from_file(cls, filepath):
+        pass
+
 
     def write(self, filename):
         """Write to disk."""

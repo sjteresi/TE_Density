@@ -9,6 +9,8 @@ Used to provide a common interface and fast calculations with numpy.
 __author__ = "Michael Teresi, Scott Teresi"
 
 import logging
+
+import h5py
 import numpy as np
 import pandas as pd
 
@@ -25,6 +27,14 @@ class GeneData(object):
     GeneData subclasses should conform to these column names or redefine the properties.
     """
 
+    _STARTS = 'START_IDXS'      # float64?
+    _STOPS = 'STOP_IDXS'        # float64?
+    _LENGTHS = 'LENGTHS'        # float64?
+    _CHROMOSOME = 'CHROMOSOME'  # just one str
+    _GENE_NAMES = 'GENE_NAMES'  # list of str
+    _GENE_NAME_TO_INT = 'GENE_NAMES_TO_INT'
+
+
     def __init__(self, gene_dataframe, genome_id, logger=None):
         """Initialize.
 
@@ -34,13 +44,26 @@ class GeneData(object):
         """
 
         self._logger = logger or logging.getLogger(__name__)
-        self.data_frame = gene_dataframe
-        self._names = self.data_frame.index
-        self.starts = self.data_frame.Start.to_numpy(copy=False)
-        self.stops = self.data_frame.Stop.to_numpy(copy=False)
-        self.lengths = self.data_frame.Length.to_numpy(copy=False)
-        self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
-        self.genome_id = genome_id
+
+
+    @classmethod
+    def from_dataframe(cls, dataframe, genome_id):
+
+        # TODO validate that the chromosome is unique (raise if not)
+        data_frame = gene_dataframe
+        _names = self.data_frame.index
+        starts = self.data_frame.Start.to_numpy(copy=False)
+        stops = self.data_frame.Stop.to_numpy(copy=False)
+        lengths = self.data_frame.Length.to_numpy(copy=False)
+        chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
+        genome_id = genome_id
+        pass
+
+    @classmethod
+    def from_file(cls, filpath):
+        pass
+
+
 
     @classmethod
     def mock(cls,
