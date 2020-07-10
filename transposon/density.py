@@ -24,8 +24,6 @@ from transposon.import_genes import import_genes
 from transposon.import_transposons import import_transposons
 from transposon.overlap import OverlapWorker
 from transposon.replace_names import te_annot_renamer
-
-from transposon.overlap_normalization import O_NormMatrix
 from transposon.revise_annotation import Revise_Anno
 
 
