@@ -282,9 +282,9 @@ def validate_args(args, logger):
         raise ValueError("%s is not a directory" % (args.output_dir))
 
 
-def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id,
-            filtered_input_data, reset_h5, h5_cache_location, genes_input_file,
-            tes_input_file):
+def process(alg_parameters, gene_data_unwrapped, te_data_unwrapped, overlap_dir,
+            genome_id, filtered_input_data, reset_h5, h5_cache_location,
+            genes_input_file, tes_input_file):
     """
     Run the algorithm
 
@@ -301,20 +301,10 @@ def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id,
         reset_h5 (bool): True/False whether or not to overwrite the H5 cache of
         GeneData and TransposonData if it currently exists
     """
-
-
-
-
-    grouped_genes = split(Gene_Data, 'Chromosome')  # check docstring for my split func
-    grouped_TEs = split(TE_Data, 'Chromosome')  # check docstring for my split func
+    grouped_genes = split(gene_data_unwrapped, 'Chromosome')
+    grouped_TEs = split(te_data_unwrapped, 'Chromosome')
+    # check docstring for my split func
     check_groupings(grouped_genes, grouped_TEs, logger, genome_id)
-    # Think of the 7 main "chromosomes" as "meta-chromosomes" in reality there
-    # are 4 actual chromosomes per "meta-chromosome" label. So Fvb1 is
-    # meta-chromosome 1, and within that Fvb1-1 of genes should only be
-    # matching with Fvb1-1 of TEs, not Fvb1-2. The first number, what I am
-    # calling the "meta-chromosome" is just denoting that it is the first
-    # chromosome, where the second number is the actual physical chromosome,
-    # and we use the number to denote which subgenome it is assigned to.
 
     gene_progress = tqdm(
         total=len(grouped_genes), desc="chromosome  ", position=0, ncols=80)
@@ -326,8 +316,8 @@ def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id,
         wrapped_genedata_by_chrom.add_genome_id(genome_id)
         wrapped_tedata_by_chrom = TransposonData(chromosome_of_te_data.copy(deep=True))
         wrapped_tedata_by_chrom.add_genome_id(genome_id)
-
         chrom_id = wrapped_genedata_by_chrom.chromosome_unique_id
+
         # NOTE
         # MICHAEL, these are how the H5 files are saved
         h5_g_filename = os.path.join(h5_cache_location, str(chrom_id +
@@ -360,18 +350,6 @@ def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id,
         _temp_count += 1
         gene_progress.update(1)
 
-def str2bool(v):
-    """
-    Make sure the argparse boolean arguments work correctly.
-    """
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('True', 'true'):
-        return True
-    elif v.lower() in ('False', 'false'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected')
 
 if __name__ == '__main__':
     """Command line interface to calculate density."""
@@ -384,8 +362,6 @@ if __name__ == '__main__':
                         help='parent path of transposon file')
     parser.add_argument('genome_id', type=str,
                         help='string of the genome to be run, for clarity')
-    parser.add_argument('--contig_del', nargs='?', type=str2bool, const=True,
-                        default=True)
     parser.add_argument('--config_file', '-c', type=str,
                         default=os.path.join(path_main, '../../',
                                              'config/test_run_config.ini'),
@@ -397,11 +373,16 @@ if __name__ == '__main__':
                         default=os.path.join(path_main, '../..',
                                              'filtered_input_data'),
                         help='parent directory for cached input data')
+    # TODO if the user sets their own filtered_input_data location, this
+    # h5_cache_loc location will not exactly follow their filtered_input_data
+    # convention
     parser.add_argument('--h5_cache_loc', '-h5', type=str,
                         default=os.path.join(path_main, '../..',
                                              'filtered_input_data/h5_cache'),
                         help='parent directory for h5 cached input data')
-    parser.add_argument('--reset_h5', nargs='?', type=str2bool, const=True, default=False)
+    parser.add_argument('--reset_h5', action='store_true')
+    parser.add_argument('--contig_del', action='store_false')
+
     parser.add_argument('--output_dir', '-o', type=str,
                         default=os.path.join(path_main, '../..', 'results'),
                         help='parent directory to output results')
@@ -444,8 +425,8 @@ if __name__ == '__main__':
     cleaned_transposons = os.path.join(args.filtered_input_data, str('Cleaned_' +
                                                                      t_fname +
                                                                      '.tsv'))
-    Gene_Data = verify_gene_cache(args.genes_input_file, cleaned_genes, args.contig_del, logger)
-    TE_Data = verify_TE_cache(args.tes_input_file, cleaned_transposons,
+    gene_data_unwrapped = verify_gene_cache(args.genes_input_file, cleaned_genes, args.contig_del, logger)
+    te_data_unwrapped = verify_TE_cache(args.tes_input_file, cleaned_transposons,
                               te_annot_renamer, args.contig_del, logger)
     # NOTE neither Gene_Data or TE_Data are wrapped yet
 
@@ -461,6 +442,7 @@ if __name__ == '__main__':
 
     # Process data
     logger.info("Process data...")
-    process(alg_parameters, Gene_Data, TE_Data, args.overlap_dir,
-            args.genome_id, args.filtered_input_data, args.reset_h5,
-            args.h5_cache_loc, args.genes_input_file, args.tes_input_file)
+    process(alg_parameters, gene_data_unwrapped, te_data_unwrapped,
+            args.overlap_dir, args.genome_id, args.filtered_input_data,
+            args.reset_h5, args.h5_cache_loc, args.genes_input_file,
+            args.tes_input_file)

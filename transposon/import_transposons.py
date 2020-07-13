@@ -47,6 +47,6 @@ def import_transposons(tes_input_path, te_annot_renamer, contig_del):
     TE_Data.Stop = TE_Data.Stop.astype('float32')
     TE_Data['Length'] = TE_Data.Stop - TE_Data.Start + 1
     if contig_del:
-        TE_Data = TE_Data[~TE_Data.Chromosome.str.contains('contig')]
+        TE_Data = TE_Data[~TE_Data.Chromosome.str.contains('contig', case=False)]
     check_nulls(TE_Data)
     return TE_Data

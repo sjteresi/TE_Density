@@ -42,7 +42,8 @@ def import_genes(genes_input_path, contig_del=False):
     Gene_Data['Length'] = Gene_Data.Stop - Gene_Data.Start + 1
 
     if contig_del:
-        Gene_Data = Gene_Data[~Gene_Data.Chromosome.str.contains('contig')]
+        Gene_Data = Gene_Data[~Gene_Data.Chromosome.str.contains('contig',
+                                                                 case=False)]
 
     # We will not swap Start and Stop for Antisense strands. We will do this
     # post-processing

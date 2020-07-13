@@ -90,10 +90,12 @@ class TransposonData(object):
 
         Args:
             filename (str): a string of the filename to write.
+            genome_id (str): identifier for the genome name.
             key (str): identifier for the group (dataset) in the hdf5 obj.
         """
-
-        return cls(pd.read_hdf(filename, key=key))
+        new_instance = cls(pd.read_hdf(filename, key=key))
+        new_instance.add_genome_id(genome_id)
+        return new_instance
 
     @property
     def number_elements(self):

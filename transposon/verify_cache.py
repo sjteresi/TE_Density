@@ -12,11 +12,11 @@ from transposon.import_genes import import_genes
 from transposon.import_transposons import import_transposons
 
 
-def verify_chromosome_h5_cache(GeneData_obj, TE_Data_obj, h5_g_filename,
+def verify_chromosome_h5_cache(gene_data_obj, te_data_obj, h5_g_filename,
                                h5_t_filename, reset_h5, h5_cache_location,
                                genes_input_file, tes_input_file, chrom_id, logger):
-    """Determine whether or not previously saved GeneData and TransposonData
-    exist in H5 format. Each h5 file represents either GeneData or
+    """Determine whether or not previously saved gene_data and TransposonData
+    exist in H5 format. Each h5 file represents either gene_data or
     TransposonData for one chromosome at a time. Save/Update H5 files as
     necessary.
 
@@ -29,10 +29,10 @@ def verify_chromosome_h5_cache(GeneData_obj, TE_Data_obj, h5_g_filename,
     current run-time of the program. TODO talk to Michael more about this.
 
     Args:
-        GeneData_obj (GeneData): Instance of GeneData
-        TE_Data_obj (TransposonData): Instance of TransposonData
+        gene_data_obj (gene_data): Instance of gene_data
+        te_data_obj (TransposonData): Instance of TransposonData
         h5_g_filename (str): The string of the filename in which to save the
-            GeneData as an H5 file.
+            gene_data as an H5 file.
         h5_t_filename (str): The string of the filename in which to save the
             TransposonData as an H5 file.
         reset_h5 (bool): Boolean, whether or not to completely rewrite the
@@ -40,17 +40,17 @@ def verify_chromosome_h5_cache(GeneData_obj, TE_Data_obj, h5_g_filename,
         h5_cache_location (str): The location (file path) in which to store the
             h5 files. Defaults to /filtered_input_data/h5_cache
         genes_input_file (str): The file path of the file that was used to
-            generate the GeneData instance.
+            generate the gene_data instance.
         tes_input_file (str): The file path of the file that was used to
             generate the TransposonData instance.
         chrom_id (str): A string representation of the current chromosome. Used
         to name each H5 file.
     """
     logger.info(reset_h5)
-    if reset_h5 == True:
+    if reset_h5:
         logger.info("Writing h5 cache anew because of command-line arg")
-        GeneData_obj.write(h5_g_filename)
-        TE_Data_obj.write(h5_t_filename)
+        gene_data_obj.write(h5_g_filename)
+        te_data_obj.write(h5_t_filename)
 
     if os.path.exists(h5_g_filename) and os.path.exists(h5_t_filename):
         gene_annot_time = os.path.getmtime(genes_input_file)
@@ -59,11 +59,11 @@ def verify_chromosome_h5_cache(GeneData_obj, TE_Data_obj, h5_g_filename,
         te_h5_time = os.path.getmtime(h5_t_filename)
 
         if (gene_annot_time > gene_h5_time) and (te_annot_time > te_h5_time):
-            logger.info("""Chromosome: %s: Writing Gene_Data and TE_Data to disk
+            logger.info("""Chromosome: %s: Writing gene_data and te_data to disk
                         in H5 format because annotation file is newer than h5
                         cache.""", chrom_id)
-            GeneData_obj.write(h5_g_filename)
-            TE_Data_obj.write(h5_t_filename)
+            gene_data_obj.write(h5_g_filename)
+            te_data_obj.write(h5_t_filename)
 
         elif (gene_annot_time < gene_h5_time) and (te_annot_time < te_h5_time):
             # No need to re-write a current cache
@@ -71,10 +71,10 @@ def verify_chromosome_h5_cache(GeneData_obj, TE_Data_obj, h5_g_filename,
 
     elif reset_h5 or (not(os.path.exists(h5_g_filename) and
                           os.path.exists(h5_t_filename))):
-        logger.info("""Chromosome: %s: Writing Gene_Data and TE_Data
+        logger.info("""Chromosome: %s: Writing gene_data and te_data
                     to disk in H5 format""", chrom_id)
-        GeneData_obj.write(h5_g_filename)
-        TE_Data_obj.write(h5_t_filename)
+        gene_data_obj.write(h5_g_filename)
+        te_data_obj.write(h5_t_filename)
     else:
         logger.warning('''During the verification of the H5 cache nothing was
                        saved because 0 conditions were met.''')
@@ -101,7 +101,7 @@ def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer,
         contig_del (bool): A boolean of whether to remove contigs on import
 
     Returns:
-        TE_Data (pandaframe): A pandas dataframe of the TE data
+        te_data (pandaframe): A pandas dataframe of the TE data
     """
     logger.info("Verifying TransposonData cache...")
     if os.path.exists(cleaned_transposons):
@@ -112,21 +112,21 @@ def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer,
                         filtered data set. Importing TE data from the
                         annotation file and re-writing the filtered input
                         data""")
-            TE_Data = import_transposons(tes_input_file, te_annot_renamer,
+            te_data = import_transposons(tes_input_file, te_annot_renamer,
                                          contig_del)
-            TE_Data.to_csv(cleaned_transposons, sep='\t', header=True, index=False)
+            te_data.to_csv(cleaned_transposons, sep='\t', header=True, index=False)
         else:
             logger.info("Importing filtered transposons from disk...")
-            TE_Data = pd.read_csv(cleaned_transposons, header='infer',
+            te_data = pd.read_csv(cleaned_transposons, header='infer',
                                   dtype={'Start': 'float32', 'Stop': 'float32',
                                          'Length': 'float32'}, sep='\t')
     else:
         logger.info("Previously filtered TE dataset does not exist...")
         logger.info("Importing unfiltered TE dataset from annotation file...")
-        TE_Data = import_transposons(tes_input_file, te_annot_renamer,
+        te_data = import_transposons(tes_input_file, te_annot_renamer,
                                      contig_del)
-        TE_Data.to_csv(cleaned_transposons, sep='\t', header=True, index=False)
-    return TE_Data
+        te_data.to_csv(cleaned_transposons, sep='\t', header=True, index=False)
+    return te_data
 
 
 def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
@@ -144,9 +144,9 @@ def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
         contig_del (bool): A boolean of whether to remove contigs on import
 
     Returns:
-        Gene_Data (pandaframe): A pandas dataframe of the Gene data
+        gene_data (pandaframe): A pandas dataframe of the Gene data
     """
-    logger.info("Verifying GeneData cache...")
+    logger.info("Verifying gene_data cache...")
     if os.path.exists(cleaned_genes):
         gene_annot_time = os.path.getmtime(genes_input_file)
         cleaned_gene_time = os.path.getmtime(cleaned_genes)
@@ -155,17 +155,17 @@ def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
                         filtered data set. Importing gene data from the
                         annotation file and re-writing the filtered input
                         data""")
-            Gene_Data = import_genes(genes_input_file, contig_del)
-            Gene_Data.to_csv(cleaned_genes, sep='\t', header=True, index=True)
+            gene_data = import_genes(genes_input_file, contig_del)
+            gene_data.to_csv(cleaned_genes, sep='\t', header=True, index=True)
 
         else:
             logger.info("Importing filtered gene dataset from disk...")
-            Gene_Data = pd.read_csv(cleaned_genes, header='infer', sep='\t',
+            gene_data = pd.read_csv(cleaned_genes, header='infer', sep='\t',
                                     dtype={'Start': 'float32', 'Stop': 'float32',
                                            'Length': 'float32'}, index_col='Gene_Name')
     else:
         logger.info("Previously filtered gene dataset does not exist...")
         logger.info("Importing unfiltered gene dataset from annotation file...")
-        Gene_Data = import_genes(genes_input_file, contig_del)
-        Gene_Data.to_csv(cleaned_genes, sep='\t', header=True, index=True)
-    return Gene_Data
+        gene_data = import_genes(genes_input_file, contig_del)
+        gene_data.to_csv(cleaned_genes, sep='\t', header=True, index=True)
+    return gene_data
