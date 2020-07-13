@@ -24,6 +24,9 @@ _OverlapConfigSink = namedtuple(
     '_OverlapConfigIn', ['genes', 'n_transposons', 'windows', 'filepath', 'ram_bytes'])
 _OverlapConfigSource = namedtuple(
     '_OverlapConfigSource', ['filepath'])
+OverlapResult = namedtuple(
+    'OverlapResult', ['genes_processed', 'filepath', 'exception', 'genome_id'])
+OverlapResult.__new__.__defaults__ = (0, None, None, "")  # REFACTOR to dataclass in 3.7+
 
 
 class Overlap():
@@ -357,6 +360,7 @@ class OverlapData():
 class OverlapWorker():
     """Calculates the overlap values."""
 
+    # TODO simplify initializer / calculate methods (move args)
     def __init__(self, overlap_dir, logger=None):
         """Initialize.
 
@@ -378,7 +382,7 @@ class OverlapWorker():
         self._gene_name_2_idx = None
         self._window_2_idx = None
 
-    def calculate(self, genes, transposons, windows, gene_names, progress=None):
+    def calculate(self, genes, transposons, windows, gene_names, stop=None, progress=None):
         """Calculate the overlap for the genes and windows.
 
         N.B. the number of runs of this multi level loop is intended to be
@@ -393,6 +397,8 @@ class OverlapWorker():
             progress (Callable): callback for when a gene name is processed.
         """
 
+        # FUTURE just take in an OverlapJob as input? (plus event, progress bar)
+
         self._reset(transposons, genes, windows, gene_names)
 
         # N.B. the order of the loop nesting effects calculation speed
@@ -404,6 +410,7 @@ class OverlapWorker():
         with self._data as sink:
             path = copy.copy(self._data.filepath)
             for gene_name in self._gene_names:
+                # TODO check stop event
                 gene_datum = genes.get_gene(gene_name)
                 g_idx = self._gene_name_2_idx[gene_name]
                 out_slice = sink.intra_slice(g_idx)

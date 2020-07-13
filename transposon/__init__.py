@@ -3,6 +3,7 @@
 Sundry helper functions.
 """
 
+
 import errno
 from functools import partial
 from os import sysconf, strerror
@@ -16,8 +17,7 @@ def check_ram(ram_bytes, logger):
     """Raise if the requested RAM is negative or greater than the system."""
 
     if ram_bytes < 0:
-        msg = "cache %i bytes < 0" % ram_bytes
-        logger.critical(msg)
+        logger.critical("cache %i bytes < 0" % ram_bytes)
         raise ValueError()
     elif ram_bytes/(1024.**3) > MAX_SYSTEM_RAM_GB:
         ram_gb = ram_bytes/(1024.**3)

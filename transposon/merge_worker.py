@@ -16,7 +16,6 @@ import numpy as np
 
 import transposon
 from transposon import FILE_DNE, MAX_SYSTEM_RAM_GB
-from transposon.log_listener import LogListener
 from transposon.overlap import OverlapData
 from transposon.transposon_data import TransposonData
 
@@ -194,9 +193,6 @@ class MergeManager():
         self._ram = int(ram)
         self._proc_manager = multiprocessing.Manager()
         self._log_queue = self._proc_manager.Queue(-1)
-        log_cb = partial(LogListener.connect, self._log_queue, self._logger.level)
-        self._configure_worker_logger = log_cb
-        self._log_listener = None
 
         [o.start() for o in self._overlaps]  # is `map` more pythonic?
         self._chromosomes = set(o.chromosome_id for o in self._overlaps)
@@ -227,8 +223,7 @@ class MergeManager():
         """Context manager start."""
 
         self._stop()
-        self._log_listener = LogListener(self._log_queue)
-        self._log_listener.start()
+        self._start()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_traceback):
@@ -236,11 +231,13 @@ class MergeManager():
 
         self._stop()
 
+    def _start(self):
+
+        pass
+
     def _stop(self):
 
-        if self._log_listener:
-            self._log_listener.stop()
-            self._log_listener.join()
+        pass
 
     def _index_overlaps(self, chromosomes, chrome2file):
 
@@ -250,7 +247,6 @@ class MergeManager():
                 chrome2file[chrome],
                 self._te_path,
                 self._output_dir,
-                log_callback=self._configure_worker_logger,
                 ram=self._ram
             )
             merge_configs.append(cfg)
