@@ -301,6 +301,10 @@ def process(alg_parameters, Gene_Data, TE_Data, overlap_dir, genome_id,
         reset_h5 (bool): True/False whether or not to overwrite the H5 cache of
         GeneData and TransposonData if it currently exists
     """
+
+
+
+
     grouped_genes = split(Gene_Data, 'Chromosome')  # check docstring for my split func
     grouped_TEs = split(TE_Data, 'Chromosome')  # check docstring for my split func
     check_groupings(grouped_genes, grouped_TEs, logger, genome_id)

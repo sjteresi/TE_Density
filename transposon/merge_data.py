@@ -27,7 +27,8 @@ _MergeConfigSource = namedtuple('_MergeConfigSource', ['filepath'])
 _Density = namedtuple('_Density', ['left', 'intra', 'right'])
 _SummationArgs = namedtuple(
     '_SummationArgs',
-    ['input', 'output', 'windows', 'te_idx_name', 'slice_in', 'slice_out', 'where'])
+    ['input', 'output', 'windows', 'te_idx_name', 'slice_in', 'slice_out', 'where']
+)
 
 
 class MergeData():
@@ -354,6 +355,7 @@ class MergeData():
         Returns:
             iterable(_SummationArgs): arguments for calculating the sums.
         """
+
         # NOTE this could be (very) improved, but for now let's get a first iteration...
         arr_in = [overlap.left, overlap.intra, overlap.right]
         arr_out = [density.left, density.intra, density.right]
@@ -401,6 +403,7 @@ class MergeData():
         This is because the genes may be different, and more importantly the density is
             not defined between chromosomes as they are different locations.
         """
+
         if self.chromosome_id is None:
             raise ValueError(f"MergeData.chromosome_id (self) is None")
         elif overlap.chromosome_id is None:
@@ -413,6 +416,7 @@ class MergeData():
 
     def _validate_windows(self, overlap):
         """ValueError if the overlap windows are not in the destination."""
+
         if self.windows is None:
             raise ValueError(f"MergeData.windows (self) is None")
         elif overlap.windows is None:
@@ -424,6 +428,7 @@ class MergeData():
 
     def _validate_gene_names(self, overlap):
         """ValueError if the overlap genes are not in the destination."""
+        
         if self.gene_names is None:
             raise ValueError(f"MergeData.gene_names (self) is None")
         elif overlap.gene_names is None:
