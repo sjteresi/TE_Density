@@ -376,9 +376,9 @@ if __name__ == '__main__':
     # TODO if the user sets their own filtered_input_data location, this
     # h5_cache_loc location will not exactly follow their filtered_input_data
     # convention
-    parser.add_argument('--h5_cache_loc', '-h5', type=str,
+    parser.add_argument('--input_h5_cache_loc', '-h5', type=str,
                         default=os.path.join(path_main, '../..',
-                                             'filtered_input_data/h5_cache'),
+                                             'filtered_input_data/input_h5_cache'),
                         help='parent directory for h5 cached input data')
     parser.add_argument('--reset_h5', action='store_true')
     parser.add_argument('--contig_del', action='store_false')
@@ -396,7 +396,7 @@ if __name__ == '__main__':
     args.config_file = os.path.abspath(args.config_file)
     args.overlap_dir = os.path.abspath(args.overlap_dir)
     args.filtered_input_data = os.path.abspath(args.filtered_input_data)
-    args.h5_cache_loc = os.path.abspath(args.h5_cache_loc)
+    args.input_h5_cache_loc = os.path.abspath(args.input_h5_cache_loc)
     args.output_dir = os.path.abspath(args.output_dir)
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
@@ -444,5 +444,5 @@ if __name__ == '__main__':
     logger.info("Process data...")
     process(alg_parameters, gene_data_unwrapped, te_data_unwrapped,
             args.overlap_dir, args.genome_id, args.filtered_input_data,
-            args.reset_h5, args.h5_cache_loc, args.genes_input_file,
+            args.reset_h5, args.input_h5_cache_loc, args.genes_input_file,
             args.tes_input_file)

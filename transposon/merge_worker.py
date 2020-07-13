@@ -90,7 +90,15 @@ class _MergeElement():
         self._windows = self._scrape_windows(self._overlaps)
         self._gene_names = self._scrape_genes(self._overlaps)
         self.release()
+
+        # NOTE
+        # MICHAEL
+        # This now needs a genome_id, however I updated the read command to use
+        # a default argument. I don't know if you want me to refactor this to
+        # get a genome_id, I'm not sure how. I suppose that could be supplied
+        # in __main__ here for the test but I don't think that's what you want.
         self._te_data = TransposonData.read(config.te_path)
+
         self._output_dir = os.path.abspath(config.output_dir)
         self._ram = float(config.ram) if config.ram > 0 else 1  # gigabytes
 
@@ -287,20 +295,42 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='temporary integration test')
     parser.add_argument('input_dir')
     args = parser.parse_args()
-    cache_dir = os.path.abspath(args.input_dir)
-    data_dir = os.path.abspath(os.path.join(cache_dir, "../../TE_Density/filtered_input_data"))
-    logging.info("gene data? {}".format(data_dir))
-    o_files = glob.glob(cache_dir + "/*.h5")
+    o_file_dir = os.path.abspath(args.input_dir)
+    path_main = os.path.abspath(__file__)
+    path_main = os.path.abspath(os.path.join(path_main, '../../'))
+    h5_cache_dir = os.path.abspath(os.path.join(path_main,
+                                                'filtered_input_data/input_h5_cache'))
+    # This is the format I am saving the h5 input files
+    gene_file = sorted(glob.glob(h5_cache_dir + "/*GeneData.h5"))
+    te_file = sorted(glob.glob(h5_cache_dir + "/*TEData.h5"))
+
+
+    # MICHAEL
+    # NOTE
+    # There are multiple gene_files in my input cache directory (wrapped and
+    # cleaned GeneData/TransposonData, however this format only gives
+    # chromosome Fvb1-1.
+    gene_file = gene_file[0]
+    te_file = te_file[0]
+
+
+
+    # MICHAEL
+    # NOTE
+    # However there are multiple (old) nameless (just randomly alphanumeric
+    # files in my /tmp directory), some of these files are quite old, how are
+    # you keeping it clear? I am worried that some of these h5 may not be
+    # representative of the given chromosome we are working on.
+    # This is where I believe I am having the most trouble.
+    o_files = glob.glob(o_file_dir + "/*.h5")
+
     # BUG the TSV files are not what we want here
     # we need the GeneData files, but TSV is the unprocessed data
-    te_file = glob.glob(data_dir + "/*gtf_data.tsv")[0]  # MAGIC there can be only one
-    gene_file = glob.glob(data_dir + "/*gff_data.tsv")[0]  # MAGIC there can be only one
-    logging.info("transposon file  {}".format(te_file))
-    logging.info("gene_file        {}".format(gene_file))
+    logging.info("Transposon file  {}".format(te_file))
+    logging.info("Gene_file        {}".format(gene_file))
     manager = MergeManager(o_files, te_file, gene_file, '/tmp/', 2, logging.DEBUG)
 
-
     with manager as boss:
-        logging.info("merging...")
+        logging.info("Merging...")
         merged_files = boss.merge()
-        logging.info("complete: {}".format(merged_files))
+        logging.info("Complete: {}".format(merged_files))
