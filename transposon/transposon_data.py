@@ -85,7 +85,7 @@ class TransposonData(object):
         self.data_frame.to_hdf(filename, key=key, mode='w')
 
     @classmethod
-    def read(cls, filename, key='default'):
+    def read(cls, filename, genome_id, key='default'):
         """Read from disk. Returns a wrapped Pandaframe from an hdf5 file
 
         Args:
