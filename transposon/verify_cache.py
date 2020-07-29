@@ -114,6 +114,7 @@ def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer,
                         data""")
             te_data = import_transposons(tes_input_file, te_annot_renamer,
                                          contig_del)
+            te_data.sort_values(by=['Chromosome', 'Start'], inplace=True)
             te_data.to_csv(cleaned_transposons, sep='\t', header=True, index=False)
         else:
             logger.info("Importing filtered transposons from disk...")
@@ -125,6 +126,7 @@ def verify_TE_cache(tes_input_file, cleaned_transposons, te_annot_renamer,
         logger.info("Importing unfiltered TE dataset from annotation file...")
         te_data = import_transposons(tes_input_file, te_annot_renamer,
                                      contig_del)
+        te_data.sort_values(by=['Chromosome', 'Start'], inplace=True)
         te_data.to_csv(cleaned_transposons, sep='\t', header=True, index=False)
     return te_data
 
@@ -156,6 +158,7 @@ def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
                         annotation file and re-writing the filtered input
                         data""")
             gene_data = import_genes(genes_input_file, contig_del)
+            gene_data.sort_values(by=['Chromosome', 'Start'], inplace=True)
             gene_data.to_csv(cleaned_genes, sep='\t', header=True, index=True)
 
         else:
@@ -167,5 +170,6 @@ def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
         logger.info("Previously filtered gene dataset does not exist...")
         logger.info("Importing unfiltered gene dataset from annotation file...")
         gene_data = import_genes(genes_input_file, contig_del)
+        gene_data.sort_values(by=['Chromosome', 'Start'], inplace=True)
         gene_data.to_csv(cleaned_genes, sep='\t', header=True, index=True)
     return gene_data
