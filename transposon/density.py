@@ -378,7 +378,7 @@ if __name__ == '__main__':
     # convention
     parser.add_argument('--h5_cache_loc', '-h5', type=str,
                         default=os.path.join(path_main, '../..',
-                                             'filtered_input_data/h5_cache'),
+                                             'filtered_input_data/input_h5_cache'),
                         help='parent directory for h5 cached input data')
     parser.add_argument('--reset_h5', action='store_true')
     parser.add_argument('--contig_del', action='store_false')
