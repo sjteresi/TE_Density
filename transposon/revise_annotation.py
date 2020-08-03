@@ -66,11 +66,13 @@ class Revise_Anno(object):
 
     def create_superfam(self):
         self._reset_starting_vals()
+        self.transposon_data['Order'] = 'Revision'
         self.iterate_call_merge('SuperFamily')
         self._write(self.updated_te_annotation, self.superfam_cache_loc)
 
     def create_order(self):
         self._reset_starting_vals()
+        self.transposon_data['SuperFamily'] = 'Revision'
         self.iterate_call_merge('Order')
         self._write(self.updated_te_annotation, self.order_cache_loc)
 
