@@ -1,12 +1,23 @@
 #!/bin/bash -login
 
-#SBATCH - J TE_Density_Teresi
+#SBATCH -J TE_Density_Teresi
 #SBATCH --time=07:59:00
 #SBATCH --ntasks=1
-#SBATCH -- cpus-per-task=2
+#SBATCH --cpus-per-task=2
 #SBATCH --mem-per-cpu=8G
 #SBATCH -o TE_Density.out
 #SBATCH -e TE_Density.err
 #--------------------------------------------------------
 
-Placeholder
+# Source the Python packages that are version controlled
+source /mnt/research/edgerpat_lab/Scotty/venvs/TE_Density/bin/activate
+ulimit -s unlimited
+
+# Go to project directory
+cd /mnt/research/edgerpat_lab/Scotty/TE_Density
+
+# Run the code
+python transposon/density.py \
+/mnt/research/edgerpat_lab/Scotty/Camarosa/Cam_Genes.gtf \
+/mnt/research/edgerpat_lab/Scotty/Camarosa/Camarosa_EDTA_TEs.gff \
+Camarosa
