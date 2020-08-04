@@ -8,6 +8,7 @@ import errno
 from functools import partial
 from os import sysconf, strerror
 import h5py
+from configparser import ConfigParser
 
 MAX_SYSTEM_RAM_GB = sysconf('SC_PAGE_SIZE') * sysconf('SC_PHYS_PAGES')/(1024.**3)
 FILE_DNE = partial(FileNotFoundError, errno.ENOENT, strerror(errno.ENOENT))
@@ -51,3 +52,17 @@ def read_vlen_str_h5py(h5file, dataset_key):
     """
 
     return h5file[dataset_key][:].tolist()
+
+
+def read_density_config(filepath):
+
+    # TODO validate filepath
+    parser = ConfigParser()
+    parser.read(filepath)
+    first_window_size = parser.getint('density_parameters', 'first_window_size')
+    window_delta = parser.getint('density_parameters', 'window_delta')
+    last_window_size = parser.getint('density_parameters', 'last_window_size')
+    alg_parameters = {'first_window_size': first_window_size,
+                      'window_delta': window_delta,
+                      'last_window_size': last_window_size}
+    return alg_parameters
