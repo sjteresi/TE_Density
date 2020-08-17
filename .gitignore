@@ -7,3 +7,6 @@
 
 /filtered_input_data/revised_input_data/*
 !/filtered_input_data/revised_input_data/.gitkeep
+
+/results*
+/graphs*

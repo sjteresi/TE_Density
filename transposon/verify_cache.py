@@ -33,7 +33,7 @@ def verify_chromosome_h5_cache(
     When are H5 files written?
     1. H5 files will be written if there are no current corresponding H5 files
     saved on disk.
-    2. If a command-line option is passed to density.py to re-write the H5
+    2. If a command-line option is passed to process.py to re-write the H5
     files, this option defaults to not re-write.
     3. If enough time has passed between the creation of the H5 file and the
     current run-time of the program. TODO talk to Michael more about this.
@@ -204,13 +204,19 @@ def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
 
 
 def revise_annotation(
-    TE_Data, revise_anno, revised_transposons_loc, revised_cache_loc, logger, genome_id
+    TE_Data,
+    create_revise_anno,
+    dont_use_revise_anno,
+    revised_transposons_loc,
+    revised_cache_loc,
+    logger,
+    genome_id,
 ):
     """
     Revises the annotation so that elements of the same type do not overlap at
     all. Will essentially merge elements together, elongating them. This is
     done so that the mathematics of density make sense. You can elect to not
-    use the revised annotation through a command-line argument to density.py,
+    use the revised annotation through a command-line argument to process.py,
     however given that TEs often overlap with one another in annotatios (not
     just being nested in one another) it can lead to some difficulties in
     accurately assessing density and obfuscate the density results.
@@ -220,8 +226,11 @@ def revise_annotation(
         previously imported from raw and filtered or imported from a previously
         filtered data file that was saved to disk.
 
-        revise_anno (bool): A boolean of whether or not to use/create a revised
+        create_revise_anno (bool): A boolean of whether or not to create a revised
         annotation
+
+        dont_use_revise_anno (bool): A boolean of whether or not to use a revised
+        annotation, if False, we just return the input TE annotation
 
         revised_transposons (str): A string representing the path of a
         previously filtered (cleaned) and revised TE annotation.
@@ -235,33 +244,42 @@ def revise_annotation(
     Returns:
         TE_Data (pandaframe): A pandas dataframe of the TE data
     """
-    logger.info("Checking to see if revised TE dataset exists...")
-    if revise_anno:
-        logger.info("Flag provided, forcing creation of revised TE dataset...")
-        revised_TE_Data = Revise_Anno(TE_Data, revised_cache_loc, logger, genome_id)
-        revised_TE_Data.create_superfam()
-        revised_TE_Data.create_order()
-        revised_TE_Data.create_nameless()
-        logger.info("Saving revised TE dataset...")
-        revised_TE_Data.save_whole_te_annotation(revised_transposons_loc)
-        TE_Data = revised_TE_Data.whole_te_annotation
-
-    elif os.path.exists(revised_transposons_loc):
-        logger.info("Exists. Importing revised TE dataset from disk...")
-        TE_Data = pd.read_csv(
-            revised_transposons_loc,
-            header="infer",
-            dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
-            sep="\t",
+    if dont_use_revise_anno:
+        logger.info(
+            """User provided flag to NOT use a revised annotation, please
+                    refer to the README for documentation on why this may not
+                    be a great idea."""
         )
+        return TE_Data
+
     else:
-        logger.info("Previously revised TE dataset does not exist...")
-        logger.info("Creating revised TE dataset...")
-        revised_TE_Data = Revise_Anno(TE_Data, revised_cache_loc, logger, genome_id)
-        revised_TE_Data.create_superfam()
-        revised_TE_Data.create_order()
-        revised_TE_Data.create_nameless()
-        logger.info("Saving revised TE dataset...")
-        revised_TE_Data.save_updated_te_annotation(revised_transposons_loc)
-        TE_Data = revised_TE_Data.whole_te_annotation
-    return TE_Data
+        logger.info("Checking to see if revised TE dataset exists...")
+        if create_revise_anno:
+            logger.info("Flag provided, forcing creation of revised TE dataset...")
+            revised_TE_Data = Revise_Anno(TE_Data, revised_cache_loc, logger, genome_id)
+            revised_TE_Data.create_superfam()
+            revised_TE_Data.create_order()
+            revised_TE_Data.create_nameless()
+            logger.info("Saving revised TE dataset...")
+            revised_TE_Data.save_whole_te_annotation(revised_transposons_loc)
+            TE_Data = revised_TE_Data.whole_te_annotation
+
+        elif os.path.exists(revised_transposons_loc):
+            logger.info("Exists. Importing revised TE dataset from disk...")
+            TE_Data = pd.read_csv(
+                revised_transposons_loc,
+                header="infer",
+                dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
+                sep="\t",
+            )
+        else:
+            logger.info("Previously revised TE dataset does not exist...")
+            logger.info("Creating revised TE dataset...")
+            revised_TE_Data = Revise_Anno(TE_Data, revised_cache_loc, logger, genome_id)
+            revised_TE_Data.create_superfam()
+            revised_TE_Data.create_order()
+            revised_TE_Data.create_nameless()
+            logger.info("Saving revised TE dataset...")
+            revised_TE_Data.save_updated_te_annotation(revised_transposons_loc)
+            TE_Data = revised_TE_Data.whole_te_annotation
+        return TE_Data

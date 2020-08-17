@@ -7,7 +7,7 @@ Output the relevant area (divisor) for density calculation.
 """
 
 
-from transposon.density import validate_window
+from preprocess import validate_window
 import pandas as pd
 
 
@@ -55,8 +55,8 @@ class NormMatrix(object):
         # TODO examine performance
         # Indices (rows) are windows, columns are specific genes
         genes_window_dataframe = pd.DataFrame(
-                                            columns=[name for name in GeneData.names],
-                                            index=windows)
+            columns=[name for name in GeneData.names], index=windows
+        )
 
         for window in windows:
             for name in GeneData.names:
@@ -65,7 +65,7 @@ class NormMatrix(object):
                 win_start = gene_datum.left_win_start(window)
                 win_stop = gene_datum.left_win_stop
                 win_length = validate_window(win_start, win_stop, win_length)
-                genes_window_dataframe.at[window, name] = win_length ## NOTE
+                genes_window_dataframe.at[window, name] = win_length  ## NOTE
                 # this step is probably going to be really slow.
         return genes_window_dataframe.to_numpy(copy=False)
 
@@ -92,10 +92,10 @@ class NormMatrix(object):
         # (the gene length) is independent of the window value for the intra
         # valculations. This may be something to discuss.
         genes_window_dataframe = pd.DataFrame(
-                                             [[GeneData.get_gene(name).length for name in
-                                             GeneData.names]],
-                                             columns=[name for name in GeneData.names],
-                                             index=windows)
+            [[GeneData.get_gene(name).length for name in GeneData.names]],
+            columns=[name for name in GeneData.names],
+            index=windows,
+        )
         return genes_window_dataframe.to_numpy(copy=False)
 
     @staticmethod
@@ -115,8 +115,8 @@ class NormMatrix(object):
         Args:
         """
         genes_window_dataframe = pd.DataFrame(
-                                            columns=[name for name in GeneData.names],
-                                            index=windows)
+            columns=[name for name in GeneData.names], index=windows
+        )
         for window in windows:
             for name in GeneData.names:
                 gene_datum = GeneData.get_gene(name)

@@ -17,7 +17,7 @@ could still be inflated. To this end, we only merge TEs that have the same ident
 
 Finally, while this file is not an entry point for the user, they may elect to
 not use a revised annotation. They can do so by supplying an optional
-command-line argument to density.py. However by not using this file, the user
+command-line argument to process.py. However by not using this file, the user
 will be returned density values that are inflated, and in some cases over 1.00,
 which can obfuscate interpretation of TE density results.
 """
