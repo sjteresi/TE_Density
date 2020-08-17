@@ -42,21 +42,12 @@ class GeneData(object):
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
         self.genome_id = None
 
-
-    # TODO candidate for deletion? --- Scott will take care of this
     @classmethod
-    def sample_camarosa_genome(cls,
-                 gene_dataframe,
-                 genome_id='Fake_Camarosa'):
-        """
-        This is from a sample of the Camarosa gene annotation.
-        """
-        return GeneData(gene_dataframe, genome_id)
-
-    @classmethod
-    def mock(cls,
-             start_stop=np.array([[0, 9], [10, 19], [20, 29]]),
-             genome_id="fake_genome_id"):
+    def mock(
+        cls,
+        start_stop=np.array([[0, 9], [10, 19], [20, 29]]),
+        genome_id="fake_genome_id",
+    ):
         """Mocked data for testing.
 
         Args:
@@ -74,12 +65,12 @@ class GeneData(object):
             datum = [name, g0, g1, gL, chromosome]
             data.append(datum)
 
-        col_names = ['Gene_Name', 'Start', 'Stop', 'Length', 'Chromosome']
+        col_names = ["Gene_Name", "Start", "Stop", "Length", "Chromosome"]
         frame = pd.DataFrame(data, columns=col_names)
-        frame.set_index('Gene_Name', inplace=True)
+        frame.set_index("Gene_Name", inplace=True)
         return GeneData(frame, genome_id)
 
-    def write(self, filename, key='default'):
+    def write(self, filename, key="default"):
         """Write a Pandaframe to disk.
 
         Args:
@@ -87,10 +78,10 @@ class GeneData(object):
             key (str): identifier for the group (dataset) in the hdf5 obj.
 
         """
-        self.data_frame.to_hdf(filename, key=key, mode='w')
+        self.data_frame.to_hdf(filename, key=key, mode="w")
 
     @classmethod
-    def read(cls, filename, genome_id, key='default'):
+    def read(cls, filename, genome_id, key="default"):
         """Read from disk. Returns a wrapped Pandaframe from an hdf5 file
 
         Args:
@@ -109,9 +100,8 @@ class GeneData(object):
 
     def add_genome_id(self, genome_id):
         """Add the genome_id as an extra column to the gene_dataframe"""
-        self.data_frame.loc[:,'Genome_ID'] = genome_id
+        self.data_frame.loc[:, "Genome_ID"] = genome_id
         self.genome_id = genome_id
-
 
     @property
     def names(self):
@@ -135,8 +125,7 @@ class GeneData(object):
         if not genome_id_list:
             raise RuntimeError("column 'Geneome_ID' is empty")
         elif len(genome_id_list) > 1:
-            raise RuntimeError("Genome IDs are are not unique: %s" %
-                               genome_id_list)
+            raise RuntimeError("Genome IDs are are not unique: %s" % genome_id_list)
         else:
             return genome_id_list[0]  # MAGIC NUMBER list to string
 
