@@ -87,7 +87,7 @@ class Revise_Anno(object):
         """
         self._reset_starting_vals()
         super_transposon_data = self.transposon_data.copy(deep=True)
-        super_transposon_data["Order"] = "Revision"
+        super_transposon_data["Order"] = "S_Revision"
         self.iterate_call_merge(super_transposon_data, "SuperFamily")
         self._write(self.updated_te_annotation, self.superfam_cache_loc)
 
@@ -99,7 +99,7 @@ class Revise_Anno(object):
         """
         self._reset_starting_vals()
         order_transposon_data = self.transposon_data.copy(deep=True)
-        order_transposon_data["SuperFamily"] = "Revision"
+        order_transposon_data["SuperFamily"] = "O_Revision"
         self.iterate_call_merge(order_transposon_data, "Order")
         self._write(self.updated_te_annotation, self.order_cache_loc)
 
