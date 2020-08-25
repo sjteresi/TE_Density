@@ -80,7 +80,6 @@ def temp_file(temp_dir):
 
 @pytest.yield_fixture
 def config_sink(te_data, gene_data, temp_file):
-
     sink = _MergeConfigSink(
         transposons=te_data,
         gene_names=gene_data.names,
@@ -101,14 +100,10 @@ def merge_sink(te_data, gene_data, temp_dir):
     yield MergeData.from_param(te_data, gene_data.names, WINDOWS, temp_dir)
 
 
-# NOTE Scott edit here
-# Use the 'real' data sets imported at the top of the file
-# Edit the parameters to point to the new data
-
 # -----------------------------------------------------
 # SCOTT
 @pytest.fixture
-def GeneData_test_obj():
+def genedata_test_obj():
     gene_file = "tests/input_data/Test_Genes_MergeData.tsv"
     gene_pandas = pd.read_csv(
         gene_file,
@@ -122,7 +117,7 @@ def GeneData_test_obj():
 
 
 @pytest.fixture
-def TransposonData_test_obj():
+def transposondata_test_obj():
     te_file = "tests/input_data/Test_TEs_MergeData.tsv"
     te_pandas = pd.read_csv(
         te_file,
@@ -134,42 +129,63 @@ def TransposonData_test_obj():
     return sample_genome
 
 
+@pytest.fixture()
+def different_real_overlap_source(
+    genedata_test_obj, transposondata_test_obj, temp_file
+):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        worker = OverlapWorker(temp_dir)
+        gene_data = genedata_test_obj
+        te_data = transposondata_test_obj
+        overlap_file = worker.calculate(
+            gene_data, te_data, windows_real, gene_data.names
+        )
+        with OverlapData.from_file(overlap_file) as active_source:
+            yield active_source
+
+
+@pytest.fixture
+def real_overlap_data(genedata_test_obj, transposondata_test_obj):
+    """Default OverlapData instance."""
+    my_overlap_data = OverlapData.from_param(
+        genedata_test_obj,
+        transposondata_test_obj.number_elements,
+        windows_real,
+        "tests/test_h5_cache_loc/",
+    )
+    with my_overlap_data as active_overlap:
+        yield active_overlap
+
+
 # Then use merge_sink_real as an input to another functions to check the math
 @pytest.yield_fixture
-def merge_sink_real(TransposonData_test_obj, GeneData_test_obj, temp_dir):
+def merge_sink_real(transposondata_test_obj, genedata_test_obj, temp_dir):
     """Yield a MergeData instance."""
-    # TODO add fixture for the inputs (or just put it here) to the real data
-    # basically get the real data into this instead of the dumb data
-    return MergeData.from_param(
-        TransposonData_test_obj, GeneData_test_obj.names, windows_real, temp_dir
+    my_merge = MergeData.from_param(
+        transposondata_test_obj, genedata_test_obj.names, windows_real, temp_dir
     )
+    with my_merge as active_merge:
+        yield active_merge
+
+
+@pytest.yield_fixture
+def merge_real_summed(merge_sink_real, overlap_data):
+    # add the overlap data parameter (active)
+    # call the sum
+    # THIS FIXTURE FAILS WHEN IT IS USED
+    merge_real_summed = merge_sink_real.sum(overlap_data)
+    return merge_real_summed
+
+
+def test_merge_real_summed(merge_sink_real, different_real_overlap_source):
+    # THIS TEST will fail
+    merge_sink_real.sum(different_real_overlap_source, None)
 
 
 TRUE_SUPER_VALS = 1
-
 windows_real = [500, 1000, 1500, 2000]
 
 
-@pytest.mark.parametrize("true_summed_overlaps", [TRUE_SUPER_VALS])
-def test_supers_real(merge_sink_real, true_summed_overlaps):
-    print()
-    # Superfamily|Order, window, gene
-    with merge_sink_real as active_merge_sink_real:
-        my_slice = MergeData.left_right_slice(1, 0, 1)
-        print(active_merge_sink_real.order_names)
-        print(active_merge_sink_real.superfamily_names)
-        print(my_slice)
-        print()
-        # Matrix, Row, Column
-        print(active_merge_sink_real.superfamily[my_slice[2]])
-
-
-# SCOTT
-# -----------------------------------------------------
-# ACCESSORY
-
-
-# SCOTT
 # -----------------------------------------------------
 @pytest.yield_fixture
 def active_merge_sink(merge_sink):
@@ -280,13 +296,6 @@ def test_sum_no_throw(active_merge_sink, overlap_source):
 
 def test_process_sum():
     pass
-
-
-def test_real_init(merge_sink_real):
-    """Can we acquire the real data resource w/o it raising?"""
-
-    with merge_sink_real as active:
-        pass
 
 
 if __name__ == "__main__":
