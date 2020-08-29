@@ -11,10 +11,9 @@ DEV_GENOME := "Camarosa"
 
 .PHONY: dev help clean test flake8 lint
 
-dev: | clean        ## execute with default testing arguments
-	@echo executing dev main
+dev:                ## execute with default testing arguments
 	mkdir -p $(DEV_CACHE)
-	-python3 $(ROOT_DIR)/transposon/density.py $(DEV_GENES) $(DEV_TES) $(DEV_GENOME) -vv -s $(DEV_CACHE)
+	$(ROOT_DIR)/transposon/density.py $(DEV_GENES) $(DEV_TES) $(DEV_GENOME) -vv -s $(DEV_CACHE)
 
 help:               ## Show this help.
 	fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
@@ -24,7 +23,6 @@ clean:              ## remove temporary output files
 	rm -f $(DEV_CACHE)/*.h5
 
 test:               ## run the tests
-	@echo running all tests
 	pytest $(ROOT_DIR)
 
 flake8:             ## run style guide

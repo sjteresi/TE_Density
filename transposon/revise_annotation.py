@@ -24,10 +24,12 @@ which can obfuscate interpretation of TE density results.
 
 __author__ = "Scott Teresi"
 
-import pandas as pd
-from tqdm import tqdm
+import logging
 import os
 import resource
+
+import pandas as pd
+from tqdm import tqdm
 
 
 class Revise_Anno(object):
@@ -42,7 +44,7 @@ class Revise_Anno(object):
     Superfamilies, then irrespective of Order or Superfamily (nameless).
     """
 
-    def __init__(self, transposon_anno, h5_cache_loc, logger, genome_name):
+    def __init__(self, transposon_anno, h5_cache_loc, genome_name):
         """Initialize
 
         Args:
@@ -51,9 +53,6 @@ class Revise_Anno(object):
 
             h5_cache_loc (str): String representing the location in which to
             store the h5 formatted results
-
-            logger (logging obj): Logging object so that we can print info and
-            errors to console.
 
             genome_name (str): String representing the current genome name.
 
@@ -67,7 +66,7 @@ class Revise_Anno(object):
         resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, -1))
 
         self.transposon_data = transposon_anno
-        self.logger = logger
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.superfam_cache_loc = os.path.abspath(
             os.path.join(h5_cache_loc, (genome_name + "_superfam_revision_cache.h5"))
         )
@@ -80,7 +79,7 @@ class Revise_Anno(object):
         self.updated_te_annotation = None
 
     def create_superfam(self):
-        """Create the revised dataset on a Superfamily basis
+        """Create the revised dataset on a Superfamily basis.
 
         Writes the Superfamily revision to an h5 file to read later and fuse
         with the other revisions.
@@ -92,7 +91,7 @@ class Revise_Anno(object):
         self._write(self.updated_te_annotation, self.superfam_cache_loc)
 
     def create_order(self):
-        """Create the revised dataset on an Order basis
+        """Create the revised dataset on an Order basis.
 
         Writes the Order revision to an h5 file to read later and fuse
         with the other revisions.
@@ -104,8 +103,7 @@ class Revise_Anno(object):
         self._write(self.updated_te_annotation, self.order_cache_loc)
 
     def create_nameless(self):
-        """Create the revised dataset on an nameless basis, irrespective of TE
-        identity.
+        """Create revised dataset on an nameless basis, irrespective of TE identity.
 
         Writes the nameless revision to an h5 file to read later and fuse
         with the other revisions.
@@ -119,8 +117,7 @@ class Revise_Anno(object):
         self._write(self.updated_te_annotation, self.nameless_cache_loc)
 
     def _merge_all(self):
-        """Merge all of the previously revised TE sets (order, superfamily
-        nameless)
+        """Merge all of the previously revised TE sets (order, superfamily, nameless).
 
         Merges then sorts all of the sets on a chromosome then by start
         position to make it easy for the user to read.
@@ -137,8 +134,7 @@ class Revise_Anno(object):
         self.whole_te_annotation.sort_values(by=["Start", "Chromosome"], inplace=True)
 
     def save_updated_te_annotation(self, filename, header=True, index=False):
-        """
-        Save the annotation.
+        """Save the annotation.
 
         Args:
             filename (str): Filename to save the file with. Saves as a tsv
@@ -209,12 +205,9 @@ class Revise_Anno(object):
         """
         with tqdm(
             total=len(Revise_Anno.chromosome_groups(modified_transposon_data)),
-            position=0,
-            ncols=80,
-            desc="Revising a chromosome for " + te_type_to_split,
+            ncols=88,
+            desc="revising a chromosome for " + te_type_to_split,
         ) as pbar:
-            print()
-
             if te_type_to_split == "Nameless":
                 te_type_to_split = "Order"  # Can be Order or Superfamily,
                 # doesn't matter, just wanted to have nameless for the tqdm
@@ -225,6 +218,10 @@ class Revise_Anno(object):
                 self.chrom_specific_frame_dict = {}
                 for te_frame in self.split(chromosome_of_data, te_type_to_split):
                     chromosome = te_frame.Chromosome.unique()[0]  # Magic number
+                    pbar.set_description("revising '%s' for '%s'" %
+                                         (te_type_to_split, chromosome)
+                                        )
+                    pbar.refresh()
                     self.current_te_identity = te_frame[te_type_to_split].unique()[
                         0
                     ]  # Magic number
@@ -239,10 +236,8 @@ class Revise_Anno(object):
                     ] = pd.DataFrame()
 
                     self.call_merge()  # NOTE function call, recursion starts
-
                 pbar.update(1)
                 print()  # want to make the progress manager clearer
-                self.logger.info("Done with chromosome " + chromosome + "...")
                 self.concat_single_chrom(chromosome)
             self.concat_all_complete_chrom()
 
@@ -305,7 +300,6 @@ class Revise_Anno(object):
         one pandas.core.DataFrame. Each individual chromosome has previously
         been concatenated together elsewhere.
         """
-        self.logger.info("Concatenating all chromosomes...")
         to_concat = [
             te_anno_dataframe.sort_values(by=["Start"])
             for chromosome_id, te_anno_dataframe in self.complete_chromosomes_dict.items()
@@ -314,9 +308,8 @@ class Revise_Anno(object):
 
     @staticmethod
     def save_for_dev(pandaframe, filename):
-        """
-        Save command for developer
-        """
+        """Save command for developer."""
+
         # TODO candidate for deletion in the future
         pandaframe.to_csv(filename, sep="\t", header=True, index=False)
 
@@ -331,7 +324,7 @@ class Revise_Anno(object):
         Args:
             chromosome (str): String representing the current chromosome
         """
-        self.logger.info("Concatenating chromosome " + chromosome + "...")
+        self.logger.debug("Concatenating chromosome " + chromosome + "...")
         to_concat = [
             te_anno_dataframe
             for te_id, te_anno_dataframe in self.chrom_specific_frame_dict.items()
@@ -440,8 +433,7 @@ class Revise_Anno(object):
 
     @staticmethod
     def set_seed_stop(seed_row, new_seed_stop):
-        """
-        Set and return the seed stop value
+        """Set and return the seed stop value
 
         Args:
             seed_row (pandas.core.frame.DataFrame): A Pandas DataFrame
@@ -458,8 +450,7 @@ class Revise_Anno(object):
         return seed_row
 
     def update_data_frame(self, seed_row):
-        """
-        Add the updated entry (seed_row) to the dataframe.
+        """Add the updated entry (seed_row) to the dataframe.
 
         Args:
             seed_row (pandas.core.frame.DataFrame): A Pandas DataFrame
@@ -472,8 +463,7 @@ class Revise_Anno(object):
         self.chrom_specific_frame_dict[self.current_te_identity] = updated_frame
 
     def determine_seed_stop(self, seed_stop, array_of_hits):
-        """
-        Identify the maximum seed stop value
+        """Identify the maximum seed stop value.
 
         Args:
             seed_stop (int): The value for the seed stop.
@@ -491,9 +481,10 @@ class Revise_Anno(object):
 
     @staticmethod
     def clear_array_by_index(dataframe, array_of_hits):
-        """
-        Remove rows from a given array. Done to remove hits so that proceeding
-        searches don't hit the same element multiple times.
+        """Remove rows from a given array.
+
+        Done to remove hits so that proceeding searches don't hit the same element
+        multiple times.
 
         Args:
             dataframe (pandas.core.frame.DataFrame): A data to remove hits from.
@@ -524,7 +515,7 @@ class Revise_Anno(object):
 
     @staticmethod
     def _read(filename, key="default"):
-        """Read from disk. Returns a Pandaframe from an hdf5 file
+        """Read from disk. Returns a Pandaframe from an hdf5 file.
 
         Args:
             filename (str): a string of the filename to write.
