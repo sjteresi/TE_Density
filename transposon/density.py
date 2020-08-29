@@ -325,9 +325,10 @@ def process(
     check_groupings(grouped_genes, grouped_TEs, logger, genome_id)
 
     gene_progress = tqdm(
-        total=len(grouped_genes), desc="chromosome  ", position=0, ncols=80
+        total=len(grouped_genes), desc="chromosome", position=0, ncols=80
     )
     _temp_count = 0
+    sub_progress = tqdm(desc="genes     ", position=1, ncols=80)
 
     for chromosome_of_gene_data, chromosome_of_te_data in zip(
         grouped_genes, grouped_TEs
@@ -364,25 +365,21 @@ def process(
             )
 
         n_genes = sum(1 for g in wrapped_genedata_by_chrom.names)
-        # TODO create status bar above, reuse and reset here
-        # 'total' is a public member
-        sub_progress = tqdm(total=n_genes, desc="  genes     ", position=1, ncols=80)
+        sub_progress.reset(total=n_genes)
         overlap = OverlapWorker(overlap_dir)
-
-        def progress():
-            sub_progress.update(1)
-            gene_progress.refresh()
-
         overlap.calculate(
             wrapped_genedata_by_chrom,
             wrapped_tedata_by_chrom,
             window_it(alg_parameters),
             wrapped_genedata_by_chrom.names,
-            progress,
+            progress=sub_progress.update,
         )
 
         _temp_count += 1
         gene_progress.update(1)
+        sub_progress.refresh()
+    sub_progress.close()
+    gene_progress.close()
 
 
 if __name__ == "__main__":
@@ -507,6 +504,7 @@ if __name__ == "__main__":
     revised_transposons = os.path.join(
         args.revised_input_data, str("Revised_" + t_fname + ".tsv")
     )
+    logging.debug("revised_transposons:  %s" % revised_transposons)
     gene_data_unwrapped = verify_gene_cache(
         args.genes_input_file, cleaned_genes, args.contig_del, logger
     )

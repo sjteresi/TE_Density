@@ -418,12 +418,11 @@ class OverlapWorker():
                 # NOTE consider iterating on one array at a time? (L / I / R)
                 # for dest in l,r: for w in window...
                 for window in self._windows:
-
                     w_idx = self._window_2_idx[window]
                     out_slice = sink.left_right_slice(w_idx, g_idx)
                     sink.left[out_slice] = Overlap.left(gene_datum, transposons, window)
                     sink.right[out_slice] = Overlap.right(gene_datum, transposons, window)
-                if progress is not None:
+                if progress:
                     progress()
 
         return path

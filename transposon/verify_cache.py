@@ -84,11 +84,7 @@ def verify_chromosome_h5_cache(
     elif reset_h5 or (
         not (os.path.exists(h5_g_filename) and os.path.exists(h5_t_filename))
     ):
-        logger.info(
-            """Chromosome: %s: Writing gene_data and te_data
-                    to disk in H5 format""",
-            chrom_id,
-        )
+        logger.debug("writing chromosome '%s' to %s" % (chrom_id, h5_g_filename))
         gene_data_obj.write(h5_g_filename)
         te_data_obj.write(h5_t_filename)
     else:
@@ -238,16 +234,16 @@ def revise_annotation(
     logger.info("Checking to see if revised TE dataset exists...")
     if revise_anno:
         logger.info("Flag provided, forcing creation of revised TE dataset...")
-        revised_TE_Data = Revise_Anno(TE_Data, revised_cache_loc, logger, genome_id)
+        revised_TE_Data = Revise_Anno(TE_Data, revised_cache_loc, genome_id)
         revised_TE_Data.create_superfam()
         revised_TE_Data.create_order()
         revised_TE_Data.create_nameless()
-        logger.info("Saving revised TE dataset...")
+        logger.info("write revised TE: " % revised_transposons_loc)
         revised_TE_Data.save_whole_te_annotation(revised_transposons_loc)
         TE_Data = revised_TE_Data.whole_te_annotation
 
     elif os.path.exists(revised_transposons_loc):
-        logger.info("Exists. Importing revised TE dataset from disk...")
+        logger.info("load revised TE: %s" % revised_transposons_loc)
         TE_Data = pd.read_csv(
             revised_transposons_loc,
             header="infer",
@@ -255,9 +251,9 @@ def revise_annotation(
             sep="\t",
         )
     else:
-        logger.info("Previously revised TE dataset does not exist...")
+        logger.info("revised TE DNE: %s" % revised_transposons_loc)
         logger.info("Creating revised TE dataset...")
-        revised_TE_Data = Revise_Anno(TE_Data, revised_cache_loc, logger, genome_id)
+        revised_TE_Data = Revise_Anno(TE_Data, revised_cache_loc, genome_id)
         revised_TE_Data.create_superfam()
         revised_TE_Data.create_order()
         revised_TE_Data.create_nameless()
