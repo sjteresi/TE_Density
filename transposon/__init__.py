@@ -13,6 +13,16 @@ MAX_SYSTEM_RAM_GB = sysconf('SC_PAGE_SIZE') * sysconf('SC_PHYS_PAGES')/(1024.**3
 FILE_DNE = partial(FileNotFoundError, errno.ENOENT, strerror(errno.ENOENT))
 
 
+def raise_if_no_file(filepath):
+
+    if not os.path.is_file(filepath):
+        raise FILE_DNE(filepath)
+
+def raise_if_no_dir(filepath):
+
+    if not os.path.is_dir(filepath):
+        raise FILE_DNE(filepath)
+
 def check_ram(ram_bytes, logger):
     """Raise if the requested RAM is negative or greater than the system."""
 

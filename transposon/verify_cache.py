@@ -164,19 +164,23 @@ def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
         contig_del (bool): A boolean of whether to remove contigs on import
 
     Returns:
-        gene_data (pandaframe): A pandas dataframe of the Gene data
+        gene_data (pandas.DataFrame): the gene data container
     """
-    logger.info("Verifying gene_data cache...")
+    logger.debug("reading input gene %s" % genes_input_file)
     if os.path.exists(cleaned_genes):
         gene_annot_time = os.path.getmtime(genes_input_file)
         cleaned_gene_time = os.path.getmtime(cleaned_genes)
         if gene_annot_time > cleaned_gene_time:
-            logger.info(
-                """Gene annotation file is newer than the previously
-                        filtered data set. Importing gene data from the
-                        annotation file and re-writing the filtered input
-                        data"""
-            )
+            # TODO SCOTT this log message is too long
+            # a good rule of thumb is to limit to one line
+            # logger.info(
+            #     """Gene annotation file is newer than the previously
+            #             filtered data set. Importing gene data from the
+            #             annotation file and re-writing the filtered input
+            #             data"""
+            # )
+            # this is sufficient and more informative
+            logger.info("updating gene cache at: %s" % cleaned_genes)
             gene_data = import_genes(genes_input_file, contig_del)
             gene_data.sort_values(by=["Chromosome", "Start"], inplace=True)
             gene_data.to_csv(cleaned_genes, sep="\t", header=True, index=True)
@@ -231,9 +235,14 @@ def revise_annotation(
     Returns:
         TE_Data (pandaframe): A pandas dataframe of the TE data
     """
-    logger.info("Checking to see if revised TE dataset exists...")
+
+    # TODO SCOTT you have copy / paste code here
+    # just check exists AND (not force_revision), load if true, else create
+    # that way it will get loaded if it's there and you are recreating it
     if revise_anno:
-        logger.info("Flag provided, forcing creation of revised TE dataset...")
+        logger.info("forcing TE dataset revision:  %s" % revised_transposons_loc)
+        # Want a higher recursion limit for the code
+        sys.setrecursionlimit(11 ** 6)
         revised_TE_Data = Revise_Anno(TE_Data, revised_cache_loc, genome_id)
         revised_TE_Data.create_superfam()
         revised_TE_Data.create_order()
@@ -253,6 +262,8 @@ def revise_annotation(
     else:
         logger.info("revised TE DNE: %s" % revised_transposons_loc)
         logger.info("Creating revised TE dataset...")
+        # Want a higher recursion limit for the code
+        sys.setrecursionlimit(11 ** 6)
         revised_TE_Data = Revise_Anno(TE_Data, revised_cache_loc, genome_id)
         revised_TE_Data.create_superfam()
         revised_TE_Data.create_order()

@@ -21,6 +21,7 @@ import time
 from transposon.gene_data import GeneData
 from transposon.transposon_data import TransposonData
 from transposon.overlap import OverlapWorker
+from transposon.preprocess import PreProcessor
 
 
 def validate_args(args, logger):
@@ -38,6 +39,22 @@ def validate_args(args, logger):
     if not os.path.isdir(args.output_dir):
         logger.critical("argument 'output_dir' is not a directory")
         raise ValueError("%s is not a directory" % (args.output_dir))
+
+
+def parse_algorithm_config(config_path):
+    """Return parameters for running density calculations."""
+
+    raise_if_no_file(config_path)
+    parser = ConfigParser()
+    first_window_size = parser.getint("density_parameters", "first_window_size")
+    window_delta = parser.getint("density_parameters", "window_delta")
+    last_window_size = parser.getint("density_parameters", "last_window_size")
+    alg_parameters = {
+        first_window_size: first_window_size,
+        window_delta: window_delta,
+        last_window_size: last_window_size,
+    }
+    return alg_parameters
 
 
 if __name__ == "__main__":
@@ -119,46 +136,31 @@ if __name__ == "__main__":
     args.overlap_dir = os.path.abspath(args.overlap_dir)
     args.filtered_input_data = os.path.abspath(args.filtered_input_data)
     args.input_h5_cache_loc = os.path.abspath(args.input_h5_cache_loc)
+
+    # BUG revised_input_data is modified here, use another variable instead
     args.revised_input_data = os.path.abspath(
         os.path.join(args.revised_input_data, args.genome_id)
     )
-
-    # Create directories
-    if not os.path.exists(args.filtered_input_data):
-        os.makedirs(args.filtered_input_data)
-    if not os.path.exists(args.input_h5_cache_loc):
-        os.makedirs(args.input_h5_cache_loc)
-    if not os.path.exists(args.revised_input_data):
-        os.makedirs(args.revised_input_data)
-
     args.output_dir = os.path.abspath(args.output_dir)
+
+
+    os.makedirs(args.input_h5_cache_loc, exist_ok=True)  # TODO move to where it's used
+
+
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
     coloredlogs.install(level=log_level)
-
-    # Want a higher recursion limit for the code
-    sys.setrecursionlimit(11 ** 6)
-
-    # logger.info("Start processing directory '%s'"%(args.input_dir))
     for argname, argval in vars(args).items():
-        logger.debug("%-12s: %s" % (argname, argval))
-    validate_args(args, logger)
+        logger.debug("%-18s: %s" % (argname, argval))
 
+    validate_args(args, logger)
+    alg_parameters = parse_algorithm_config(args.config_file)
 
     # TODO move all preprocessing out of this input file
-    raise NotImplementedError()
+    preprocessor = PreProcessor()
+    preprocessor.process()
 
-    logger.info("Reading config file and making parameter dictionary...")
-    parser = ConfigParser()
-    parser.read(args.config_file)
-    first_window_size = parser.getint("density_parameters", "first_window_size")
-    window_delta = parser.getint("density_parameters", "window_delta")
-    last_window_size = parser.getint("density_parameters", "last_window_size")
-    alg_parameters = {
-        first_window_size: first_window_size,
-        window_delta: window_delta,
-        last_window_size: last_window_size,
-    }
+    raise NotImplementedError()
 
     # Process data
     logger.info("Process data...")
