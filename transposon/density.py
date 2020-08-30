@@ -319,6 +319,7 @@ def process(
         reset_h5 (bool): True/False whether or not to overwrite the H5 cache of
         GeneData and TransposonData if it currently exists
     """
+
     grouped_genes = split(gene_data_unwrapped, "Chromosome")
     grouped_TEs = split(te_data_unwrapped, "Chromosome")
     # check docstring for my split func
