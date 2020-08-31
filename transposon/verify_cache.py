@@ -7,6 +7,7 @@ Contains methods for verifying various cached input data.
 __author__ = "Scott Teresi"
 
 import os
+import sys
 import pandas as pd
 from transposon.import_genes import import_genes
 from transposon.import_transposons import import_transposons
