@@ -57,7 +57,8 @@ def verify_chromosome_h5_cache(
         to name each H5 file.
     """
     if reset_h5:
-        logger.info("Writing h5 cache anew because of command-line arg")
+        logger.info("Writing gene H5 cache anew at: %s" % h5_g_filename)
+        logger.info("Writing TE H5 cache anew at: %s" % h5_t_filename)
         gene_data_obj.write(h5_g_filename)
         te_data_obj.write(h5_t_filename)
 
@@ -69,11 +70,12 @@ def verify_chromosome_h5_cache(
 
         if (gene_annot_time > gene_h5_time) and (te_annot_time > te_h5_time):
             logger.info(
-                """Chromosome: %s: Writing gene_data and te_data to disk
-                        in H5 format because annotation file is newer than h5
-                        cache.""",
-                chrom_id,
+                """Chromosome: %s: Annotation file is newer than h5 cache.
+                Recreating cache."""
+                % chrom_id,
             )
+            logger.info("Writing gene H5 cache anew at: %s" % h5_g_filename)
+            logger.info("Writing TE H5 cache anew at: %s" % h5_t_filename)
             gene_data_obj.write(h5_g_filename)
             te_data_obj.write(h5_t_filename)
 
@@ -84,11 +86,11 @@ def verify_chromosome_h5_cache(
     elif reset_h5 or (
         not (os.path.exists(h5_g_filename) and os.path.exists(h5_t_filename))
     ):
-        logger.debug("writing chromosome '%s' to %s" % (chrom_id, h5_g_filename))
+        logger.debug("Writing chromosome '%s' to %s" % (chrom_id, h5_g_filename))
         gene_data_obj.write(h5_g_filename)
         te_data_obj.write(h5_t_filename)
     else:
-        logger.warning(
+        logger.critical(
             """During the verification of the H5 cache nothing was
                        saved because 0 conditions were met."""
         )
@@ -118,22 +120,23 @@ def verify_TE_cache(
     Returns:
         te_data (pandaframe): A pandas dataframe of the TE data
     """
-    logger.info("Verifying TransposonData cache...")
+    logger.debug("Verifying TransposonData cache...")
     if os.path.exists(cleaned_transposons):
         te_annot_time = os.path.getmtime(tes_input_file)
         cleaned_te_time = os.path.getmtime(cleaned_transposons)
         if te_annot_time > cleaned_te_time:
             logger.info(
-                """TE annotation file is newer than the previously
-                        filtered data set. Importing TE data from the
-                        annotation file and re-writing the filtered input
-                        data"""
+                """TE annotation file is newer than filtered data set.
+                Importing TE data from the annotation file and re-writing the filtered input data: %s %s"""
+                % (tes_input_file, cleaned_transposons)
             )
             te_data = import_transposons(tes_input_file, te_annot_renamer, contig_del)
             te_data.sort_values(by=["Chromosome", "Start"], inplace=True)
             te_data.to_csv(cleaned_transposons, sep="\t", header=True, index=False)
         else:
-            logger.info("Importing filtered transposons from disk...")
+            logger.info(
+                "Importing filtered transposons from disk: %s" % cleaned_transposons
+            )
             te_data = pd.read_csv(
                 cleaned_transposons,
                 header="infer",
@@ -141,8 +144,10 @@ def verify_TE_cache(
                 sep="\t",
             )
     else:
-        logger.info("Previously filtered TE dataset does not exist...")
-        logger.info("Importing unfiltered TE dataset from annotation file...")
+        logger.info("Previously filtered TE dataset DNE...")
+        logger.info(
+            "Importing unfiltered TE dataset from annotation file: %s" % tes_input_file
+        )
         te_data = import_transposons(tes_input_file, te_annot_renamer, contig_del)
         te_data.sort_values(by=["Chromosome", "Start"], inplace=True)
         te_data.to_csv(cleaned_transposons, sep="\t", header=True, index=False)
@@ -166,7 +171,7 @@ def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
     Returns:
         gene_data (pandas.DataFrame): the gene data container
     """
-    logger.debug("reading input gene %s" % genes_input_file)
+    logger.debug("Reading input gene %s" % genes_input_file)
     if os.path.exists(cleaned_genes):
         gene_annot_time = os.path.getmtime(genes_input_file)
         cleaned_gene_time = os.path.getmtime(cleaned_genes)
@@ -180,13 +185,13 @@ def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
             #             data"""
             # )
             # this is sufficient and more informative
-            logger.info("updating gene cache at: %s" % cleaned_genes)
+            logger.info("Updating gene cache at: %s" % cleaned_genes)
             gene_data = import_genes(genes_input_file, contig_del)
             gene_data.sort_values(by=["Chromosome", "Start"], inplace=True)
             gene_data.to_csv(cleaned_genes, sep="\t", header=True, index=True)
 
         else:
-            logger.info("Importing filtered gene dataset from disk...")
+            logger.info("Importing filtered gene dataset from disk: %s" % cleaned_genes)
             gene_data = pd.read_csv(
                 cleaned_genes,
                 header="infer",
@@ -195,8 +200,9 @@ def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
                 index_col="Gene_Name",
             )
     else:
-        logger.info("Previously filtered gene dataset does not exist...")
-        logger.info("Importing unfiltered gene dataset from annotation file...")
+        logger.info("Previously filtered gene dataset DNE...")
+        logger.info("Importing unfiltered gene dataset from annotation file:
+                    %s" % genes_input_file)
         gene_data = import_genes(genes_input_file, contig_del)
         gene_data.sort_values(by=["Chromosome", "Start"], inplace=True)
         gene_data.to_csv(cleaned_genes, sep="\t", header=True, index=True)
@@ -240,19 +246,19 @@ def revise_annotation(
     # just check exists AND (not force_revision), load if true, else create
     # that way it will get loaded if it's there and you are recreating it
     if revise_anno:
-        logger.info("forcing TE dataset revision:  %s" % revised_transposons_loc)
+        logger.info("Forcing TE dataset revision:  %s" % revised_transposons_loc)
         # Want a higher recursion limit for the code
         sys.setrecursionlimit(11 ** 6)
         revised_TE_Data = Revise_Anno(TE_Data, revised_cache_loc, genome_id)
         revised_TE_Data.create_superfam()
         revised_TE_Data.create_order()
         revised_TE_Data.create_nameless()
-        logger.info("write revised TE: " % revised_transposons_loc)
+        logger.info("Write revised TE: " % revised_transposons_loc)
         revised_TE_Data.save_whole_te_annotation(revised_transposons_loc)
         TE_Data = revised_TE_Data.whole_te_annotation
 
     elif os.path.exists(revised_transposons_loc):
-        logger.info("load revised TE: %s" % revised_transposons_loc)
+        logger.info("Load revised TE: %s" % revised_transposons_loc)
         TE_Data = pd.read_csv(
             revised_transposons_loc,
             header="infer",
@@ -260,7 +266,7 @@ def revise_annotation(
             sep="\t",
         )
     else:
-        logger.info("revised TE DNE: %s" % revised_transposons_loc)
+        logger.info("Revised TE DNE: %s" % revised_transposons_loc)
         logger.info("Creating revised TE dataset...")
         # Want a higher recursion limit for the code
         sys.setrecursionlimit(11 ** 6)
@@ -268,7 +274,7 @@ def revise_annotation(
         revised_TE_Data.create_superfam()
         revised_TE_Data.create_order()
         revised_TE_Data.create_nameless()
-        logger.info("Saving revised TE dataset...")
+        logger.info("Write revised TE: " % revised_transposons_loc)
         revised_TE_Data.save_updated_te_annotation(revised_transposons_loc)
         TE_Data = revised_TE_Data.whole_te_annotation
     return TE_Data
