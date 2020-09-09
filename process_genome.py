@@ -22,6 +22,7 @@ from transposon.gene_data import GeneData
 from transposon.transposon_data import TransposonData
 from transposon.overlap import OverlapWorker
 from transposon.preprocess import PreProcessor
+from transposon import raise_if_no_file, raise_if_no_dir
 
 
 def validate_args(args, logger):
@@ -46,6 +47,7 @@ def parse_algorithm_config(config_path):
 
     raise_if_no_file(config_path)
     parser = ConfigParser()
+    parser.read(config_path)
     first_window_size = parser.getint("density_parameters", "first_window_size")
     window_delta = parser.getint("density_parameters", "window_delta")
     last_window_size = parser.getint("density_parameters", "last_window_size")
@@ -67,13 +69,14 @@ if __name__ == "__main__":
         "tes_input_file", type=str, help="parent path of transposon file"
     )
     parser.add_argument(
-        "genome_id", type=str, help="string of the genome to be run, for clarity"
+        "genome_id", type=str, help="string of the genome to be run, for
+        clarity and naming conventions."
     )
     parser.add_argument(
         "--config_file",
         "-c",
         type=str,
-        default=os.path.join(path_main, "../../", "config/test_run_config.ini"),
+        default=os.path.join(path_main, "../", "config/test_run_config.ini"),
         help="parent path of config file",
     )
     parser.add_argument(
@@ -83,46 +86,31 @@ if __name__ == "__main__":
         default=os.path.abspath("/tmp"),
         help="parent directory to output overlap data",
     )
-    parser.add_argument(
-        "--filtered_input_data",
-        "-f",
-        type=str,
-        default=os.path.join(path_main, "../..", "filtered_input_data"),
-        help="parent directory for cached input data",
-    )
-    # NOTE
-    # TODO if the user sets their own filtered_input_data location, this
-    # h5_cache_loc location will not exactly follow their filtered_input_data
-    # convention
-    # ANSWER then don't allow them to do so
-    # also what does 'not exactly follow' mean and what is the result?
-    parser.add_argument(
-        "--input_h5_cache_loc",
-        "-h5",
-        type=str,
-        default=os.path.join(
-            path_main, "../..", "filtered_input_data/chromosome_h5_cache"
-        ),
-        help="parent directory for h5 cached chromosome input data",
-    )
-    parser.add_argument("--reset_h5", action="store_true")
-    parser.add_argument("--contig_del", action="store_false")
-    parser.add_argument("--revise_anno", action="store_true")
 
-    parser.add_argument(
-        "--revised_input_data",
-        "-r",
-        type=str,
-        default=os.path.join(
-            path_main, "../..", "filtered_input_data/revised_input_data"
-        ),
-        help="parent directory for cached revised input data",
-    )
+    parser.add_argument("--reset_h5", action="store_true", help="Forces the
+                        recreation of the h5 cached files for the gene and TE
+                        annotations. Desirable if you have previously run the
+                        pipeline and you modified your annotation files for a
+                        second run-through. This is especially useful if
+                        you have modified the input gene or TE annotation but have not
+                        changed the filenames.")
+    parser.add_argument("--contig_del", action="store_false", help="Deletes
+                        entries (rows) in the gene annotation and TE annotation
+                        files that are labelled with any variation of contig*
+                        in the chromosome field (case insensitive).")
+    parser.add_argument("--revise_anno", action="store_true", help="Forces the
+                        recreation of a revised TE annotation file. Desirable if
+                        you have previously created a revised TE annotation but
+                        you want the pipeline to create a new one from scratch
+                        and overwrite the cache. This is especially useful if
+                        you have modified the input TE annotation but have not
+                        changed the filename.")
+
     parser.add_argument(
         "--output_dir",
         "-o",
         type=str,
-        default=os.path.join(path_main, "../..", "results"),
+        default=os.path.join(path_main, "../..", "TE_Data"),
         help="parent directory to output results",
     )
     parser.add_argument(
@@ -134,18 +122,20 @@ if __name__ == "__main__":
     args.tes_input_file = os.path.abspath(args.tes_input_file)
     args.config_file = os.path.abspath(args.config_file)
     args.overlap_dir = os.path.abspath(args.overlap_dir)
-    args.filtered_input_data = os.path.abspath(args.filtered_input_data)
-    args.input_h5_cache_loc = os.path.abspath(args.input_h5_cache_loc)
-
-    # BUG revised_input_data is modified here, use another variable instead
-    args.revised_input_data = os.path.abspath(
-        os.path.join(args.revised_input_data, args.genome_id)
-    )
     args.output_dir = os.path.abspath(args.output_dir)
 
+    filtered_input_data_loc = os.path.abspath(
+        os.path.join(args.output_dir, "filtered_input_data")
+    )
+    input_h5_cache_loc = os.path.abspath(
+        os.path.join(args.output_dir, filtered_input_data_loc, "input_h5_cache")
+    )
 
-    os.makedirs(args.input_h5_cache_loc, exist_ok=True)  # TODO move to where it's used
+    revised_input_data_loc = os.path.abspath(
+        os.path.join(args.output_dir, filtered_input_data_loc, "revised_input_data")
+    )
 
+    os.makedirs(input_h5_cache_loc, exist_ok=True)  # TODO move to where it's used
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
@@ -157,7 +147,13 @@ if __name__ == "__main__":
     alg_parameters = parse_algorithm_config(args.config_file)
 
     # TODO move all preprocessing out of this input file
-    preprocessor = PreProcessor()
+    preprocessor = PreProcessor(
+        args.genes_input_file,
+        args.tes_input_file,
+        filtered_input_data_loc,
+        revised_input_data_loc,
+        args.genome_id,
+    )
     preprocessor.process()
 
     raise NotImplementedError()
@@ -170,9 +166,9 @@ if __name__ == "__main__":
         te_data_unwrapped,
         args.overlap_dir,
         args.genome_id,
-        args.filtered_input_data,
+        filtered_input_data_loc,
         args.reset_h5,
-        args.input_h5_cache_loc,
+        input_h5_cache_loc,
         args.genes_input_file,
         args.tes_input_file,
     )
