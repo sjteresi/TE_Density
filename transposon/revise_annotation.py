@@ -150,8 +150,8 @@ class Revise_Anno(object):
             Saves the pandas dataframe to disk as a tsv.
         """
         self._merge_all()
+        self.logger.info("Annotation has been saved: %s" % filename)
         self.whole_te_annotation.to_csv(filename, sep="\t", header=header, index=index)
-        self.logger.info("Annotation has been saved...")
 
     def _verify_files(self):
         """
@@ -218,9 +218,9 @@ class Revise_Anno(object):
                 self.chrom_specific_frame_dict = {}
                 for te_frame in self.split(chromosome_of_data, te_type_to_split):
                     chromosome = te_frame.Chromosome.unique()[0]  # Magic number
-                    pbar.set_description("revising '%s' for '%s'" %
-                                         (te_type_to_split, chromosome)
-                                        )
+                    pbar.set_description(
+                        "revising '%s' for '%s'" % (te_type_to_split, chromosome)
+                    )
                     pbar.refresh()
                     self.current_te_identity = te_frame[te_type_to_split].unique()[
                         0
