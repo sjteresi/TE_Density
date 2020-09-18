@@ -18,6 +18,7 @@ from configparser import ConfigParser
 import sys
 import time
 
+from transposon import FILE_DNE
 from transposon.gene_data import GeneData
 from transposon.transposon_data import TransposonData
 from transposon.overlap import OverlapWorker
@@ -28,18 +29,22 @@ from transposon import raise_if_no_file, raise_if_no_dir
 def validate_args(args, logger):
     """Raise if an input argument is invalid."""
 
-    if not os.path.isfile(args.genes_input_file):
-        logger.critical("argument 'genes_input_dir' is not a file")
-        raise ValueError("%s is not a directory" % (args.genes_input_file))
-    if not os.path.isfile(args.tes_input_file):
-        logger.critical("argument 'tes_input_dir' is not a file")
-        raise ValueError("%s is not a directory" % (args.tes_input_file))
-    if not os.path.isdir(args.overlap_dir):
-        logger.critical("argument 'overlap_dir' is not a directory")
-        raise ValueError("%s is not a directory" % (args.overlap_dir))
-    if not os.path.isdir(args.output_dir):
-        logger.critical("argument 'output_dir' is not a directory")
-        raise ValueError("%s is not a directory" % (args.output_dir))
+    raise_if_no_file(
+        args.genes_input_file,
+        logger=logger,
+        msg_fmt="arg 'genes_input_file' not a file: %s",
+    )
+    raise_if_no_file(
+        args.tes_input_file,
+        logger=logger,
+        msg_fmt="arg 'tes_input_file' not a file: %s",
+    )
+    raise_if_no_dir(
+        args.overlap_dir, logger=logger, msg_fmt="arg 'overlap_dir' not a dir: %s"
+    )
+    raise_if_no_dir(
+        args.output_dir, logger=logger, msg_fmt="arg 'output_dir' not a dir: %s"
+    )
 
 
 def parse_algorithm_config(config_path):
@@ -157,7 +162,6 @@ if __name__ == "__main__":
     validate_args(args, logger)
     alg_parameters = parse_algorithm_config(args.config_file)
 
-    # TODO move all preprocessing out of this input file
     preprocessor = PreProcessor(
         args.genes_input_file,
         args.tes_input_file,
@@ -165,12 +169,13 @@ if __name__ == "__main__":
         revised_input_data_loc,
         args.genome_id,
     )
+    # TODO implement, see transposon/density.py
     preprocessor.process()
-
-    raise NotImplementedError()
 
     # Process data
     logger.info("Process data...")
+    # TODO implement, see transposon/density.py
+    raise NotImplementedError()
     process(
         alg_parameters,
         gene_data_unwrapped,

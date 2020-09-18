@@ -269,6 +269,7 @@ def revise_annotation(
     else:
         logger.info("Revised TE DNE: %s" % revised_transposons_loc)
         logger.info("Creating revised TE dataset...")
+        logger.warn("revising the TE dataset will take a long time!")
         # Want a higher recursion limit for the code
         sys.setrecursionlimit(11 ** 6)
         revised_TE_Data = Revise_Anno(TE_Data, revised_cache_loc, genome_id)
