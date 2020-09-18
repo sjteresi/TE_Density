@@ -62,16 +62,18 @@ def parse_algorithm_config(config_path):
 if __name__ == "__main__":
     """Command line interface to calculate density."""
 
-    parser = argparse.ArgumentParser(description="calculate TE density")
     path_main = os.path.abspath(__file__)
+
+    parser = argparse.ArgumentParser(description="calculate TE density")
+
     parser.add_argument("genes_input_file", type=str, help="parent path of gene file")
+
     parser.add_argument(
         "tes_input_file", type=str, help="parent path of transposon file"
     )
-    parser.add_argument(
-        "genome_id", type=str, help="string of the genome to be run, for
-        clarity and naming conventions."
-    )
+
+    parser.add_argument("genome_id", type=str, help="name of genome")
+
     parser.add_argument(
         "--config_file",
         "-c",
@@ -79,32 +81,41 @@ if __name__ == "__main__":
         default=os.path.join(path_main, "../", "config/test_run_config.ini"),
         help="parent path of config file",
     )
+
     parser.add_argument(
         "--overlap_dir",
         "-s",
         type=str,
         default=os.path.abspath("/tmp"),
-        help="parent directory to output overlap data",
+        help="directory for temporary overlap files",
     )
 
-    parser.add_argument("--reset_h5", action="store_true", help="Forces the
-                        recreation of the h5 cached files for the gene and TE
-                        annotations. Desirable if you have previously run the
-                        pipeline and you modified your annotation files for a
-                        second run-through. This is especially useful if
-                        you have modified the input gene or TE annotation but have not
-                        changed the filenames.")
-    parser.add_argument("--contig_del", action="store_false", help="Deletes
+    parser.add_argument(
+        "--reset_h5",
+        action="store_true",
+        help="Rewrite h5 intermediate files for gene & TEs",
+    )
+
+    parser.add_argument(
+        "--contig_del",
+        action="store_false",
+        help="""Deletes
                         entries (rows) in the gene annotation and TE annotation
                         files that are labelled with any variation of contig*
-                        in the chromosome field (case insensitive).")
-    parser.add_argument("--revise_anno", action="store_true", help="Forces the
+                        in the chromosome field (case insensitive).""",
+    )
+
+    parser.add_argument(
+        "--revise_anno",
+        action="store_true",
+        help="""Forces the
                         recreation of a revised TE annotation file. Desirable if
                         you have previously created a revised TE annotation but
                         you want the pipeline to create a new one from scratch
                         and overwrite the cache. This is especially useful if
                         you have modified the input TE annotation but have not
-                        changed the filename.")
+                        changed the filename.""",
+    )
 
     parser.add_argument(
         "--output_dir",
