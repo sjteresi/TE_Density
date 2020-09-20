@@ -18,6 +18,7 @@ from configparser import ConfigParser
 import sys
 import time
 
+from transposon import FILE_DNE
 from transposon.gene_data import GeneData
 from transposon.transposon_data import TransposonData
 from transposon.overlap import OverlapWorker
@@ -28,18 +29,22 @@ from transposon import raise_if_no_file, raise_if_no_dir
 def validate_args(args, logger):
     """Raise if an input argument is invalid."""
 
-    if not os.path.isfile(args.genes_input_file):
-        logger.critical("argument 'genes_input_dir' is not a file")
-        raise ValueError("%s is not a directory" % (args.genes_input_file))
-    if not os.path.isfile(args.tes_input_file):
-        logger.critical("argument 'tes_input_dir' is not a file")
-        raise ValueError("%s is not a directory" % (args.tes_input_file))
-    if not os.path.isdir(args.overlap_dir):
-        logger.critical("argument 'overlap_dir' is not a directory")
-        raise ValueError("%s is not a directory" % (args.overlap_dir))
-    if not os.path.isdir(args.output_dir):
-        logger.critical("argument 'output_dir' is not a directory")
-        raise ValueError("%s is not a directory" % (args.output_dir))
+    raise_if_no_file(
+        args.genes_input_file,
+        logger=logger,
+        msg_fmt="arg 'genes_input_file' not a file: %s",
+    )
+    raise_if_no_file(
+        args.tes_input_file,
+        logger=logger,
+        msg_fmt="arg 'tes_input_file' not a file: %s",
+    )
+    raise_if_no_dir(
+        args.overlap_dir, logger=logger, msg_fmt="arg 'overlap_dir' not a dir: %s"
+    )
+    raise_if_no_dir(
+        args.output_dir, logger=logger, msg_fmt="arg 'output_dir' not a dir: %s"
+    )
 
 
 def parse_algorithm_config(config_path):
@@ -62,16 +67,18 @@ def parse_algorithm_config(config_path):
 if __name__ == "__main__":
     """Command line interface to calculate density."""
 
-    parser = argparse.ArgumentParser(description="calculate TE density")
     path_main = os.path.abspath(__file__)
+
+    parser = argparse.ArgumentParser(description="calculate TE density")
+
     parser.add_argument("genes_input_file", type=str, help="parent path of gene file")
+
     parser.add_argument(
         "tes_input_file", type=str, help="parent path of transposon file"
     )
-    parser.add_argument(
-        "genome_id", type=str, help="string of the genome to be run, for
-        clarity and naming conventions."
-    )
+
+    parser.add_argument("genome_id", type=str, help="name of genome")
+
     parser.add_argument(
         "--config_file",
         "-c",
@@ -79,32 +86,41 @@ if __name__ == "__main__":
         default=os.path.join(path_main, "../", "config/test_run_config.ini"),
         help="parent path of config file",
     )
+
     parser.add_argument(
         "--overlap_dir",
         "-s",
         type=str,
         default=os.path.abspath("/tmp"),
-        help="parent directory to output overlap data",
+        help="directory for temporary overlap files",
     )
 
-    parser.add_argument("--reset_h5", action="store_true", help="Forces the
-                        recreation of the h5 cached files for the gene and TE
-                        annotations. Desirable if you have previously run the
-                        pipeline and you modified your annotation files for a
-                        second run-through. This is especially useful if
-                        you have modified the input gene or TE annotation but have not
-                        changed the filenames.")
-    parser.add_argument("--contig_del", action="store_false", help="Deletes
+    parser.add_argument(
+        "--reset_h5",
+        action="store_true",
+        help="Rewrite h5 intermediate files for gene & TEs",
+    )
+
+    parser.add_argument(
+        "--contig_del",
+        action="store_false",
+        help="""Deletes
                         entries (rows) in the gene annotation and TE annotation
                         files that are labelled with any variation of contig*
-                        in the chromosome field (case insensitive).")
-    parser.add_argument("--revise_anno", action="store_true", help="Forces the
+                        in the chromosome field (case insensitive).""",
+    )
+
+    parser.add_argument(
+        "--revise_anno",
+        action="store_true",
+        help="""Forces the
                         recreation of a revised TE annotation file. Desirable if
                         you have previously created a revised TE annotation but
                         you want the pipeline to create a new one from scratch
                         and overwrite the cache. This is especially useful if
                         you have modified the input TE annotation but have not
-                        changed the filename.")
+                        changed the filename.""",
+    )
 
     parser.add_argument(
         "--output_dir",
@@ -146,7 +162,6 @@ if __name__ == "__main__":
     validate_args(args, logger)
     alg_parameters = parse_algorithm_config(args.config_file)
 
-    # TODO move all preprocessing out of this input file
     preprocessor = PreProcessor(
         args.genes_input_file,
         args.tes_input_file,
@@ -154,12 +169,13 @@ if __name__ == "__main__":
         revised_input_data_loc,
         args.genome_id,
     )
+    # TODO implement, see transposon/density.py
     preprocessor.process()
-
-    raise NotImplementedError()
 
     # Process data
     logger.info("Process data...")
+    # TODO implement, see transposon/density.py
+    raise NotImplementedError()
     process(
         alg_parameters,
         gene_data_unwrapped,

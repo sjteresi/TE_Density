@@ -121,7 +121,9 @@ def verify_TE_cache(
     Returns:
         te_data (pandaframe): A pandas dataframe of the TE data
     """
-    logger.debug("Verifying TransposonData cache...")
+
+    logger.info("checking TransposonData cache at: %s" % cleaned_transposons)
+
     if os.path.exists(cleaned_transposons):
         te_annot_time = os.path.getmtime(tes_input_file)
         cleaned_te_time = os.path.getmtime(cleaned_transposons)
@@ -201,9 +203,7 @@ def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
                 index_col="Gene_Name",
             )
     else:
-        logger.info("Previously filtered gene dataset DNE...")
-        logger.info("Importing unfiltered gene dataset from annotation file:
-                    %s" % genes_input_file)
+        logger.info("no cache, read gene dataset: %s" % genes_input_file)
         gene_data = import_genes(genes_input_file, contig_del)
         gene_data.sort_values(by=["Chromosome", "Start"], inplace=True)
         gene_data.to_csv(cleaned_genes, sep="\t", header=True, index=True)
@@ -269,6 +269,7 @@ def revise_annotation(
     else:
         logger.info("Revised TE DNE: %s" % revised_transposons_loc)
         logger.info("Creating revised TE dataset...")
+        logger.warn("revising the TE dataset will take a long time!")
         # Want a higher recursion limit for the code
         sys.setrecursionlimit(11 ** 6)
         revised_TE_Data = Revise_Anno(TE_Data, revised_cache_loc, genome_id)

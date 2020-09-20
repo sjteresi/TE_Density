@@ -20,18 +20,18 @@ import transposon
 
 
 _MergeConfigSink = namedtuple(
-    '_MergeConfigSink',
-    ['transposons', 'gene_names', 'windows', 'filepath', 'ram_bytes']
+    "_MergeConfigSink",
+    ["transposons", "gene_names", "windows", "filepath", "ram_bytes"],
 )
-_MergeConfigSource = namedtuple('_MergeConfigSource', ['filepath'])
-_Density = namedtuple('_Density', ['left', 'intra', 'right'])
+_MergeConfigSource = namedtuple("_MergeConfigSource", ["filepath"])
+_Density = namedtuple("_Density", ["left", "intra", "right"])
 _SummationArgs = namedtuple(
-    '_SummationArgs',
-    ['input', 'output', 'windows', 'te_idx_name', 'slice_in', 'slice_out', 'where']
+    "_SummationArgs",
+    ["input", "output", "windows", "te_idx_name", "slice_in", "slice_out", "where"],
 )
 
 
-class MergeData():
+class MergeData:
     """Contains the sum and density of the overlap wrt superfamilies and orders.
 
     Merges from one or more OverlapData into two sets: superfamilies, orders.
@@ -48,21 +48,21 @@ class MergeData():
     """
 
     DTYPE = np.float32  # MAGIC NUMBER experimental, depends on your data
-    _GENE_NAMES = 'GENE_NAMES'
-    _WINDOWS = 'WINDOWS'
-    _CHROME_ID = 'CHROMOSOME_ID'
-    _SUPERFAMILY_NAMES = 'SUPERFAMILY_NAMES'
-    _ORDER_NAMES = 'ORDER_NAMES'
-    _RHO_SUPERFAMILY_DATASET_KEY = 'RHO_SUPERFAMILIES'
-    _S_LEFT = _RHO_SUPERFAMILY_DATASET_KEY + '_LEFT'
-    _S_RIGHT = _RHO_SUPERFAMILY_DATASET_KEY + '_RIGHT'
-    _S_INTRA = _RHO_SUPERFAMILY_DATASET_KEY + '_INTRA'
-    _RHO_ORDER_DATASET_KEY = 'RHO_ORDERS'
-    _O_LEFT = _RHO_ORDER_DATASET_KEY + '_LEFT'
-    _O_RIGHT = _RHO_ORDER_DATASET_KEY + '_RIGHT'
-    _O_INTRA = _RHO_ORDER_DATASET_KEY + '_INTRA'
+    _GENE_NAMES = "GENE_NAMES"
+    _WINDOWS = "WINDOWS"
+    _CHROME_ID = "CHROMOSOME_ID"
+    _SUPERFAMILY_NAMES = "SUPERFAMILY_NAMES"
+    _ORDER_NAMES = "ORDER_NAMES"
+    _RHO_SUPERFAMILY_DATASET_KEY = "RHO_SUPERFAMILIES"
+    _S_LEFT = _RHO_SUPERFAMILY_DATASET_KEY + "_LEFT"
+    _S_RIGHT = _RHO_SUPERFAMILY_DATASET_KEY + "_RIGHT"
+    _S_INTRA = _RHO_SUPERFAMILY_DATASET_KEY + "_INTRA"
+    _RHO_ORDER_DATASET_KEY = "RHO_ORDERS"
+    _O_LEFT = _RHO_ORDER_DATASET_KEY + "_LEFT"
+    _O_RIGHT = _RHO_ORDER_DATASET_KEY + "_RIGHT"
+    _O_INTRA = _RHO_ORDER_DATASET_KEY + "_INTRA"
 
-    def __init__(self, configuration, compression='lzf', logger=None):
+    def __init__(self, configuration, compression="lzf", logger=None):
         """Initializer.
 
         Args:
@@ -93,9 +93,12 @@ class MergeData():
     def _check_compression(filter, logger):
         """Raise if compression type is invalid."""
 
-        LOSSLESS_FILTERS = ['gzip', 'lzf', 'szip']  # SEE h5py datasets
+        LOSSLESS_FILTERS = ["gzip", "lzf", "szip"]  # SEE h5py datasets
         if filter not in LOSSLESS_FILTERS:
-            msg = "'%s' compression invalid, options are: %s" % (filter, LOSSLESS_FILTERS)
+            msg = "'%s' compression invalid, options are: %s" % (
+                filter,
+                LOSSLESS_FILTERS,
+            )
             logger.critical(msg)
             raise ValueError(msg)
         else:
@@ -112,8 +115,9 @@ class MergeData():
         return self._h5_file.filename if self._h5_file is not None else None
 
     @classmethod
-    def from_param(cls, transposon_data, gene_names, windows,
-                   output_dir, ram=2, logger=None):
+    def from_param(
+        cls, transposon_data, gene_names, windows, output_dir, ram=2, logger=None
+    ):
         """Writable sink for a new file.
 
         Args:
@@ -126,19 +130,19 @@ class MergeData():
         """
 
         logger = logger or logging.getLogger(__name__)
-        bytes2gigabytes = 1024. ** 3
+        bytes2gigabytes = 1024.0 ** 3
         ram_bytes = int(ram * bytes2gigabytes)
         transposon.check_ram(ram_bytes, logger)
         chrome = str(transposon_data.chromosome_unique_id)
         genome = str(transposon_data.genome_id)
-        filename = genome + '_' + chrome + '.h5'
+        filename = genome + "_" + chrome + ".h5"
         filepath = os.path.join(output_dir, filename)
         config = _MergeConfigSink(
             transposons=transposon_data,
             gene_names=gene_names,
             windows=windows,
             filepath=filepath,
-            ram_bytes=ram_bytes
+            ram_bytes=ram_bytes,
         )
         return cls(config, logger=logger)
 
@@ -153,13 +157,15 @@ class MergeData():
         """Slice to a left || right density to a superfamily|order / window, gene."""
 
         if group_idx is None or gene_idx is None or window_idx is None:
-            kwargs = {'group_idx': group_idx,
-                      'gene_idx': gene_idx,
-                      'window_idx': window_idx}
+            kwargs = {
+                "group_idx": group_idx,
+                "gene_idx": gene_idx,
+                "window_idx": window_idx,
+            }
             raise ValueError("cannot slice with input of None: %s" % kwargs)
 
         # SEE numpy basic indexing
-        return (group_idx, window_idx, slice(gene_idx, gene_idx+1, 1))
+        return (group_idx, window_idx, slice(gene_idx, gene_idx + 1, 1))
 
     @classmethod
     def intra_slice(cls, group_idx=None, gene_idx=None, window_idx=None):
@@ -167,7 +173,9 @@ class MergeData():
 
         if window_idx is not None:
             raise ValueError("intra window must be None but is %s" % window_idx)
-        return cls.left_right_slice(group_idx=group_idx, gene_idx=gene_idx, window_idx=0)
+        return cls.left_right_slice(
+            group_idx=group_idx, gene_idx=gene_idx, window_idx=0
+        )
 
     def __enter__(self):
         """Context manager begin."""
@@ -206,8 +214,11 @@ class MergeData():
         elif isinstance(self._config, _MergeConfigSource):
             self._open_existing_file(self._config)
         else:
-            raise TypeError("expecting {} or {} but got {}".format(
-                type(_MergeConfigSink), type(_MergeConfigSource), type(self._config)))
+            raise TypeError(
+                "expecting {} or {} but got {}".format(
+                    type(_MergeConfigSink), type(_MergeConfigSource), type(self._config)
+                )
+            )
 
     def _open_new_file(self, cfg):
         """Opens a new H5 file for writing and initializes the data sets.
@@ -223,18 +234,20 @@ class MergeData():
         self._superfam_2_idx = {s: i for i, s in enumerate(self.superfamily_names)}
         self.order_names = sorted(cfg.transposons.order_name_set)
         self._order_2_idx = {o: i for i, o in enumerate(self.order_names)}
-        self._h5_file = h5py.File(cfg.filepath, 'w', rdcc_nbytes=cfg.ram_bytes)
+        self._h5_file = h5py.File(cfg.filepath, "w", rdcc_nbytes=cfg.ram_bytes)
         self._create_sets(self._h5_file, cfg)
         transposon.write_vlen_str_h5py(self._h5_file, self.windows, self._WINDOWS)
         transposon.write_vlen_str_h5py(self._h5_file, self.gene_names, self._GENE_NAMES)
-        transposon.write_vlen_str_h5py(self._h5_file, self.chromosome_id, self._CHROME_ID)
+        transposon.write_vlen_str_h5py(
+            self._h5_file, self.chromosome_id, self._CHROME_ID
+        )
         self._window_2_idx = {w: i for i, w in enumerate(self.windows)}
         self._gene_2_idx = {g: i for i, g in enumerate(self.gene_names)}
 
     def _open_existing_file(self, cfg):
 
-        self._h5_file = h5py.File(cfg.filepath, 'r')
-        transposon.read_vlen_str_h5py(self._h5_file, )
+        self._h5_file = h5py.File(cfg.filepath, "r")
+        transposon.read_vlen_str_h5py(self._h5_file,)
         # read windows
         # read chromosome id
         # read gene names
@@ -242,7 +255,7 @@ class MergeData():
         # read orders
 
     def _create_sets(self, h5_file, cfg):
-        """Add data sets to the file.
+        """Add empty data sets to the file.
 
         Args:
             h5_file(h5py.File): open h5 file
@@ -253,9 +266,9 @@ class MergeData():
         # OverlapData into the merge? (since it can be split across many OverlapData)
         # then one does not need to know at this point how many genes / windows there are
         # that could be more complicated but more robust...
-        create_set = partial(h5_file.create_dataset,
-                             dtype=self.DTYPE,
-                             compression=self._compression)
+        create_set = partial(
+            h5_file.create_dataset, dtype=self.DTYPE, compression=self._compression
+        )
 
         n_win = len(self.windows)
         n_genes = sum(1 for n in self.gene_names)
@@ -274,7 +287,7 @@ class MergeData():
         o_right = create_set(self._O_RIGHT, (n_orders, *lr_shape))
         self.order = _Density(left=o_left[:], intra=o_intra[:], right=o_right[:])
 
-    def sum(self, overlap, progress_bar):
+    def sum(self, overlap, progress_bar=None):
         """Sum across the superfamily / order dimension."""
 
         self._validate_chromosome(overlap)
@@ -283,12 +296,14 @@ class MergeData():
 
         sums_ = self._list_sum_args(overlap)
         n_genes = len(overlap.gene_names)
-        iter_max = sum(len(arg.windows) * n_genes * len(arg.te_idx_name) for arg in sums_)
+        iter_max = sum(
+            len(arg.windows) * n_genes * len(arg.te_idx_name) for arg in sums_
+        )
         # TODO set progress bar
         for args in sums_:
             self._process_sum(overlap, args, progress_bar)
 
-    def _process_sum(self, overlap, sum_args, progress):
+    def _process_sum(self, overlap, sum_args, progress=None):
         """Calculate the sum for one (left | intra | right) & (superfamily | order).
 
         Args:
@@ -312,7 +327,8 @@ class MergeData():
                 for gene in overlap.gene_names:  # for every gene
                     g_idx = self._gene_2_idx[gene]
                     slice_out = sum_args.slice_out(
-                        window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx)
+                        window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx
+                    )
                     slice_in = sum_args.slice_in(w_idx, g_idx)
                     # find which genes match the superfam | order, and sum those
                     superfam_or_order_match = sum_args.where(te_name)
@@ -328,7 +344,7 @@ class MergeData():
             self._config.transposons.superfamilies,
             self._config.transposons.superfamily_name_set,
             self._superfam_2_idx,
-            overlap.windows
+            overlap.windows,
         )
         order = self._list_sum_input_outputs(
             overlap,
@@ -336,13 +352,14 @@ class MergeData():
             self._config.transposons.orders,
             self._config.transposons.order_name_set,
             self._order_2_idx,
-            overlap.windows
+            overlap.windows,
         )
         return superfam + order
 
     @classmethod
-    def _list_sum_input_outputs(cls, overlap, density, te_group,
-                                te_set, te_idx_map, windows):
+    def _list_sum_input_outputs(
+        cls, overlap, density, te_group, te_set, te_idx_map, windows
+    ):
         """
 
         Args:
@@ -362,16 +379,16 @@ class MergeData():
         win_idx_list = [
             overlap.windows,
             [None],  # intra has no window, this special case is handled in caller
-            overlap.windows
+            overlap.windows,
         ]
         # we need to know the index of the subset (order|family) and the name
         te_set_names = list(te_set)
         te_set_idx = [te_idx_map[t] for t in te_set_names]
-        te_set_idx_name = zip([te_set_idx]*3, [te_set_names]*3)
+        te_set_idx_name = zip([te_set_idx] * 3, [te_set_names] * 3)
         # use this lambda to make the interface for all directions the same
         slice_in = [
             overlap.left_right_slice,
-            lambda w, g : overlap.intra_slice(g),
+            lambda w, g: overlap.intra_slice(g),
             overlap.left_right_slice,
         ]
         slice_out = [
@@ -379,11 +396,19 @@ class MergeData():
             cls.intra_slice,
             cls.left_right_slice,
         ]
-        where_out = [*(partial(np.equal, te_group), )*3, ]  # compare ID to name
+        where_out = [
+            *(partial(np.equal, te_group),) * 3,
+        ]  # compare ID to name
         summation_args = []
-        for i, o, w, te, si, so, wo in \
-            zip(arr_in, arr_out, win_idx_list, te_set_idx_name,
-                slice_in, slice_out, where_out):
+        for i, o, w, te, si, so, wo in zip(
+            arr_in,
+            arr_out,
+            win_idx_list,
+            te_set_idx_name,
+            slice_in,
+            slice_out,
+            where_out,
+        ):
             s = _SummationArgs(
                 input=i,
                 output=o,
@@ -391,7 +416,7 @@ class MergeData():
                 te_idx_name=te,
                 slice_in=si,
                 slice_out=so,
-                where=wo
+                where=wo,
             )
             summation_args.append(s)
         return summation_args
@@ -409,10 +434,12 @@ class MergeData():
         elif overlap.chromosome_id is None:
             raise ValueError(f"overlap.chromosome_id is None")
         elif self.chromosome_id != overlap.chromosome_id:
-            raise ValueError(f"""The chromosome identifier for MergeData,
+            raise ValueError(
+                f"""The chromosome identifier for MergeData,
                              {self.chromosome_id} does not match with the
                              chromosome identifier of overlap:
-                             {overlap.chromosome_id}""")
+                             {overlap.chromosome_id}"""
+            )
 
     def _validate_windows(self, overlap):
         """ValueError if the overlap windows are not in the destination."""
@@ -422,18 +449,22 @@ class MergeData():
         elif overlap.windows is None:
             raise ValueError(f"overlap.windows is None")
         elif self.windows != overlap.windows:
-            raise ValueError(f"""The windows for MergeData, {self.windows},
+            raise ValueError(
+                f"""The windows for MergeData, {self.windows},
                              do not match with the windows of overlap:
-                             {overlap.windows}""")
+                             {overlap.windows}"""
+            )
 
     def _validate_gene_names(self, overlap):
         """ValueError if the overlap genes are not in the destination."""
-        
+
         if self.gene_names is None:
             raise ValueError(f"MergeData.gene_names (self) is None")
         elif overlap.gene_names is None:
             raise ValueError(f"overlap.gene_names is None")
         elif self.gene_names != overlap.gene_names:
-            raise ValueError(f"""The gene_names of MergeData,
+            raise ValueError(
+                f"""The gene_names of MergeData,
                              {self.gene_names}, do not match with the
-                             gene_names of overlap: {overlap.gene_names}""")
+                             gene_names of overlap: {overlap.gene_names}"""
+            )
