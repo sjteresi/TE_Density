@@ -170,6 +170,7 @@ if __name__ == "__main__":
         args.genome_id,
     )
     # TODO implement, see transposon/density.py
+    logger.info("Process data...")
     preprocessor.process()
 
     # Process data
