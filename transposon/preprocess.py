@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Preprocess input data.
+Import and preprocess raw annotations and modify files for TE density calculation.
 """
 
 import errno
@@ -36,6 +36,9 @@ class PreProcessor:
 
     # TODO SCOTT can you reduce the number of inputs here?
     # does filtered / revised have to be different?
+
+    # From Scott: filtered and revised need to be different. I don't think it
+    # is possible to reduce the number of inputs.
     def __init__(
         self,
         gene_file,
@@ -49,15 +52,16 @@ class PreProcessor:
     ):
         """Initialize.
 
-        # TODO SCOTT  pls fleshout the Args entries
         Args:
             gene_file(str): filepath to genome input data
             transposon_file(str): filepath to transposon input file
             filtered_dir(str): directory path for the filtered files
             revised_dir(str): directory path for revised TE files
-            genome_id(str):
-            revise_transposons(bool):
-            contig_del(bool):
+            genome_id(str): user-defined string for the genome.
+            revise_transposons(bool): whether or not to force creation of
+                revised TE annotation (no overlapping TEs).
+            contig_del(bool): whether or not to force deletion of genes or TEs
+                that are located on contigs according to the original annotation.
             logger(logging.Logger): logger instance
         """
 
@@ -105,8 +109,8 @@ class PreProcessor:
         self.transposon_frame = self._revise_transposons(self.transposon_frame)
 
         split_frame_pairs = self._split_wrt_chromosome(
-                self.gene_frame, self.transposon_frame
-                )
+            self.gene_frame, self.transposon_frame
+        )
 
         self.gene_files = list()
         self.transposon_files = list()
@@ -114,7 +118,6 @@ class PreProcessor:
     def yield_input_files(self):
 
         pass
-
 
     @classmethod
     def _processed_filename(cls, filepath, filtered_dir, prefix):
@@ -215,19 +218,23 @@ class PreProcessor:
         """
 
         if len(gene_frames) != len(te_frames):
-            msg = ("no. gene chromosomes %d != no te chromosomes"
-                   % len(gene_frames), len(te_frames))
+            msg = (
+                "no. gene chromosomes %d != no. te chromosomes" % len(gene_frames),
+                len(te_frames),
+            )
             self._logger.critical(msg)
             raise ValueError(msg)
 
         for gene_frame, te_frame in zip(gene_frames, te_frames):
-            # TODO SCOTT what is the magic number 0? what is this?
-            g_iloc = gene_frame.Chromosome.iloc[:].values[0]
-            t_iloc = te_frame.Chromosome.iloc[:].values[0]
-            if t_iloc != g_iloc:
-                # TODO SCOTT ths is cryptic (although improved from density.py)
-                # can you add the chromosome name or something?
-                msg = ("bad chromosome: %d != %d (gene vs te)" % (g_iloc, t_iloc))
+            # MAGIC NUMBER of 0 to index row and get the Chromosome
+            # column's value. In this case get the string of the chromosome.
+            gene_chromosome = gene_frame.Chromosome.iloc[:].values[0]
+            te_chromosome = te_frame.Chromosome.iloc[:].values[0]
+            if te_chromosome != gene_chromosome:
+                msg = "mismatching chromosomes: %d != %d (gene vs te)" % (
+                    gene_chromosome,
+                    te_chromosome,
+                )
                 self._logger.critical(msg)
                 raise ValueError(msg)
             try:
