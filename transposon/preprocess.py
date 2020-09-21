@@ -9,6 +9,8 @@ import os
 import logging
 
 from transposon import raise_if_no_file, raise_if_no_dir
+from transposon.gene_data import GeneData
+from transposon.transposon_data import TransposonData
 
 from transposon.replace_names import te_annot_renamer
 from transposon.verify_cache import (
@@ -19,13 +21,13 @@ from transposon.verify_cache import (
 )
 from transposon.revise_annotation import Revise_Anno
 
-# SCOTT you should probably use class here b/c there will be a set of functions w/ a
-# shared state, e.g: filepaths, input files, order that they are genes_processed, etc
-# you can move the functions below into bound methods
+# FUTURE add option to change the filtering implementation
 class PreProcessor:
-    """Prepares input data for downstream processing.
+    """Processes input data into GeneData and TransposonData files.
 
-    Notable tasks include removing unwanted fields and writing into new formats.
+    Ingests gene and transposon data from raw files into pandas.DataFrame.
+    Filters gene and transposon data, such as representation conversions.
+    Revises transposon data, to handle overlapping TEs.
     """
 
     CLEAN_PREFIX = "Cleaned_"
@@ -45,6 +47,19 @@ class PreProcessor:
         contig_del=False,
         logger=None,
     ):
+        """Initialize.
+
+        # TODO SCOTT  pls fleshout the Args entries
+        Args:
+            gene_file(str): filepath to genome input data
+            transposon_file(str): filepath to transposon input file
+            filtered_dir(str): directory path for the filtered files
+            revised_dir(str): directory path for revised TE files
+            genome_id(str):
+            revise_transposons(bool):
+            contig_del(bool):
+            logger(logging.Logger): logger instance
+        """
 
         self._logger = logger or logging.getLogger(self.__class__.__name__)
         raise_if_no_file(gene_file)
@@ -82,19 +97,24 @@ class PreProcessor:
         Mutates self.
         """
 
+        # first preprocessing on the raw input
         self.gene_frame = self._filter_genes()
-        transposon_frame = self._filter_tranposons()
-        self.transposon_frame = self._revise_transposon_annnotations(transposon_frame)
+        self.transposon_frame = self._filter_tranposons()
 
-        raise NotImplementedError()
+        # modify TE start/stops to account for overlapped TEs
+        self.transposon_frame = self._revise_transposons(self.transposon_frame)
+
+        split_frame_pairs = self._split_wrt_chromosome(
+                self.gene_frame, self.transposon_frame
+                )
+
         self.gene_files = list()
         self.transposon_files = list()
 
-    @property
-    def data_files(self):
-        """Generate paths of GeneData, TransposonData pairs."""
+    def yield_input_files(self):
 
-        raise NotImplementedError()
+        pass
+
 
     @classmethod
     def _processed_filename(cls, filepath, filtered_dir, prefix):
@@ -110,10 +130,11 @@ class PreProcessor:
             str: expected filepath
         """
 
-        name, ext = os.path.splitext(filepath)
+        filename = os.path.basename(filepath)
+        name, ext = os.path.splitext(filename)
         if ext != ".gff" or ".gtf":
             if os.path.isdir(filtered_dir):
-                newname = prefix + os.path.basename(name) + "." + cls.EXT
+                newname = prefix + name + "." + cls.EXT
             return os.path.join(filtered_dir, newname)
 
         else:
@@ -149,7 +170,7 @@ class PreProcessor:
         )
         return te_data_unwrapped
 
-    def _revise_transposon_annnotations(self, transposon_frame):
+    def _revise_transposons(self, transposon_frame):
 
         te_data_unwrapped = revise_annotation(
             transposon_frame,
@@ -160,6 +181,65 @@ class PreProcessor:
             self.genome_id,
         )
         return te_data_unwrapped
+
+    def _split_wrt_chromosome(self, filtered_genes, filtered_tes):
+        """Segment data with respect to chromosome.
+
+        Data is split wrt chromosome as each chromosome is processed indepenently.
+
+        Args:
+            filtered_genes(pandas.DataFrame): preprocessed genes
+            filtered_tes(pandas.DataFrame): preprocessed transposons
+        Returns:
+            list(pandas.DataFrame, pandas.DataFrame): genes, transposon frames
+        """
+
+        group_key = "Chromosome"
+        gene_groups = filtered_genes.groupby(group_key)
+        gene_list = [gene_groups.get_group(g) for g in gene_groups.groups]
+        te_groups = filtered_tes.groupby(group_key)
+        te_list = [te_groups.get_group(g) for g in te_groups.groups]
+        self._validate_split(gene_list, te_list, self.genome_id)
+        return (gene_list, te_list)
+
+    def _validate_split(self, gene_frames, te_frames, genome_id):
+        """Raises if the gene / te pairs haven't been grouped correctly.
+
+        This is just to make sure that each pair of chromosomes are right.
+        Correct subsetting would be managed by the custom split command.
+
+        Args:
+            gene_frames(list(pandas.DataFrame)): gene for each chromosome
+            grouped_TEs (list(pandas.DataFrame))): transposon for each chromsome
+            genome_id (str) a string of the genome name.
+        """
+
+        if len(gene_frames) != len(te_frames):
+            msg = ("no. gene chromosomes %d != no te chromosomes"
+                   % len(gene_frames), len(te_frames))
+            self._logger.critical(msg)
+            raise ValueError(msg)
+
+        for gene_frame, te_frame in zip(gene_frames, te_frames):
+            # TODO SCOTT what is the magic number 0? what is this?
+            g_iloc = gene_frame.Chromosome.iloc[:].values[0]
+            t_iloc = te_frame.Chromosome.iloc[:].values[0]
+            if t_iloc != g_iloc:
+                # TODO SCOTT ths is cryptic (although improved from density.py)
+                # can you add the chromosome name or something?
+                msg = ("bad chromosome: %d != %d (gene vs te)" % (g_iloc, t_iloc))
+                self._logger.critical(msg)
+                raise ValueError(msg)
+            try:
+                gene_obj = GeneData(gene_frame, genome_id)
+                gene_uid = gene_obj.chromosome_unique_id
+            except RuntimeError as r_err:
+                logging.critical("sub gene grouping not unique: {}".format(gene_obj))
+                raise r_err
+
+    def _frames_to_custom_format(self):
+
+        pass  # convert the panda frames to the custom container
 
     def _cache_data_files(self):
         """Update GeneData and TransposonData files on disk."""
