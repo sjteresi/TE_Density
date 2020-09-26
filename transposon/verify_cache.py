@@ -87,7 +87,10 @@ def verify_chromosome_h5_cache(
     elif reset_h5 or (
         not (os.path.exists(h5_g_filename) and os.path.exists(h5_t_filename))
     ):
-        logger.debug("Writing chromosome '%s' to %s" % (chrom_id, h5_g_filename))
+        logger.debug(
+            "Writing chromosome '%s' to %s %s"
+            % (chrom_id, h5_g_filename, h5_t_filename)
+        )
         gene_data_obj.write(h5_g_filename)
         te_data_obj.write(h5_t_filename)
     else:

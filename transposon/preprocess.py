@@ -32,7 +32,10 @@ class PreProcessor:
 
     CLEAN_PREFIX = "Cleaned_"
     REVISED_PREFIX = "Revised_"
+    GCACHE_SUFFIX = "GeneData"
+    TCACHE_SUFFIX = "TEData"
     EXT = "tsv"
+    CACHE_EXT = "h5"
 
     # TODO SCOTT can you reduce the number of inputs here?
     # does filtered / revised have to be different?
@@ -44,10 +47,12 @@ class PreProcessor:
         gene_file,
         transposon_file,
         filtered_dir,
+        h5_cache_dir,
         revised_dir,
+        reset_h5,
         genome_id,
-        revise_transposons=False,
-        contig_del=False,
+        revise_transposons,
+        contig_del,
         logger=None,
     ):
         """Initialize.
@@ -56,7 +61,9 @@ class PreProcessor:
             gene_file(str): filepath to genome input data
             transposon_file(str): filepath to transposon input file
             filtered_dir(str): directory path for the filtered files
+            h5_cache_dir(str): directory path for the cached h5 files
             revised_dir(str): directory path for revised TE files
+            reset_h5(bool): whether or not to force re-creation of h5 cache
             genome_id(str): user-defined string for the genome.
             revise_transposons(bool): whether or not to force creation of
                 revised TE annotation (no overlapping TEs).
@@ -69,9 +76,11 @@ class PreProcessor:
         raise_if_no_file(gene_file)
         raise_if_no_file(transposon_file)
         os.makedirs(filtered_dir, exist_ok=True)
+        os.makedirs(h5_cache_dir, exist_ok=True)
         os.makedirs(revised_dir, exist_ok=True)
 
         self.filtered_dir = filtered_dir
+        self.h5_cache_dir = h5_cache_dir
         self.revised_dir = revised_dir
 
         self.gene_in = str(gene_file)
@@ -87,6 +96,7 @@ class PreProcessor:
         )
         self.contiguous_delete = contig_del
         self.do_transposon_revisions = revise_transposons
+        self.do_h5_cache_recreation = reset_h5
 
         self.gene_frame = None
         self.transposon_frame = None
@@ -103,12 +113,12 @@ class PreProcessor:
 
         # first preprocessing on the raw input
         self.gene_frame = self._filter_genes()
-        self.transposon_frame = self._filter_tranposons()
+        self.transposon_frame = self._filter_transposons()
 
         # modify TE start/stops to account for overlapped TEs
         self.transposon_frame = self._revise_transposons(self.transposon_frame)
 
-        split_frame_pairs = self._split_wrt_chromosome(
+        self.split_frame_pairs = self._split_wrt_chromosome(
             self.gene_frame, self.transposon_frame
         )
 
@@ -116,8 +126,10 @@ class PreProcessor:
         self.transposon_files = list()
 
     def yield_input_files(self):
-
-        pass
+        """Yield the gene and TE pandaframes together one at a time"""
+        gene_list, te_list = self.split_frame_pairs
+        for gene_frame, te_frame in zip(gene_list, te_list):
+            yield gene_frame, te_frame
 
     @classmethod
     def _processed_filename(cls, filepath, filtered_dir, prefix):
@@ -156,7 +168,7 @@ class PreProcessor:
         )
         return gene_data_unwrapped
 
-    def _filter_tranposons(self):
+    def _filter_transposons(self):
         """Updates filtered transposon file if necessary.
 
         Returns:
@@ -216,13 +228,16 @@ class PreProcessor:
             grouped_TEs (list(pandas.DataFrame))): transposon for each chromsome
             genome_id (str) a string of the genome name.
         """
-
         if len(gene_frames) != len(te_frames):
             msg = (
-                "no. gene chromosomes %d != no. te chromosomes" % len(gene_frames),
+                """no. gene annotations split by chromosome %d != no. te annotations split by chromosome"""
+                % len(gene_frames),
                 len(te_frames),
             )
             self._logger.critical(msg)
+            self._logger.critical(
+                """Check that you do not have a chromosome absent of TE or gene annotations"""
+            )
             raise ValueError(msg)
 
         for gene_frame, te_frame in zip(gene_frames, te_frames):
@@ -248,10 +263,61 @@ class PreProcessor:
 
         pass  # convert the panda frames to the custom container
 
+    @classmethod
+    def _processed_cache_name(cls, chrom_id, cache_dir, suffix):
+        """Preprocessed filepath given identifying information
+
+        Save GeneData and TEData on chromosome-by-chromosome basis in H5 format
+        to disk.
+
+        Args:
+            chrom_id (str): string representation of the chromosome
+            cache_dir (str): directory to output h5 files
+            suffix (str): append to filename
+        Returns:
+            str: expected filepath
+        """
+
+        return os.path.join(
+            cache_dir, str(chrom_id + "_" + suffix + "." + cls.CACHE_EXT)
+        )
+
     def _cache_data_files(self):
         """Update GeneData and TransposonData files on disk."""
 
-        raise NotImplementedError()
+        # TODO this code is never invoked anywhere
+
+        for genes, tes in self.yield_input_files():
+            # Wrap them
+            wrapped_genedata_by_chrom = GeneData(genes.copy(deep=True))
+            wrapped_genedata_by_chrom.add_genome_id(self.genome_id)
+            wrapped_tedata_by_chrom = TransposonData(tes.copy(deep=True))
+            wrapped_tedata_by_chrom.add_genome_id(self.genome_id)
+            chrom_id = wrapped_genedata_by_chrom.chromosome_unique_id
+
+            # Get filenames for new cache files
+            h5_g_filename = self._processed_cache_name(
+                chrom_id, self.h5_cache_dir, self.GCACHE_SUFFIX
+            )
+            h5_t_filename = self._processed_cache_name(
+                chrom_id, self.h5_cache_dir, self.TCACHE_SUFFIX
+            )
+
+            verify_chromosome_h5_cache(
+                wrapped_genedata_by_chrom,
+                wrapped_tedata_by_chrom,
+                h5_g_filename,
+                h5_t_filename,
+                self.do_h5_cache_recreation,
+                self.h5_cache_dir,
+                self.gene_in,
+                self.te_in,
+                chrom_id,
+                self._logger,
+            )
+
+        # TODO candidate for deletion, I think I was able to refactor this
+        # usage.
 
         # somethng like this?
         # grouped_genes = split(gene_data_unwrapped, "Chromosome")

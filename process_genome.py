@@ -166,12 +166,18 @@ if __name__ == "__main__":
         args.genes_input_file,
         args.tes_input_file,
         filtered_input_data_loc,
+        input_h5_cache_loc,
         revised_input_data_loc,
+        args.reset_h5,
         args.genome_id,
+        args.revise_anno,
+        args.contig_del,
     )
+
     # TODO implement, see transposon/density.py
     logger.info("Process data...")
     preprocessor.process()
+    raise NotImplementedError()
 
     # Process data
     logger.info("Process data...")
