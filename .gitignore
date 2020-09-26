@@ -1,6 +1,7 @@
 **/*.swp
 **/*.orig
 **/*.pyc
+tags
 .vscode
 /tests/output_data/*
 /tests/test_h5_cache_loc/*

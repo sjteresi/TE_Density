@@ -94,9 +94,9 @@ class PreProcessor:
         self.te_revised = self._processed_filename(
             self.te_in, self.revised_dir, self.REVISED_PREFIX
         )
-        self.contiguous_delete = contig_del
-        self.do_transposon_revisions = revise_transposons
-        self.do_h5_cache_recreation = reset_h5
+        self.contiguous_delete = bool(contig_del)
+        self.do_transposon_revisions = bool(revise_transposons)
+        self.do_h5_cache_recreation = bool(reset_h5)
 
         self.gene_frame = None
         self.transposon_frame = None
