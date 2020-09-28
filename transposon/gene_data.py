@@ -40,6 +40,8 @@ class GeneData(object):
         self.stops = self.data_frame.Stop.to_numpy(copy=False)
         self.lengths = self.data_frame.Length.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
+        # TODO SCOTT it would be better if the genome_id was provided as an arg
+        # and then the 'add_genome_id' was called here
         self.genome_id = None
 
     @classmethod

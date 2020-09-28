@@ -11,7 +11,7 @@ DEV_GENOME := "Camarosa"
 
 .PHONY: dev help clean test flake8 lint
 
-dev:                ## execute with default testing arguments
+dev: | tags         ## execute with default testing arguments
 	mkdir -p $(DEV_CACHE)
 	$(ROOT_DIR)/process_genome.py $(DEV_GENES) $(DEV_TES) $(DEV_GENOME) -vv -s $(DEV_CACHE)
 
@@ -30,3 +30,9 @@ flake8:             ## run style guide
 
 lint:               ## run linter
 	pylint $(ROOT_DIR)/transposon
+
+tags:               ## run ctags
+	ctags \
+		$(ROOT_DIR)/*.py \
+		$(ROOT_DIR)/transposon/*.py
+

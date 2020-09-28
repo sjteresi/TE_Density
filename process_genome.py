@@ -151,17 +151,15 @@ if __name__ == "__main__":
         os.path.join(args.output_dir, filtered_input_data_loc, "revised_input_data")
     )
 
-    os.makedirs(input_h5_cache_loc, exist_ok=True)  # TODO move to where it's used
-
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
     coloredlogs.install(level=log_level)
     for argname, argval in vars(args).items():
         logger.debug("%-18s: %s" % (argname, argval))
-
     validate_args(args, logger)
     alg_parameters = parse_algorithm_config(args.config_file)
 
+    logger.info("preprocessing...")
     preprocessor = PreProcessor(
         args.genes_input_file,
         args.tes_input_file,
@@ -173,25 +171,11 @@ if __name__ == "__main__":
         args.revise_anno,
         args.contig_del,
     )
-
-    # TODO implement, see transposon/density.py
-    logger.info("Process data...")
     preprocessor.process()
-    raise NotImplementedError()
+    n_data_files = sum(1 for _ in preprocessor.data_filepaths())
+    rel_preproc = os.path.relpath(input_h5_cache_loc)
+    logger.info("preprocessing... complete")
+    logger.info("preprocessed %d files to %s" % (n_data_files, rel_preproc))
 
-    # Process data
-    logger.info("Process data...")
-    # TODO implement, see transposon/density.py
+    logger.info("process overlap...")
     raise NotImplementedError()
-    process(
-        alg_parameters,
-        gene_data_unwrapped,
-        te_data_unwrapped,
-        args.overlap_dir,
-        args.genome_id,
-        filtered_input_data_loc,
-        args.reset_h5,
-        input_h5_cache_loc,
-        args.genes_input_file,
-        args.tes_input_file,
-    )
