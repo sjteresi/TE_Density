@@ -129,9 +129,7 @@ def verify_TE_cache(
             te_data.sort_values(by=["Chromosome", "Start"], inplace=True)
             te_data.to_csv(cleaned_transposons, sep="\t", header=True, index=False)
         else:
-            logger.info(
-                    "load filtered TE: %s" % cleaned_transposons
-            )
+            logger.info("load filtered TE: %s" % cleaned_transposons)
             te_data = pd.read_csv(
                 cleaned_transposons,
                 header="infer",
@@ -140,9 +138,7 @@ def verify_TE_cache(
             )
     else:
         logger.info("filtered TEs DNE...")
-        logger.info(
-                "load unfiltered TEs: %s" % tes_input_file
-        )
+        logger.info("load unfiltered TEs: %s" % tes_input_file)
         te_data = import_transposons(tes_input_file, te_annot_renamer, contig_del)
         te_data.sort_values(by=["Chromosome", "Start"], inplace=True)
         te_data.to_csv(cleaned_transposons, sep="\t", header=True, index=False)
