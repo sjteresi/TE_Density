@@ -25,7 +25,7 @@ class GeneData(object):
     GeneData subclasses should conform to these column names or redefine the properties.
     """
 
-    def __init__(self, gene_dataframe, logger=None):
+    def __init__(self, gene_dataframe, genome_id, logger=None):
         """Initialize.
 
         Args:
@@ -34,15 +34,14 @@ class GeneData(object):
         """
 
         self._logger = logger or logging.getLogger(__name__)
-        self.data_frame = gene_dataframe
+        self.data_frame = gene_dataframe.copy(deep=True)
         self._names = self.data_frame.index
         self.starts = self.data_frame.Start.to_numpy(copy=False)
         self.stops = self.data_frame.Stop.to_numpy(copy=False)
         self.lengths = self.data_frame.Length.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
-        # TODO SCOTT it would be better if the genome_id was provided as an arg
-        # and then the 'add_genome_id' was called here
-        self.genome_id = None
+        self.genome_id = genome_id
+        self.add_genome_id()
 
     @classmethod
     def mock(
@@ -83,16 +82,22 @@ class GeneData(object):
         self.data_frame.to_hdf(filename, key=key, mode="w")
 
     @classmethod
-    def read(cls, filename, genome_id, key="default"):
+    def read(cls, filename, key="default"):
         """Read from disk. Returns a wrapped Pandaframe from an hdf5 file
 
         Args:
             filename (str): a string of the filename to write.
-            genome_id (str): identifier for the genome name.
             key (str): identifier for the group (dataset) in the hdf5 obj.
         """
-        new_instance = cls(pd.read_hdf(filename, key=key))
-        new_instance.add_genome_id(genome_id)
+        data_frame = pd.read_hdf(filename, key=key)
+        genome_id_list = data_frame["Genome_ID"].unique().tolist()
+        if not genome_id_list:
+            raise RuntimeError("column 'Genome_ID' is empty")
+        elif len(genome_id_list) > 1:
+            raise RuntimeError("Genome IDs are are not unique: %s" % genome_id_list)
+        else:
+            genome_id = genome_id_list[0]  # MAGIC NUMBER list to string
+        new_instance = cls(data_frame, genome_id)
         return new_instance
 
     def get_gene(self, gene_id):
@@ -100,36 +105,15 @@ class GeneData(object):
 
         return GeneDatum(self.data_frame, gene_id)
 
-    def add_genome_id(self, genome_id):
+    def add_genome_id(self):
         """Add the genome_id as an extra column to the gene_dataframe"""
-        self.data_frame.loc[:, "Genome_ID"] = genome_id
-        self.genome_id = genome_id
+        self.data_frame["Genome_ID"] = self.genome_id
 
     @property
     def names(self):
         """Yields the names for each gene."""
 
         return (name for name in self._names)
-
-    @property
-    def genome_unique_id(self):
-        """Return the unique genome identifier for all the genes available.
-
-        Returns:
-            str: the unique identifier.
-        Raises:
-            RuntimeError: if multiple genes have different genome_id labels
-            (not unique), I do not know how this could occur but want to be
-            safe.
-        """
-
-        genome_id_list = self.data_frame.Genome_ID.unique().tolist()
-        if not genome_id_list:
-            raise RuntimeError("column 'Geneome_ID' is empty")
-        elif len(genome_id_list) > 1:
-            raise RuntimeError("Genome IDs are are not unique: %s" % genome_id_list)
-        else:
-            return genome_id_list[0]  # MAGIC NUMBER list to string
 
     @property
     def chromosome_unique_id(self):

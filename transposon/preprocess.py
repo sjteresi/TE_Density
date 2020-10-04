@@ -132,7 +132,7 @@ class PreProcessor:
         """
 
         if self.g_t_paths is None:
-            msg = ("not data files, call process first")
+            msg = "not data files, call process first"
             self._logger.critical(msg)
             raise RuntimeError(msg)
         for g_t_pair in self.g_t_paths:
@@ -227,10 +227,10 @@ class PreProcessor:
         gene_list = [gene_groups.get_group(g) for g in gene_groups.groups]
         te_groups = filtered_tes.groupby(group_key)
         te_list = [te_groups.get_group(g) for g in te_groups.groups]
-        self._validate_split(gene_list, te_list, self.genome_id)
+        self._validate_split(gene_list, te_list)
         return (gene_list, te_list)
 
-    def _validate_split(self, gene_frames, te_frames, genome_id):
+    def _validate_split(self, gene_frames, te_frames):
         """Raises if the gene / te pairs haven't been grouped correctly.
 
         This is just to make sure that each pair of chromosomes are right.
@@ -266,7 +266,7 @@ class PreProcessor:
                 self._logger.critical(msg)
                 raise ValueError(msg)
             try:
-                gene_obj = GeneData(gene_frame, genome_id)
+                gene_obj = GeneData(gene_frame, self.genome_id)
                 gene_uid = gene_obj.chromosome_unique_id
             except RuntimeError as r_err:
                 logging.critical("sub gene grouping not unique: {}".format(gene_obj))
@@ -301,14 +301,8 @@ class PreProcessor:
         Returns:
             tuple(str, str): filepaths to GeneData, TransposonData
         """
-
-        # TODO SCOTT see nome on genome_id in GeneData.__init__
-        # BUG copy to prevent warning since GeneData / TransposonData
-        # modify the input
-        gene_data = GeneData(gene_frame.copy())
-        gene_data.add_genome_id(self.genome_id)
-        te_data = TransposonData(te_frame.copy())
-        te_data.add_genome_id(self.genome_id)
+        gene_data = GeneData(gene_frame, self.genome_id)
+        te_data = TransposonData(te_frame, self.genome_id)
 
         chrom_id = gene_data.chromosome_unique_id
         gene_filepath = self._processed_cache_name(
@@ -332,4 +326,3 @@ class PreProcessor:
         )
 
         return gene_filepath, te_filepath
-
