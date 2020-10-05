@@ -19,11 +19,12 @@ import sys
 import time
 
 from transposon import FILE_DNE
+from transposon import raise_if_no_file, raise_if_no_dir
 from transposon.gene_data import GeneData
 from transposon.transposon_data import TransposonData
 from transposon.overlap import OverlapWorker
 from transposon.preprocess import PreProcessor
-from transposon import raise_if_no_file, raise_if_no_dir
+from transposon.overlap_manager import OverlapManager, process_overlap_job, _ProgressBars, _OverlapJob
 
 
 def validate_args(args, logger):
@@ -53,15 +54,13 @@ def parse_algorithm_config(config_path):
     raise_if_no_file(config_path)
     parser = ConfigParser()
     parser.read(config_path)
-    first_window_size = parser.getint("density_parameters", "first_window_size")
-    window_delta = parser.getint("density_parameters", "window_delta")
-    last_window_size = parser.getint("density_parameters", "last_window_size")
-    alg_parameters = {
-        first_window_size: first_window_size,
-        window_delta: window_delta,
-        last_window_size: last_window_size,
+    window_start = parser.getint("density_parameters", "first_window_size")
+    window_step = parser.getint("density_parameters", "window_delta")
+    window_stop = parser.getint("density_parameters", "last_window_size")
+    alg_param = {
+        "window_range": range(window_start, window_stop, window_step)
     }
-    return alg_parameters
+    return alg_param
 
 
 if __name__ == "__main__":
@@ -174,8 +173,48 @@ if __name__ == "__main__":
     preprocessor.process()
     n_data_files = sum(1 for _ in preprocessor.data_filepaths())
     rel_preproc = os.path.relpath(input_h5_cache_loc)
-    logger.info("preprocessing... complete")
     logger.info("preprocessed %d files to %s" % (n_data_files, rel_preproc))
+    logger.info("preprocessing... complete")
 
     logger.info("process overlap...")
+    filepaths = list(preprocessor.data_filepaths())
+    overlap_mgr = OverlapManager(
+            filepaths,
+            "/tmp/overlap",
+            alg_parameters["window_range"]
+            )
+
+    import threading
+    from functools import partial
+    import multiprocessing
+    import multiprocessing.managers
+    proc_mgr = multiprocessing.Manager()
+    result_queue = proc_mgr.Queue()
+    prog_queue = proc_mgr.Queue()
+    gene_progress = tqdm(
+        total=n_data_files, desc="chromosome", position=0, ncols=80
+    )
+    def my_jobs(mgr, result_queue):
+        for gene_path, te_path in mgr._yield_gene_trans_paths():
+            # NB one can reduce the names used per worker and concat later
+            all_names = GeneData.read(gene_path).names
+            job = _OverlapJob(
+                    gene_path=gene_path,
+                    te_path=te_path,
+                    output_dir=mgr.output_dir,
+                    window_range=mgr.window_range,
+                    gene_names=list(all_names),
+                    progress_queue=prog_queue,
+                    result_queue=result_queue,
+                    stop_event=None,
+                    )
+            yield job
+    with multiprocessing.Pool(processes=4) as pool:
+        jobs = my_jobs(overlap_mgr, result_queue)
+        for i in pool.imap_unordered(process_overlap_job, jobs):
+            logger.info("job {}".format(i))
+            result = result_queue.get(timeout=1)
+            logger.info("result {}".format(result))
+
+
     raise NotImplementedError()
