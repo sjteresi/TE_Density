@@ -180,9 +180,12 @@ if __name__ == "__main__":
     filepaths = list(preprocessor.data_filepaths())
     overlap_mgr = OverlapManager(
             filepaths,
-            "/tmp/overlap",
+            "/media/data/genes/tmp/",
             alg_parameters["window_range"]
             )
+
+#    with overlap_mgr as mgr:
+#        mgr.join_workers()
 
     import threading
     from functools import partial
@@ -194,6 +197,10 @@ if __name__ == "__main__":
     gene_progress = tqdm(
         total=n_data_files, desc="chromosome", position=0, ncols=80
     )
+    overlap_progress = _ProgressBars(overlap_mgr.n_gene_names,
+                                     overlap_mgr.n_chrome,
+                                     result_queue,
+                                     prog_queue)
     def my_jobs(mgr, result_queue):
         for gene_path, te_path in mgr._yield_gene_trans_paths():
             # NB one can reduce the names used per worker and concat later
@@ -209,12 +216,11 @@ if __name__ == "__main__":
                     stop_event=None,
                     )
             yield job
-    with multiprocessing.Pool(processes=4) as pool:
-        jobs = my_jobs(overlap_mgr, result_queue)
-        for i in pool.imap_unordered(process_overlap_job, jobs):
-            logger.info("job {}".format(i))
-            result = result_queue.get(timeout=1)
-            logger.info("result {}".format(result))
+    with overlap_progress:
+        with multiprocessing.Pool(processes=8) as pool:
+            jobs = my_jobs(overlap_mgr, result_queue)
+            for i in pool.imap_unordered(process_overlap_job, jobs):
+                pass
 
 
     raise NotImplementedError()

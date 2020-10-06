@@ -9,7 +9,7 @@ from functools import partial
 import logging
 import multiprocessing
 import multiprocessing.managers
-from threading import Thread
+import threading
 import queue
 import os
 
@@ -58,16 +58,15 @@ def _overlap_job(job, update_cb=None):
         stop=job.stop_event,
         progress=progress_cb,
     )
-    return file
+    result = OverlapResult(filepath=file, gene_file=job.gene_path)
+    return result
 
 def process_overlap_job(job):
 
     try:
-        file = _overlap_job(job)
+        result = _overlap_job(job)
     except Exception as err:
-        result = OverlapResult(exception=err)
-    else:
-        result = OverlapResult(filepath=file)
+        result = OverlapResult(exception=err, gene_file=job.gene_path)
     finally:
         job.result_queue.put(result)
 
@@ -88,12 +87,12 @@ class OverlapProcess(WorkerProcess):
             return result
 
 
-class _ProgressBars(Thread):
+class _ProgressBars:
     """Status of OverlapData production."""
 
     COLUMNS = 79  # MAGIC arbirtary col limit (no one has physical terminals anymore)
 
-    def __init__(self, n_gene_names, n_chrome, result_queue, stop_event, logger=None):
+    def __init__(self, n_gene_names, n_chrome, result_queue, progress_queue, logger=None):
         """Initializer.
 
         Args:
@@ -108,40 +107,67 @@ class _ProgressBars(Thread):
         self.gene_names = tqdm(
             total=n_gene_names, desc="  genes     ", position=1, ncols=self.COLUMNS)
         self.result_queue = result_queue
-        self.stop = stop_event
+        self.progress_queue = progress_queue
+        self.stop_event = threading.Event()
+        self._chrome_thread = None
+        self._gene_thread = None
 
-    def _handle_result(self, result):
+    def start(self):
 
-        self.gene_names.update(result.genes_processed)
-        if result.filepath:
-            self.chromosomes.update(1)
-        else:
-            self.chromosomes.refresh()
+        self.stop_event.clear()
+        self._chrome_thread = threading.Thread(target=self.handle_chrome)
+        self._chrome_thread.start()
+        self._gene_thread = threading.Thread(target=self.handle_gene)
+        self._gene_thread.start()
 
-        if not result.exception:
-            self._logger.error("failed to process gene '{}':  {}"
-                               .format(result.genome_id, result.exception))
+    def stop(self):
 
-    def _pop_result(self):
-        """Return an OverlapResult, or None if timed out."""
+        self.stop_event.set()
+        self._chrome_thread.join()
+        self._gene_thread.join()
+        self.chromosomes.close()
+        self.gene_names.close()
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, traceback):
+
+        self.stop()
+
+    def handle_chrome(self):
+        """Target to get chromosome updates."""
+
+        while not self.stop_event.is_set():
+            result = self._pop(self.result_queue)
+            if result is not None:
+                self.chromosomes.update()
+                self.gene_names.refresh()
+                if result.exception is not None:
+                    self._logger.error("failed to process gene '{}':  {}"
+                                       .format(result.genome_id, result.exception))
+
+    def handle_gene(self):
+        """Target to get gene updates."""
+
+        while not self.stop_event.is_set():
+            result = self._pop(self.progress_queue)
+            if result is not None:
+                self.gene_names.update()
+                self.chromosomes.refresh()
+
+    @staticmethod
+    def _pop(my_queue):
+        """Pop an item, return None if timeout."""
 
         try:
             # MAGIC NUMBER mainly delays shutdown
-            result = self.result_queue.get(timeout=0.2)
+            result = my_queue.get(timeout=0.2)
         except queue.Empty:
             return None
         else:
             return result
-
-    def run(self):
-        """Target to execute."""
-
-        while not self.stop.is_set():
-            result = self._pop_result()
-            if result:
-                self._handle_result(result)
-        self.chromosomes.close()
-        self.gene_names.close()
 
 
 class OverlapManager:
@@ -177,10 +203,10 @@ class OverlapManager:
         self.window_range = window_range
         self._proc_mgr = multiprocessing.Manager()
         self.n_workers = n_workers or multiprocessing.cpu_count()
-        self.n_workers = 1  # TODO remove when done testing
         self._stop_event = multiprocessing.Event()
         self._workers = None
         self._result_queue = None  # multiprocessing.Queue
+        self._progress_queue = None  # multiprocessing.Queue
         self._job_queue = None  # multiprocessing.Queue
         self._progress = None  # _ProgressBars
 
@@ -200,6 +226,7 @@ class OverlapManager:
             raise RuntimeError(msg)
         self._stop_event.clear()
         self._job_queue = self._proc_mgr.Queue()
+        self._progress_queue = self._proc_mgr.Queue()
         self._result_queue = self._proc_mgr.Queue()
         self._fill_jobs()
         self._progress = self._new_progress_bars()
@@ -224,7 +251,7 @@ class OverlapManager:
         if self._result_queue:
             self._result_queue = None
         if self._progress:
-            self._progress.join()
+            self._progress.stop()
             self._progress = None
 
     def join_workers(self):
@@ -253,6 +280,7 @@ class OverlapManager:
                     window_range=self.window_range,
                     gene_names=list(all_names),
                     progress_queue=self._result_queue,
+                    result_queue=self._result_queue,
                     stop_event=None,
                     )
             yield job
@@ -277,7 +305,7 @@ class OverlapManager:
                 self.n_gene_names,
                 self.n_chrome,
                 self._result_queue,
-                self._stop_event
+                self._progress_queue,
                 )
         return prog
 

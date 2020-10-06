@@ -25,7 +25,7 @@ _OverlapConfigSink = namedtuple(
 _OverlapConfigSource = namedtuple(
     '_OverlapConfigSource', ['filepath'])
 OverlapResult = namedtuple(
-    'OverlapResult', ['genes_processed', 'filepath', 'exception', 'genome_id'])
+    'OverlapResult', ['genes_processed', 'filepath', 'exception', 'gene_file'])
 OverlapResult.__new__.__defaults__ = (0, None, None, "")  # REFACTOR to dataclass in 3.7+
 
 
@@ -156,7 +156,7 @@ class OverlapData():
         return self._h5_file.filename if self._h5_file is not None else None
 
     @classmethod
-    def from_param(cls, genes, n_transposons, windows, output_dir, ram=2, logger=None):
+    def from_param(cls, genes, n_transposons, windows, output_dir, ram=1.2, logger=None):
         """Writable sink for a new file.
 
         Args:
@@ -359,6 +359,8 @@ class OverlapData():
 
 class OverlapWorker():
     """Calculates the overlap values."""
+
+    PROGRESS_CHUNKS = 32  # MAGIC report progress on N genes processed
 
     # TODO simplify initializer / calculate methods (move args)
     def __init__(self, overlap_dir, logger=None):
