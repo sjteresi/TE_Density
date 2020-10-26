@@ -30,3 +30,15 @@ Gene and TE overlap values are an intermediate calculation in this pipeline. How
 Please install Pip so that you may easily install Python packages.
 Then use Pip to go over our **requirements.txt** and install the needed Python packages: `pip install -r requirements.txt`.
 
+
+# Control-Flow:
+1. Import and clean the gene and TE annotations.
+	* Revise the TE annotation to remove nested TEs
+	* Wrap the annotations using the `Gene_Data` and `Transposon_Data` classes.
+	* Save te datastructures to disk in the form of altered annotation files and cache the wrapped data in H5 form per chromosome to disk.
+2. Read the config parameters and feed them to the OverlapManager which is then started.
+	* Call .calculate_overlap on the OverlapManager instance. Starts a progress bar and creates a pool for jobs.
+	* `Overlap.calculate` is then run, results are stored to a file. `overlap.calculate` iterates over the genes, windows, and TEs, calculating the intra, left, and right overlap matrices. A file path is returned.
+3. Jobs that were put on the queue to OverlapResult are then put on a result queue.
+4. This is where I start to get confused. I do not know how the result queue gets finished? I assume it ends gracefully with the context manager. From `process.py` it seems get returned a `_ProgressBars` class object and its attribute `.result` which is a list of results.
+5. Tie this list of results together with the normalization matrices? Currently, the normalization matrix doesn't have a lot of accessor functions, just the division functions, which shouldn't be too hard to interface with the overlap. We will just need to make sure the dataframes are in the same order and then they can be divided.

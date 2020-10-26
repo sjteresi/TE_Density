@@ -125,7 +125,7 @@ def transposondata_test_obj():
         sep="\t",
         dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
     )
-    sample_genome = TransposonData(te_pandas)
+    sample_genome = TransposonData(te_pandas, "Mock_Camarosa")
     return sample_genome
 
 
