@@ -18,13 +18,12 @@ from configparser import ConfigParser
 import sys
 import time
 
-from transposon import FILE_DNE
+from transposon import FILE_DNE, set_numexpr_threads
 from transposon import raise_if_no_file, raise_if_no_dir
 from transposon.gene_data import GeneData
 from transposon.transposon_data import TransposonData
-from transposon.overlap import OverlapWorker
 from transposon.preprocess import PreProcessor
-from transposon.overlap_manager import OverlapManager, process_overlap_job, _ProgressBars, _OverlapJob
+from transposon.overlap_manager import OverlapManager
 
 
 def validate_args(args, logger):
@@ -158,6 +157,8 @@ if __name__ == "__main__":
     validate_args(args, logger)
     alg_parameters = parse_algorithm_config(args.config_file)
 
+    set_numexpr_threads()  # prevents an unenecessary log call from numexpr
+
     logger.info("preprocessing...")
     preprocessor = PreProcessor(
         args.genes_input_file,
@@ -183,44 +184,8 @@ if __name__ == "__main__":
             "/media/data/genes/tmp/",
             alg_parameters["window_range"]
             )
-
-#    with overlap_mgr as mgr:
-#        mgr.join_workers()
-
-    import threading
-    from functools import partial
-    import multiprocessing
-    import multiprocessing.managers
-    proc_mgr = multiprocessing.Manager()
-    result_queue = proc_mgr.Queue()
-    prog_queue = proc_mgr.Queue()
-    gene_progress = tqdm(
-        total=n_data_files, desc="chromosome", position=0, ncols=80
-    )
-    overlap_progress = _ProgressBars(overlap_mgr.n_gene_names,
-                                     overlap_mgr.n_chrome,
-                                     result_queue,
-                                     prog_queue)
-    def my_jobs(mgr, result_queue):
-        for gene_path, te_path in mgr._yield_gene_trans_paths():
-            # NB one can reduce the names used per worker and concat later
-            all_names = GeneData.read(gene_path).names
-            job = _OverlapJob(
-                    gene_path=gene_path,
-                    te_path=te_path,
-                    output_dir=mgr.output_dir,
-                    window_range=mgr.window_range,
-                    gene_names=list(all_names),
-                    progress_queue=prog_queue,
-                    result_queue=result_queue,
-                    stop_event=None,
-                    )
-            yield job
-    with overlap_progress:
-        with multiprocessing.Pool(processes=8) as pool:
-            jobs = my_jobs(overlap_mgr, result_queue)
-            for i in pool.imap_unordered(process_overlap_job, jobs):
-                pass
-
+    overlap_results = overlap_mgr.calculate_overlap()
+    logger.info("processed %d overlap jobs" % len(overlap_results))
+    logger.info("process overlap... complete")
 
     raise NotImplementedError()

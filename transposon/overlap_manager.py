@@ -44,12 +44,19 @@ def redefined_autoproxy(token, serializer, manager=None, authkey=None,
 multiprocessing.managers.AutoProxy = redefined_autoproxy
 
 
-def _overlap_job(job, update_cb=None):
+def _calculate_overlap_job(job):
+    """Returns an OverlapResult given the job.
+
+    Args:
+        job(_OverlapJob): input data for the job
+    Returns:
+        OverlapResult: output data for the job
+    """
 
     genes = GeneData.read(job.gene_path)
     transposons = TransposonData.read(job.te_path)
     overlap = OverlapWorker(job.output_dir)
-    progress_cb = update_cb or partial(job.progress_queue.put_nowait, 1)
+    progress_cb = partial(job.progress_queue.put_nowait, 1)
     file = overlap.calculate(
         genes,
         transposons,
@@ -61,30 +68,19 @@ def _overlap_job(job, update_cb=None):
     result = OverlapResult(filepath=file, gene_file=job.gene_path)
     return result
 
-def process_overlap_job(job):
+def _process_overlap_job(job):
+    """Makes the call to calculate overlap and enqueues the result.
+
+    Args:
+        job(_OverlapJob): input data for the job
+    """
 
     try:
-        result = _overlap_job(job)
+        result = _calculate_overlap_job(job)
     except Exception as err:
         result = OverlapResult(exception=err, gene_file=job.gene_path)
     finally:
         job.result_queue.put(result)
-
-class OverlapProcess(WorkerProcess):
-    """Computes overlap in a process."""
-
-    def execute_job(self, job):
-        """Calculate the overlap."""
-
-        try:
-            self.logger.info("start calculation")
-            file = process_overlap_job(job)
-        except Exception as err:
-            result = OverlapResult(exception=err)
-        else:
-            result = OverlapResult(filepath=file)
-        finally:
-            return result
 
 
 class _ProgressBars:
@@ -111,9 +107,12 @@ class _ProgressBars:
         self.stop_event = threading.Event()
         self._chrome_thread = None
         self._gene_thread = None
+        self.results = list()
 
     def start(self):
+        """Begin execution."""
 
+        self.results = list()
         self.stop_event.clear()
         self._chrome_thread = threading.Thread(target=self.handle_chrome)
         self._chrome_thread.start()
@@ -121,6 +120,7 @@ class _ProgressBars:
         self._gene_thread.start()
 
     def stop(self):
+        """End execution."""
 
         self.stop_event.set()
         self._chrome_thread.join()
@@ -129,27 +129,40 @@ class _ProgressBars:
         self.gene_names.close()
 
     def __enter__(self):
+        """Context manager begin."""
+
         self.start()
         return self
 
     def __exit__(self, exc_type, exc_val, traceback):
+        """Context manager end."""
 
         self.stop()
 
     def handle_chrome(self):
-        """Target to get chromosome updates."""
+        """Target to consume chromosome results."""
 
         while not self.stop_event.is_set():
             result = self._pop(self.result_queue)
             if result is not None:
                 self.chromosomes.update()
                 self.gene_names.refresh()
-                if result.exception is not None:
-                    self._logger.error("failed to process gene '{}':  {}"
-                                       .format(result.genome_id, result.exception))
+                self._log_result(result)
+                self.results.append(result)
+
+    def _log_result(self, result):
+        """Log details on result if necessary."""
+
+        if not isinstance(result, OverlapResult):
+            self._logger.warning("expecting %s but got %s" %
+                                 (OverlapResult.__name__, result))
+            return
+        if result.exception is not None:
+            self._logger.error("failed to process gene '{}':  {}"
+                               .format(result.gene_file, result.exception))
 
     def handle_gene(self):
-        """Target to get gene updates."""
+        """Target to consume gene results."""
 
         while not self.stop_event.is_set():
             result = self._pop(self.progress_queue)
@@ -188,7 +201,9 @@ class OverlapManager:
             gene_names(list(str)): gene names to calculate overlap for, default all
             n_workers(int): process count
         """
-
+        # TODO filter jobs yielded based on whether the file needs to be updated
+        # don't recalculate overlap if already exists (add overwrite flag or just have caller delete?)
+        # requires OverlapData output filename to be known, and not randomized
 
         self._logger = logging.getLogger(self.__class__.__name__)
         self.validate_files(data_paths, self._logger)
@@ -201,77 +216,43 @@ class OverlapManager:
             raise ValueError(msg)
 
         self.window_range = window_range
-        self._proc_mgr = multiprocessing.Manager()
         self.n_workers = n_workers or multiprocessing.cpu_count()
         self._stop_event = multiprocessing.Event()
-        self._workers = None
-        self._result_queue = None  # multiprocessing.Queue
-        self._progress_queue = None  # multiprocessing.Queue
-        self._job_queue = None  # multiprocessing.Queue
-        self._progress = None  # _ProgressBars
 
-    def __enter__(self):
-        """Acquire resources and begin processing."""
-
-        self.start()
-        return self
-
-    def start(self):
-        """Begin processing jobs."""
-
-        self.stop()
-        if self._workers is not None:
-            msg = ("worker list not empty, cannot restart: {}".format(self._workers))
-            self._logger.critical(msg)
-            raise RuntimeError(msg)
-        self._stop_event.clear()
-        self._job_queue = self._proc_mgr.Queue()
-        self._progress_queue = self._proc_mgr.Queue()
+        self._proc_mgr = multiprocessing.Manager()
         self._result_queue = self._proc_mgr.Queue()
-        self._fill_jobs()
-        self._progress = self._new_progress_bars()
-        self._progress.start()
-        self._workers = [self._new_worker() for i in range(self.n_workers)]
-        for i, w in enumerate(self._workers):
-            self._logger.debug("starting worker %d" % i)
-            w.start()
+        self._progress_queue = self._proc_mgr.Queue()
 
-    def __exit__(self, exc_type, exc_val, traceback):
-        """End and release resources."""
+    def calculate_overlap(self):
+        """Calculate and write OverlapData to disk."""
 
-        self.stop()
+        self._clear()
+        progress = self._new_progress_bars()
+        with progress:
+            with multiprocessing.Pool(processes=self.n_workers) as pool:
+                jobs = self._produce_jobs()
+                pool.map(_process_overlap_job, jobs)  # blocks
+        return progress.results
 
-    def stop(self):
-        """End processing and join."""
+    def _clear(self):
+        """Remove items in queues and signal old jobs to stop."""
 
-        self._signal_end()
-        self.join_workers()
-        if self._job_queue:
-            self._job_queue = None
-        if self._result_queue:
-            self._result_queue = None
-        if self._progress:
-            self._progress.stop()
-            self._progress = None
+        self._stop_event.set()
+        map(self._clear_queue, [self._result_queue, self._progress_queue])
 
-    def join_workers(self):
-        """Join worker processes."""
+    @staticmethod
+    def _clear_queue(my_queue):
+        """Remove all items from the queue."""
 
-        if self._workers:
-            for w in self._workers:
-                w.join()
-        self._workers = None
-
-    def _new_worker(self):
-        """Return a initialized OverlapProcess."""
-
-        return OverlapProcess(self._job_queue, self._result_queue, self._stop_event)
+        with my_queue.mutex:
+            my_queue.queue.clear()
 
     def _produce_jobs(self):
         """Yield _OverlapJob for each input."""
 
         for gene_path, te_path in self._yield_gene_trans_paths():
-            # NB one can reduce the names used per worker and concat later
+            # NB one can provide a partial list of gene names to process
+            # and concat the results to reduce the amount of work per job
             all_names = GeneData.read(gene_path).names
             job = _OverlapJob(
                     gene_path=gene_path,
@@ -279,27 +260,25 @@ class OverlapManager:
                     output_dir=self.output_dir,
                     window_range=self.window_range,
                     gene_names=list(all_names),
-                    progress_queue=self._result_queue,
+                    progress_queue=self._progress_queue,
                     result_queue=self._result_queue,
                     stop_event=None,
                     )
             yield job
 
-    def _fill_jobs(self):
-
-        self._logger.debug("filling jobs...")
-        for i, job in enumerate(self._produce_jobs()):
-            self._job_queue.put(job)
-        for i in range(self.n_workers):
-            self._job_queue.put_nowait(Sentinel())
-
     def _yield_gene_trans_paths(self):
+        """Yield tuple of paths to input data files.
+
+        Yields:
+            (str, str): GeneData, TransposonData paths
+        """
 
         for file_pair in self.gene_transposon_paths:
             gene_data_path, transposon_data_path = file_pair
             yield (gene_data_path, transposon_data_path)
 
     def _new_progress_bars(self):
+        """An instance of the progress bars to print status."""
 
         prog = _ProgressBars(
                 self.n_gene_names,
@@ -311,11 +290,13 @@ class OverlapManager:
 
     @property
     def n_chrome(self):
+        """Number of chromosomes to process."""
 
         return len(self.gene_transposon_paths)
 
     @property
     def n_gene_names(self):
+        """Number of named genes to process."""
 
         n_gene_names_ = 0
         for gene_path, te_path in self._yield_gene_trans_paths():
@@ -323,13 +304,6 @@ class OverlapManager:
             sub_count = sum(1 for i in gene_data.names)
             n_gene_names_ += sub_count
         return n_gene_names_
-
-    def _signal_end(self):
-        """Set the stop event and enqueue sentinels for each worker."""
-
-        self._stop_event.set()
-        if self._job_queue:
-            [self._job_queue.put_nowait(Sentinel()) for i in range(self.n_workers)]
 
     @staticmethod
     def validate_files(file_pairs, logger):
@@ -345,4 +319,5 @@ class OverlapManager:
         paths = genes + transposons
         validate = partial(raise_if_no_file, logger=logger)
         map(validate, paths)
+
 

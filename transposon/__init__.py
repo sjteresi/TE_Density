@@ -2,6 +2,7 @@
 Sundry helper functions.
 """
 
+# FUTURE according to best practices, move all this to it's own utils namespace?
 
 import logging
 import errno
@@ -9,10 +10,22 @@ from functools import partial
 from os import sysconf, strerror
 import h5py
 import os
+import numexpr  # used by numpy
 
 MAX_SYSTEM_RAM_GB = sysconf("SC_PAGE_SIZE") * sysconf("SC_PHYS_PAGES") / (1024.0 ** 3)
 FILE_DNE = partial(FileNotFoundError, errno.ENOENT, strerror(errno.ENOENT))
 
+
+def set_numexpr_threads(n_threads=None):
+    """Set number of threads for use in Numpy/Pandas NumExpr.
+
+    NumExpr uses a default of the numexpr.detect_number_of_cores().
+    This appears to be the number of hyperthreads.
+    Calling this will prevent numexpr from making a log call at startup.
+    """
+
+    n_threads = n_threads or numexpr.detect_number_of_cores()
+    numexpr.set_num_threads(n_threads)
 
 def raise_if_no_file(filepath, logger=None, msg_fmt=None):
 
