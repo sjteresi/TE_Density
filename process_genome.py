@@ -18,12 +18,12 @@ from configparser import ConfigParser
 import sys
 import time
 
-from transposon import FILE_DNE
+from transposon import FILE_DNE, set_numexpr_threads
+from transposon import raise_if_no_file, raise_if_no_dir
 from transposon.gene_data import GeneData
 from transposon.transposon_data import TransposonData
-from transposon.overlap import OverlapWorker
 from transposon.preprocess import PreProcessor
-from transposon import raise_if_no_file, raise_if_no_dir
+from transposon.overlap_manager import OverlapManager
 
 
 def validate_args(args, logger):
@@ -53,15 +53,13 @@ def parse_algorithm_config(config_path):
     raise_if_no_file(config_path)
     parser = ConfigParser()
     parser.read(config_path)
-    first_window_size = parser.getint("density_parameters", "first_window_size")
-    window_delta = parser.getint("density_parameters", "window_delta")
-    last_window_size = parser.getint("density_parameters", "last_window_size")
-    alg_parameters = {
-        first_window_size: first_window_size,
-        window_delta: window_delta,
-        last_window_size: last_window_size,
+    window_start = parser.getint("density_parameters", "first_window_size")
+    window_step = parser.getint("density_parameters", "window_delta")
+    window_stop = parser.getint("density_parameters", "last_window_size")
+    alg_param = {
+        "window_range": range(window_start, window_stop, window_step)
     }
-    return alg_parameters
+    return alg_param
 
 
 if __name__ == "__main__":
@@ -159,6 +157,8 @@ if __name__ == "__main__":
     validate_args(args, logger)
     alg_parameters = parse_algorithm_config(args.config_file)
 
+    set_numexpr_threads()  # prevents an unenecessary log call from numexpr
+
     logger.info("preprocessing...")
     preprocessor = PreProcessor(
         args.genes_input_file,
@@ -174,8 +174,18 @@ if __name__ == "__main__":
     preprocessor.process()
     n_data_files = sum(1 for _ in preprocessor.data_filepaths())
     rel_preproc = os.path.relpath(input_h5_cache_loc)
-    logger.info("preprocessing... complete")
     logger.info("preprocessed %d files to %s" % (n_data_files, rel_preproc))
+    logger.info("preprocessing... complete")
 
     logger.info("process overlap...")
+    filepaths = list(preprocessor.data_filepaths())
+    overlap_mgr = OverlapManager(
+            filepaths,
+            "/media/data/genes/tmp/",
+            alg_parameters["window_range"]
+            )
+    overlap_results = overlap_mgr.calculate_overlap()
+    logger.info("processed %d overlap jobs" % len(overlap_results))
+    logger.info("process overlap... complete")
+
     raise NotImplementedError()

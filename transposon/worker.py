@@ -69,6 +69,8 @@ class WorkerProcess(Process, ABC):
                 job = job or self.input.get(timeout=self.TIMEOUT)
             except queue.Empty:
                 continue
+            except KeyboardInterrupt:
+                break
             else:
                 if isinstance(job, Sentinel):
                     self.input.put_nowait(job)
