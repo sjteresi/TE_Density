@@ -100,93 +100,6 @@ def merge_sink(te_data, gene_data, temp_dir):
     yield MergeData.from_param(te_data, gene_data.names, WINDOWS, temp_dir)
 
 
-# -----------------------------------------------------
-# SCOTT
-@pytest.fixture
-def genedata_test_obj():
-    gene_file = "tests/input_data/Test_Genes_MergeData.tsv"
-    gene_pandas = pd.read_csv(
-        gene_file,
-        header="infer",
-        sep="\t",
-        dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
-        index_col="Gene_Name",
-    )
-    sample_genome = GeneData(gene_pandas, "Mock_Camarosa")
-    return sample_genome
-
-
-@pytest.fixture
-def transposondata_test_obj():
-    te_file = "tests/input_data/Test_TEs_MergeData.tsv"
-    te_pandas = pd.read_csv(
-        te_file,
-        header="infer",
-        sep="\t",
-        dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
-    )
-    sample_genome = TransposonData(te_pandas, "Mock_Camarosa")
-    return sample_genome
-
-
-@pytest.fixture()
-def different_real_overlap_source(
-    genedata_test_obj, transposondata_test_obj, temp_file
-):
-    with tempfile.TemporaryDirectory() as temp_dir:
-        worker = OverlapWorker(temp_dir)
-        gene_data = genedata_test_obj
-        te_data = transposondata_test_obj
-        overlap_file = worker.calculate(
-            gene_data, te_data, windows_real, gene_data.names
-        )
-        with OverlapData.from_file(overlap_file) as active_source:
-            yield active_source
-
-
-@pytest.fixture
-def real_overlap_data(genedata_test_obj, transposondata_test_obj):
-    """Default OverlapData instance."""
-    my_overlap_data = OverlapData.from_param(
-        genedata_test_obj,
-        transposondata_test_obj.number_elements,
-        windows_real,
-        "tests/test_h5_cache_loc/",
-    )
-    with my_overlap_data as active_overlap:
-        yield active_overlap
-
-
-# Then use merge_sink_real as an input to another functions to check the math
-@pytest.yield_fixture
-def merge_sink_real(transposondata_test_obj, genedata_test_obj, temp_dir):
-    """Yield a MergeData instance."""
-    my_merge = MergeData.from_param(
-        transposondata_test_obj, genedata_test_obj.names, windows_real, temp_dir
-    )
-    with my_merge as active_merge:
-        yield active_merge
-
-
-@pytest.yield_fixture
-def merge_real_summed(merge_sink_real, overlap_data):
-    # add the overlap data parameter (active)
-    # call the sum
-    # THIS FIXTURE FAILS WHEN IT IS USED
-    merge_real_summed = merge_sink_real.sum(overlap_data)
-    return merge_real_summed
-
-
-def test_merge_real_summed(merge_sink_real, different_real_overlap_source):
-    # THIS TEST will fail
-    merge_sink_real.sum(different_real_overlap_source, None)
-
-
-TRUE_SUPER_VALS = 1
-windows_real = [500, 1000, 1500, 2000]
-
-
-# -----------------------------------------------------
 @pytest.yield_fixture
 def active_merge_sink(merge_sink):
 
@@ -297,6 +210,119 @@ def test_sum_no_throw(active_merge_sink, overlap_source):
 def test_process_sum():
     pass
 
+
+# -----------------------------------------------------
+# SCOTT
+windows_real = [500, 1000, 1500, 2000]
+
+
+@pytest.fixture
+def genedata_test_obj():
+    gene_file = "tests/input_data/Test_Genes_MergeData.tsv"
+    gene_pandas = pd.read_csv(
+        gene_file,
+        header="infer",
+        sep="\t",
+        dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
+        index_col="Gene_Name",
+    )
+    sample_genome = GeneData(gene_pandas, "Mock_Camarosa")
+    return sample_genome
+
+
+@pytest.fixture
+def transposondata_test_obj():
+    te_file = "tests/input_data/Test_TEs_MergeData.tsv"
+    te_pandas = pd.read_csv(
+        te_file,
+        header="infer",
+        sep="\t",
+        dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
+    )
+    sample_genome = TransposonData(te_pandas, "Mock_Camarosa")
+    return sample_genome
+
+
+@pytest.fixture()
+def different_real_overlap_source(
+    genedata_test_obj, transposondata_test_obj, temp_file
+):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        worker = OverlapWorker(temp_dir)
+        gene_data = genedata_test_obj
+        te_data = transposondata_test_obj
+        overlap_file = worker.calculate(
+            gene_data, te_data, windows_real, gene_data.names
+        )
+        with OverlapData.from_file(overlap_file) as active_source:
+            yield active_source
+
+
+@pytest.fixture
+def real_overlap_data(genedata_test_obj, transposondata_test_obj):
+    """Default OverlapData instance."""
+    my_overlap_data = OverlapData.from_param(
+        genedata_test_obj,
+        transposondata_test_obj.number_elements,
+        windows_real,
+        "tests/test_h5_cache_loc/",
+    )
+    with my_overlap_data as active_overlap:
+        yield active_overlap
+
+
+# NEW Below
+
+
+@pytest.yield_fixture
+def real_merge_sink(transposondata_test_obj, genedata_test_obj, temp_dir):
+    """Yield a MergeData instance.
+    The instance is yielded b/c it has a file resource.
+    The resource is managed by the yield.
+    """
+
+    yield MergeData.from_param(
+        transposondata_test_obj, genedata_test_obj.names, windows_real, temp_dir
+    )
+
+
+@pytest.yield_fixture
+def active_real_merge_sink(real_merge_sink):
+
+    with real_merge_sink as active:
+        yield active
+
+
+def test_real_from_param(real_merge_sink):
+    """Does the factory from_param raise if valid?"""
+
+    assert isinstance(real_merge_sink, MergeData)
+
+
+def test_real_context_mgr_sink(real_merge_sink):
+    """Does the context manager return the merge data?"""
+
+    with real_merge_sink as active_sink:
+        assert isinstance(real_merge_sink, MergeData)
+
+
+@pytest.mark.parametrize("set_name", SETS)
+def test_real_create_set_(active_real_merge_sink, set_name):
+    """Does create_set add the right data sets?"""
+
+    active_real_merge_sink._h5_file[set_name]
+
+
+# THIS ONE FAILS, gives an index error from deep within the h5py stuff.
+def test_merge_real_summed(active_real_merge_sink, real_overlap_data):
+    merge_real_summed = active_real_merge_sink.sum(real_overlap_data)
+    return merge_real_summed
+
+
+# TRUE_SUPER_VALS = 1
+
+
+# -----------------------------------------------------
 
 if __name__ == "__main__":
     pytest.main(["-s", __file__])  # for convenience
