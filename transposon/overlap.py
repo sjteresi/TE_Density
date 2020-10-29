@@ -21,15 +21,21 @@ from transposon import MAX_SYSTEM_RAM_GB, check_ram
 
 
 _OverlapConfigSink = namedtuple(
-    '_OverlapConfigIn', ['genes', 'n_transposons', 'windows', 'filepath', 'ram_bytes'])
-_OverlapConfigSource = namedtuple(
-    '_OverlapConfigSource', ['filepath'])
+    "_OverlapConfigIn", ["genes", "n_transposons", "windows", "filepath", "ram_bytes"]
+)
+_OverlapConfigSource = namedtuple("_OverlapConfigSource", ["filepath"])
 OverlapResult = namedtuple(
-    'OverlapResult', ['genes_processed', 'filepath', 'exception', 'gene_file'])
-OverlapResult.__new__.__defaults__ = (0, None, None, "")  # REFACTOR to dataclass in 3.7+
+    "OverlapResult", ["genes_processed", "filepath", "exception", "gene_file"]
+)
+OverlapResult.__new__.__defaults__ = (
+    0,
+    None,
+    None,
+    "",
+)  # REFACTOR to dataclass in 3.7+
 
 
-class Overlap():
+class Overlap:
     """Functions for calculating overlap."""
 
     @unique
@@ -102,7 +108,7 @@ class Overlap():
         return te_overlaps
 
 
-class OverlapData():
+class OverlapData:
     """Contains overlap values buffered to disk.
 
     Contains a file resource which must be acquired before writing | reading.
@@ -115,14 +121,14 @@ class OverlapData():
     """
 
     DTYPE = np.float32  # MAGIC NUMBER experimental, depends on your data
-    COMPRESSION = 'lzf'  # MAGIC NUMBER experimental, fast w/ decent compression ratio
+    COMPRESSION = "lzf"  # MAGIC NUMBER experimental, fast w/ decent compression ratio
     _LEFT = Overlap.Direction.LEFT.name
     _RIGHT = Overlap.Direction.RIGHT.name
     _INTRA = Overlap.Direction.INTRA.name
-    _GENE_NAMES = 'GENE_NAMES'
-    _WINDOWS = 'WINDOWS'
-    _CHROME_ID = 'CHROMOSOME_ID'
-    _GENOME_ID = 'GENOME_ID'
+    _GENE_NAMES = "GENE_NAMES"
+    _WINDOWS = "WINDOWS"
+    _CHROME_ID = "CHROMOSOME_ID"
+    _GENOME_ID = "GENOME_ID"
 
     def __init__(self, configuration, logger=None):
         """Initializer.
@@ -144,10 +150,14 @@ class OverlapData():
         self.genome_id = None
         self.windows = None
 
+        # TODO add public proteced variable for gene name to index
+        # specify that the indices in the overlap matrices are the indices
+        # in the name list
+
     def __str__(self):
         """User representation."""
 
-        return ("{}".format(self._config))
+        return "{}".format(self._config)
 
     @property
     def filepath(self):
@@ -156,7 +166,9 @@ class OverlapData():
         return self._h5_file.filename if self._h5_file is not None else None
 
     @classmethod
-    def from_param(cls, genes, n_transposons, windows, output_dir, ram=1.2, logger=None):
+    def from_param(
+        cls, genes, n_transposons, windows, output_dir, ram=1.2, logger=None
+    ):
         """Writable sink for a new file.
 
         Args:
@@ -168,16 +180,21 @@ class OverlapData():
         """
 
         logger = logger or logging.getLogger(__name__)
-        ram_bytes= int(ram * 1024. ** 3)  # MAGIC NUMBER bytes to gigabytes
+        ram_bytes = int(ram * 1024.0 ** 3)  # MAGIC NUMBER bytes to gigabytes
         check_ram(ram_bytes, logger)
-        filename = next(tempfile._get_candidate_names()) + '.h5'
+
+        chromosome = genes.chromosome_unique_id
+        filename = chromosome + "_overlap_" + ".h5"  # name files by chromosome
+        # NOTE old method below
+        # filename = next(tempfile._get_candidate_names()) + ".h5"
+
         filepath = os.path.join(output_dir, filename)
         config = _OverlapConfigSink(
             genes=genes,
             n_transposons=n_transposons,
             windows=windows,
             filepath=filepath,
-            ram_bytes=ram_bytes
+            ram_bytes=ram_bytes,
         )
         return cls(config, logger)
 
@@ -200,9 +217,13 @@ class OverlapData():
 
     @staticmethod
     def intra_slice(gene_idx):
-        """Slice for intra overlap for one window / gene."""
+        """Slice for intra overlap for one window / gene.
 
-      # TODO really should just have one window so the interfaces are consistent...
+        Args:
+            gene_idx(int): zero based index for the gene
+        """
+
+        # TODO really should just have one window so the interfaces are consistent...
         return (gene_idx, slice(None))
 
     def start(self):
@@ -246,9 +267,9 @@ class OverlapData():
 
         self.chromosome_id = cfg.genes.chromosome_unique_id
         self.genome_id = cfg.genes.genome_id
-        create_set = partial(h5_file.create_dataset,
-                             dtype=self.DTYPE,
-                             compression=self.COMPRESSION)
+        create_set = partial(
+            h5_file.create_dataset, dtype=self.DTYPE, compression=self.COMPRESSION
+        )
         self.gene_names = list(cfg.genes.names)
         n_genes = len(self.gene_names)
         self.windows = list(cfg.windows)
@@ -257,7 +278,11 @@ class OverlapData():
         # N.B. numpy uses row major by default, iterate over data accordingly
         # this is coupled with OverlapWorker.calculate which iterates
         # this is coupled with the slicing methods of self
-        left_right_shape = (n_genes, n_win, n_tes,)
+        left_right_shape = (
+            n_genes,
+            n_win,
+            n_tes,
+        )
         # TODO validate chunk dimensions, 4 * nwin * ntes may be too big pending inputs
         # (and probably already is, but it worked ok...)
         gene_chunks = min(32, n_genes)
@@ -278,13 +303,16 @@ class OverlapData():
         elif isinstance(self._config, _OverlapConfigSource):
             self._open_existing_file(self._config)
         else:
-            raise TypeError("expecting {} or {} but got {}".format(
-                _OverlapConfigSink, _OverlapConfigSource, self._config))
+            raise TypeError(
+                "expecting {} or {} but got {}".format(
+                    _OverlapConfigSink, _OverlapConfigSource, self._config
+                )
+            )
 
     def _open_existing_file(self, cfg):
         """Open the file, mutates self."""
 
-        self._h5_file = h5py.File(cfg.filepath, 'r')
+        self._h5_file = h5py.File(cfg.filepath, "r")
         self.gene_names = self._read_gene_names()
         self.windows = self._read_windows()
         self.chromosome_id = self._read_chromosome_id()
@@ -296,7 +324,7 @@ class OverlapData():
     def _open_new_file(self, cfg):
         """Initialize a new file for writing."""
 
-        self._h5_file = h5py.File(cfg.filepath, 'w', rdcc_nbytes=cfg.ram_bytes)
+        self._h5_file = h5py.File(cfg.filepath, "w", rdcc_nbytes=cfg.ram_bytes)
         self._create_sets(self._h5_file, cfg)
         self._write_gene_names()
         self._write_windows()
@@ -310,7 +338,8 @@ class OverlapData():
         # TODO refactor into generic write / read variable len text?
         vlen = h5py.special_dtype(vlen=str)
         dset = self._h5_file.create_dataset(
-            self._GENE_NAMES, (len(self.gene_names),), dtype=vlen)
+            self._GENE_NAMES, (len(self.gene_names),), dtype=vlen
+        )
         dset[:] = self.gene_names
 
     def _read_gene_names(self):
@@ -357,12 +386,14 @@ class OverlapData():
 
         return self._h5_file[self._GENOME_ID][:].tolist()[0]  # MAGIC NUMBER only one ID
 
-class OverlapWorker():
+
+class OverlapWorker:
     """Calculates the overlap values."""
 
     PROGRESS_CHUNKS = 32  # MAGIC report progress on N genes processed
 
     # TODO simplify initializer / calculate methods (move args)
+    # TODO the args here don't match the docstring
     def __init__(self, overlap_dir, logger=None):
         """Initialize.
 
@@ -384,7 +415,9 @@ class OverlapWorker():
         self._gene_name_2_idx = None
         self._window_2_idx = None
 
-    def calculate(self, genes, transposons, windows, gene_names, stop=None, progress=None):
+    def calculate(
+        self, genes, transposons, windows, gene_names, stop=None, progress=None
+    ):
         """Calculate the overlap for the genes and windows.
 
         N.B. the number of runs of this multi level loop is intended to be
@@ -423,7 +456,9 @@ class OverlapWorker():
                     w_idx = self._window_2_idx[window]
                     out_slice = sink.left_right_slice(w_idx, g_idx)
                     sink.left[out_slice] = Overlap.left(gene_datum, transposons, window)
-                    sink.right[out_slice] = Overlap.right(gene_datum, transposons, window)
+                    sink.right[out_slice] = Overlap.right(
+                        gene_datum, transposons, window
+                    )
                 if progress:
                     progress()
 
@@ -462,7 +497,7 @@ class OverlapWorker():
         return {win: idx for idx, win in enumerate(windows)}
 
     def _reset(self, transposons, genes, windows, gene_names):
-        """Initialize overalap data; mutates self."""
+        """Initialize overlap data; mutates self."""
 
         gene_names_filtered = self._filter_gene_names(gene_names, genes.names)
         self._gene_names = list(gene_names_filtered)
@@ -471,5 +506,4 @@ class OverlapWorker():
         self._window_2_idx = self._map_windows_2_indices(self._windows)
 
         n_te = transposons.number_elements
-        self._data = OverlapData.from_param(
-            genes, n_te, self._windows, self.root_dir)
+        self._data = OverlapData.from_param(genes, n_te, self._windows, self.root_dir)

@@ -154,28 +154,43 @@ class MergeData:
 
     @classmethod
     def left_right_slice(cls, group_idx=None, gene_idx=None, window_idx=None):
-        """Slice to a left || right density to a superfamily|order / window, gene."""
+        """Slice to a left || right density to a superfamily|order, a window, gene(s).
 
-        if group_idx is None or gene_idx is None or window_idx is None:
-            kwargs = {
-                "group_idx": group_idx,
-                "gene_idx": gene_idx,
-                "window_idx": window_idx,
-            }
-            raise ValueError("cannot slice with input of None: %s" % kwargs)
+        One can use a slice like so: np.array[my_slice].
+        This is useful to obtain views into the internal data,
+        without hard-coding the order of the arrays.
+
+        Args:
+            group_idx (int): superfamily | order index (required)
+            gene_idx(int|Slice): gene name index, all genes if None
+            window_idx(int|Slice): window index (required), all windows if None
+        Returns:
+            tuple(int|Slice): integers and/or Slice instances for numpy basic indexing
+        """
 
         # SEE numpy basic indexing
-        return (group_idx, window_idx, slice(gene_idx, gene_idx + 1, 1))
+        # TODO SCOTT test this pls
+        # NB return at least one slice so that one can obtain a view into the array,
+        # rather than just the value
+        if isinstance(group_idx, int):
+            group_idx = slice(group_idx, group_idx + 1, 1)
+        if isinstance(window_idx, int):
+            window_idx = slice(window_idx, window_idx + 1, 1)
+        if isinstance(gene_idx, int):
+            gene_idx = slice(gene_idx, gene_idx + 1, 1)
+        return (group_idx, window_idx, gene_idx)
 
     @classmethod
     def intra_slice(cls, group_idx=None, gene_idx=None, window_idx=None):
-        """Slice for an intra densitiy to a superfamily|order / window, gene."""
+        """Slice for an intra density to a superfamily|order / window, gene."""
 
         if window_idx is not None:
+            # there is only 1 window for intra operations
             raise ValueError("intra window must be None but is %s" % window_idx)
-        return cls.left_right_slice(
-            group_idx=group_idx, gene_idx=gene_idx, window_idx=0
-        )
+
+        # TODO SCOTT test this pls
+        w_slice = slice(0,1,1)  # use a slice (not 0) so you can get a view of the array
+        return cls.left_right_slice(group_idx=group_idx, gene_idx=gene_idx, window_idx=w_slice)
 
     def __enter__(self):
         """Context manager begin."""
@@ -322,9 +337,9 @@ class MergeData:
 
         for te_ in zip(*sum_args.te_idx_name):  # for every superfam | order
             te_idx, te_name = te_  # the supefamily / order index and string
-            for window in sum_args.windows:  # for every window
+            for window in sum_args.windows:  # for every window value
                 w_idx = self._window_2_idx.get(window, None)
-                for gene in overlap.gene_names:  # for every gene
+                for gene in overlap.gene_names:  # for every gene datum
                     g_idx = self._gene_2_idx[gene]
                     slice_out = sum_args.slice_out(
                         window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx
@@ -333,7 +348,19 @@ class MergeData:
                     # find which genes match the superfam | order, and sum those
                     superfam_or_order_match = sum_args.where(te_name)
                     slice_in_only_te = (superfam_or_order_match, *slice_in[1:])
+
+                    # _SummationArgs = namedtuple(  # sum_args is _SUmmationArgs
+                    # "_SummationArgs",
+                    # ["input", "output", "windows", "te_idx_name", "slice_in", "slice_out", "where"],
+                    # )
+
                     result = np.sum(sum_args.input[slice_in_only_te])
+
+                    # gene_datum = GeneData.get_gene(gene)
+                    # The way we get the divisor value is dependent upon the direction.
+                    # window_length_ = gene_datum.win_length(window)
+                    # wi
+                    # raise ValueError
                     sum_args.output[slice_out] = result
 
     def _list_sum_args(self, overlap):
@@ -399,6 +426,21 @@ class MergeData:
         where_out = [
             *(partial(np.equal, te_group),) * 3,
         ]  # compare ID to name
+
+        # possible solution
+        # store left/center/right functions to find window
+        # zip it up same as below
+        # store in the job instance (the named tuple)
+        # then call the function for norm in _process_sum
+        # finally, do the division after np.sum
+        # store that result in the container instead of the sum
+        # https://en.wikipedia.org/wiki/Pair_programming
+        #win_length_func = [
+        #    Normalize.divisor_left
+        #    Normalize.divisor_intra
+        #    Normalize.divisor_right
+        #]
+
         summation_args = []
         for i, o, w, te, si, so, wo in zip(
             arr_in,
@@ -409,6 +451,8 @@ class MergeData:
             slice_out,
             where_out,
         ):
+            # SCOTT this is likely where you need to add the function
+            # to get the window length
             s = _SummationArgs(
                 input=i,
                 output=o,
@@ -416,6 +460,7 @@ class MergeData:
                 te_idx_name=te,
                 slice_in=si,
                 slice_out=so,
+                # window_length_func = Normalize.left_divisor()
                 where=wo,
             )
             summation_args.append(s)

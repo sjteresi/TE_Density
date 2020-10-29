@@ -35,7 +35,7 @@ class GeneData(object):
 
         self._logger = logger or logging.getLogger(__name__)
         self.data_frame = gene_dataframe.copy(deep=True)
-        self._names = self.data_frame.index
+        self._names = self.data_frame.index  # names of genes list(str)
         self.starts = self.data_frame.Start.to_numpy(copy=False)
         self.stops = self.data_frame.Stop.to_numpy(copy=False)
         self.lengths = self.data_frame.Length.to_numpy(copy=False)
