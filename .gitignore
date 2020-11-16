@@ -1,4 +1,5 @@
 **/*.swp
+**/*.swo
 **/*.orig
 **/*.pyc
 tags

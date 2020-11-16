@@ -40,12 +40,20 @@ def temp_dir():
     with tempfile.TemporaryDirectory() as temp_dir:
         yield temp_dir
 
+
+@pytest.yield_fixture
+def temp_file():
+    """Temporary directory."""
+
+    with tempfile.NamedTemporaryFile(suffix="."+OverlapData.EXT) as temp_file:
+        yield temp_file.name
+
 @pytest.fixture
-def default_data_out(temp_dir):
+def default_data_out(temp_file):
     """Return default output OverlapData instance."""
 
     return OverlapData.from_param(
-        GeneData.mock(), N_TRANSPOSONS, WINDOWS, temp_dir, logger=LOGGER
+        GeneData.mock(), N_TRANSPOSONS, WINDOWS, temp_file, logger=LOGGER
     )
 
 @pytest.yield_fixture
@@ -80,10 +88,10 @@ def serialized_deserialized(default_data_out):
         with OverlapData.from_file(filepath) as input:
             yield (input, output)
 
-def test_from_param_raise(gene_data, temp_dir):
+def test_from_param_raise(gene_data, temp_file):
     """Does the from param factory raise?"""
 
-    OverlapData.from_param(gene_data, N_TRANSPOSONS, WINDOWS, temp_dir, logger=LOGGER)
+    OverlapData.from_param(gene_data, N_TRANSPOSONS, WINDOWS, temp_file, logger=LOGGER)
 
 def test_from_param_raise_enter_exit(active_output):
     """Does the context manager raise for an output file?"""

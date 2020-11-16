@@ -19,12 +19,13 @@ from transposon import FILE_DNE, raise_if_no_file, raise_if_no_dir
 from transposon.worker import WorkerProcess, Sentinel
 from transposon.gene_data import GeneData
 from transposon.transposon_data import TransposonData
-from transposon.overlap import OverlapWorker, OverlapResult
+from transposon.overlap import OverlapWorker, OverlapResult, OverlapData
 
 
 _OverlapJob = namedtuple(
     "_OverlapJob",
-    ['gene_path', 'te_path', 'output_dir', 'window_range', 'gene_names', 'progress_queue', 'result_queue', 'stop_event']
+    ['gene_path', 'te_path', 'output_filepath', 'window_range', 'gene_names',
+     'progress_queue', 'result_queue', 'stop_event']
 )
 
 
@@ -55,7 +56,7 @@ def _calculate_overlap_job(job):
 
     genes = GeneData.read(job.gene_path)
     transposons = TransposonData.read(job.te_path)
-    overlap = OverlapWorker(job.output_dir)
+    overlap = OverlapWorker(job.output_filepath)
     progress_cb = partial(job.progress_queue.put_nowait, 1)
     file = overlap.calculate(
         genes,
@@ -67,6 +68,7 @@ def _calculate_overlap_job(job):
     )
     result = OverlapResult(filepath=file, gene_file=job.gene_path)
     return result
+
 
 def _process_overlap_job(job):
     """Makes the call to calculate overlap and enqueues the result.
@@ -186,20 +188,21 @@ class _ProgressBars:
 class OverlapManager:
     """Orchestrate multiple OverlapWorkers."""
 
+    CACHE_FOLDER= "tmp/overlap"
+
     def __init__(self,
                  data_paths,
-                 output_dir,
+                 results_dir,
                  window_range,
-                 gene_names=None,
                  n_workers=None
                  ):
         """Initializer.
 
         Args:
             data_paths(list(str, str)): paths to GeneData, TransposonData file pairs
+            results_dir(str): top level output directory, create a sub folder here
             window_range(range(int)): window sizes for calculating overlap
-            gene_names(list(str)): gene names to calculate overlap for, default all
-            n_workers(int): process count
+            n_workers(int): process count, default cores available (or hyperthreads)
         """
         # TODO filter jobs yielded based on whether the file needs to be updated
         # don't recalculate overlap if already exists (add overwrite flag or just have caller delete?)
@@ -207,14 +210,14 @@ class OverlapManager:
 
         self._logger = logging.getLogger(self.__class__.__name__)
         self.validate_files(data_paths, self._logger)
-        self.output_dir = output_dir
-        raise_if_no_dir(self.output_dir, self._logger)
+        self.output_dir = self._validate_output_dir(results_dir)
 
         self.gene_transposon_paths = list(data_paths)
         if not self.gene_transposon_paths:
             msg = "input paths are empty: {}".format(self.gene_transposon_paths)
             raise ValueError(msg)
 
+        # FUTURE OPTIMIZE accept list of gene names to process, process subset per core
         self.window_range = window_range
         self.n_workers = n_workers or multiprocessing.cpu_count()
         self._stop_event = multiprocessing.Event()
@@ -222,6 +225,19 @@ class OverlapManager:
         self._proc_mgr = multiprocessing.Manager()
         self._result_queue = self._proc_mgr.Queue()
         self._progress_queue = self._proc_mgr.Queue()
+
+    def _validate_output_dir(self, dir):
+        """Return a sub folder for the results, creating if necessary.
+
+        Args:
+            dir(str): top level directory for results.
+        """
+
+        raise_if_no_dir(dir, self._logger)
+        sub_dir = os.path.join(dir, self.CACHE_FOLDER)
+        os.makedirs(sub_dir, exist_ok=True)
+        self._logger.debug("output overlap data to %s" % sub_dir)
+        return sub_dir
 
     def calculate_overlap(self):
         """Calculate and write OverlapData to disk."""
@@ -251,18 +267,20 @@ class OverlapManager:
         """Yield _OverlapJob for each input."""
 
         for gene_path, te_path in self._yield_gene_trans_paths():
-            # NB one can provide a partial list of gene names to process
-            # and concat the results to reduce the amount of work per job
+            # FUTURE OPTIMIZE process a subset of gene names per worker
+            # one can provide a partial list of gene names to process
+            # however, then you will need to deconflict the output filenames
+            # and concat the output OverlapData files or merge them later
 
-            # TODO create some sort of function to get a more appropriate name
-            # for the overlap data (on a chromosome by chromosome basis)
-            # TODO replace 'output_dir' w/ new filepath
-            #      and remove the random file name generation in the OverlapData.from_param
-            all_names = GeneData.read(gene_path).names
+            gene_data = GeneData.read(gene_path)
+            all_names = gene_data.names
+            # NB assuming there is only one worker for this chromosome
+            filename = gene_data.chromosome_unique_id + "_overlap." + OverlapData.EXT
+            filepath = os.path.join(self.output_dir, filename)
             job = _OverlapJob(
                     gene_path=gene_path,
                     te_path=te_path,
-                    output_dir=self.output_dir,
+                    output_filepath=filepath,
                     window_range=self.window_range,
                     gene_names=list(all_names),
                     progress_queue=self._progress_queue,

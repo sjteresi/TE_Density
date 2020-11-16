@@ -116,8 +116,9 @@ class OverlapData:
         Use the slice methods to provide slices for the array public instance variables.
     """
 
-    DTYPE = np.float32  # MAGIC NUMBER experimental, depends on your data
+    DTYPE = np.float32   # MAGIC NUMBER depends on your data
     COMPRESSION = "lzf"  # MAGIC NUMBER experimental, fast w/ decent compression ratio
+    EXT = "h5"           # MAGIC NUMBER h5 extension for h5 files
     _LEFT = Overlap.Direction.LEFT.name
     _RIGHT = Overlap.Direction.RIGHT.name
     _INTRA = Overlap.Direction.INTRA.name
@@ -163,7 +164,7 @@ class OverlapData:
 
     @classmethod
     def from_param(
-        cls, genes, n_transposons, windows, output_dir, ram=1.2, logger=None
+        cls, genes, n_transposons, windows, filepath, ram=1.2, logger=None
     ):
         """Writable sink for a new file.
 
@@ -171,6 +172,7 @@ class OverlapData:
             genes (GeneData): genes container
             n_transposons (int): transposon count
             windows (list(int)): window sizes
+            filepath (str): output file path, *.h5
             output_dir (str): directory for output files
             ram (int): upper limit for caching in gigabytes
         """
@@ -180,11 +182,11 @@ class OverlapData:
         check_ram(ram_bytes, logger)
 
         chromosome = genes.chromosome_unique_id
-        filename = chromosome + "_overlap_" + ".h5"  # name files by chromosome
-        # NOTE old method below
-        # filename = next(tempfile._get_candidate_names()) + ".h5"
+        _prefix, ext = os.path.splitext(filepath)
+        if ext != "."+cls.EXT:
+            raise ValueError("output filepath extension must be '%s', but got %s"
+                             % (cls.EXT, filepath))
 
-        filepath = os.path.join(output_dir, filename)
         config = _OverlapConfigSink(
             genes=genes,
             n_transposons=n_transposons,
@@ -386,22 +388,16 @@ class OverlapData:
 class OverlapWorker:
     """Calculates the overlap values."""
 
-    PROGRESS_CHUNKS = 32  # MAGIC report progress on N genes processed
+    PROGRESS_CHUNKS = 64  # MAGIC report progress on N genes processed
 
-    # TODO simplify initializer / calculate methods (move args)
-    # TODO the args here don't match the docstring
-    def __init__(self, overlap_dir, logger=None):
+    def __init__(self, output_filepath, logger=None):
         """Initialize.
 
         Args:
-            overlap_dir (str): A string path of the directory to output te
-            overlap files. This comes from the ArgParser obj in density.py and
-            defaults to tmp.
-            gene_data(GeneData): the genes.
-            transposon_data(TransposonData): the transposons.
-            windows(list(int)):
+            output_filepath (str): path to write output to
         """
-        self.root_dir = overlap_dir
+
+        self.output_filepath = str(output_filepath)
         self._logger = logger or logging.getLogger(__name__)
 
         self._data = None
@@ -421,11 +417,11 @@ class OverlapWorker:
         into a multiprocess solution.
 
         Args:
-            genes (GeneData): the genes; the chromosome with gene annotations.
-            transponsons (TransposonData): the transposable elements.
-            windows (list(int)): iterable of window sizes to use.
-            gene_names (list(str)): iterable of the genes to use.
-            progress (Callable): callback for when a gene name is processed.
+            genes (GeneData): input genes
+            transponsons (TransposonData): input transposons
+            windows (list(int)): iterable of window sizes -1
+            gene_names (list(str)): genes to process
+            progress (Callable): callback for when a gene name is processed
         """
 
         # FUTURE just take in an OverlapJob as input? (plus event, progress bar)
@@ -460,13 +456,19 @@ class OverlapWorker:
 
         return path
 
-    def _filter_gene_names(self, gene_names_requested, gene_names_available):
-        """Yield only the valid gene names."""
+    def _filter_gene_names(self, names, gene_data):
+        """Yield only the valid gene names.
 
-        for name in gene_names_requested:
+        Args:
+            names(list(str)): input gene names
+            gene_data(GeneData): input gene container
+        """
+
+        for name in names:
             # could use list comprehension but we need to log if it fails
-            if name not in gene_names_available:
-                self._logger.error(" invalid gene name: %s", name)
+            if name not in gene_data.names:
+                msg = ("gene name '%s' not in gene '%s'" % name, gene_data.genome_id)
+                self._logger.error(msg)
             else:
                 yield name
 
@@ -495,11 +497,11 @@ class OverlapWorker:
     def _reset(self, transposons, genes, windows, gene_names):
         """Initialize overlap data; mutates self."""
 
-        gene_names_filtered = self._filter_gene_names(gene_names, genes.names)
+        gene_names_filtered = self._filter_gene_names(gene_names, genes)
         self._gene_names = list(gene_names_filtered)
         self._gene_name_2_idx = self._map_gene_names_2_indices(self._gene_names)
         self._windows = list(self._filter_windows(windows))
         self._window_2_idx = self._map_windows_2_indices(self._windows)
 
         n_te = transposons.number_elements
-        self._data = OverlapData.from_param(genes, n_te, self._windows, self.root_dir)
+        self._data = OverlapData.from_param(genes, n_te, self._windows, self.output_filepath)

@@ -86,14 +86,6 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--overlap_dir",
-        "-s",
-        type=str,
-        default=os.path.abspath("/tmp"),
-        help="directory for temporary overlap files",
-    )
-
-    parser.add_argument(
         "--reset_h5",
         action="store_true",
         help="Rewrite h5 intermediate files for gene & TEs",
@@ -181,11 +173,12 @@ if __name__ == "__main__":
     filepaths = list(preprocessor.data_filepaths())
     overlap_mgr = OverlapManager(
             filepaths,
-            "/media/data/genes/tmp/",
+            args.output_dir,
             alg_parameters["window_range"]
             )
     overlap_results = overlap_mgr.calculate_overlap()
     logger.info("processed %d overlap jobs" % len(overlap_results))
     logger.info("process overlap... complete")
 
+    
     raise NotImplementedError()
