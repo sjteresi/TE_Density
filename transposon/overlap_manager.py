@@ -253,6 +253,11 @@ class OverlapManager:
         for gene_path, te_path in self._yield_gene_trans_paths():
             # NB one can provide a partial list of gene names to process
             # and concat the results to reduce the amount of work per job
+
+            # TODO create some sort of function to get a more appropriate name
+            # for the overlap data (on a chromosome by chromosome basis)
+            # TODO replace 'output_dir' w/ new filepath
+            #      and remove the random file name generation in the OverlapData.from_param
             all_names = GeneData.read(gene_path).names
             job = _OverlapJob(
                     gene_path=gene_path,
