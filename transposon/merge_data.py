@@ -6,7 +6,7 @@ Sums and contains OverlapData with respect to the genes / transposons.
 
 """
 
-__author__ = "Michael Teresi"
+__author__ = "Michael Teresi, Scott Teresi"
 
 from collections import namedtuple
 import logging
@@ -27,7 +27,7 @@ _MergeConfigSource = namedtuple("_MergeConfigSource", ["filepath"])
 _Density = namedtuple("_Density", ["left", "intra", "right"])
 _SummationArgs = namedtuple(
     "_SummationArgs",
-    ["input", "output", "windows", "te_idx_name", "slice_in", "slice_out", "where"],
+    ["input", "output", "windows", "te_idx_name", "slice_in", "slice_out", "where", "divisor_func"],
 )
 
 
@@ -185,7 +185,7 @@ class MergeData:
         """Slice for an intra density to a superfamily|order / window, gene."""
 
         if window_idx is not None:
-            # there is only 1 window for intra operations
+            # there is only 1 window for intra operations, and it is None
             raise ValueError("intra window must be None but is %s" % window_idx)
 
         # TODO SCOTT test this pls
@@ -335,12 +335,18 @@ class MergeData:
         # a) left / intra / right, and, b) superfamily / order
         # although there are so few intra calcs it might be easier to do that separately
 
-        for te_ in zip(*sum_args.te_idx_name):  # for every superfam | order
-            te_idx, te_name = te_  # the supefamily / order index and string
-            for window in sum_args.windows:  # for every window value
-                w_idx = self._window_2_idx.get(window, None)
-                for gene in overlap.gene_names:  # for every gene datum
-                    g_idx = self._gene_2_idx[gene]
+        # TODO SCOTT move the get_gene call to the top b/c the gene_datum
+        # instance is the same for every window
+        for gene_name in overlap.gene_names:
+            gene_datum = GeneData.get_gene(gene_name)
+            g_idx = self._gene_2_idx[gene_name]
+
+            for te_ in zip(*sum_args.te_idx_name):  # for every superfam | order
+                te_idx, te_name = te_  # the supefamily / order index and string
+
+                for window in sum_args.windows:  # for every window value
+                    w_idx = self._window_2_idx.get(window, None)
+
                     slice_out = sum_args.slice_out(
                         window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx
                     )
@@ -348,20 +354,11 @@ class MergeData:
                     # find which genes match the superfam | order, and sum those
                     superfam_or_order_match = sum_args.where(te_name)
                     slice_in_only_te = (superfam_or_order_match, *slice_in[1:])
+                    overlap_sum = np.sum(sum_args.input[slice_in_only_te])
 
-                    # _SummationArgs = namedtuple(  # sum_args is _SUmmationArgs
-                    # "_SummationArgs",
-                    # ["input", "output", "windows", "te_idx_name", "slice_in", "slice_out", "where"],
-                    # )
-
-                    result = np.sum(sum_args.input[slice_in_only_te])
-
-                    # gene_datum = GeneData.get_gene(gene)
-                    # The way we get the divisor value is dependent upon the direction.
-                    # window_length_ = gene_datum.win_length(window)
-                    # wi
-                    # raise ValueError
-                    sum_args.output[slice_out] = result
+                    divisor = sum_args.divisor_func(gene_datum, window)
+                    destination = sum_args.output[slice_out]
+                    density = np.divide(overlap_sum, divisor, out=destination)
 
     def _list_sum_args(self, overlap):
 
@@ -427,6 +424,15 @@ class MergeData:
             *(partial(np.equal, te_group),) * 3,
         ]  # compare ID to name
 
+        # function returns the divisor (float or int)
+        # Single divisor for single gene at a specific window
+        divisor_func = [
+            GeneDatum.divisor_left
+            GeneDatum.divisor_intra
+            GeneDatum.divisor_right
+        ]
+
+
         # possible solution
         # store left/center/right functions to find window
         # zip it up same as below
@@ -435,14 +441,9 @@ class MergeData:
         # finally, do the division after np.sum
         # store that result in the container instead of the sum
         # https://en.wikipedia.org/wiki/Pair_programming
-        #win_length_func = [
-        #    Normalize.divisor_left
-        #    Normalize.divisor_intra
-        #    Normalize.divisor_right
-        #]
 
         summation_args = []
-        for i, o, w, te, si, so, wo in zip(
+        for i, o, w, te, si, so, wo, df in zip(
             arr_in,
             arr_out,
             win_idx_list,
@@ -450,6 +451,7 @@ class MergeData:
             slice_in,
             slice_out,
             where_out,
+            divisor_func,
         ):
             # SCOTT this is likely where you need to add the function
             # to get the window length
@@ -460,8 +462,8 @@ class MergeData:
                 te_idx_name=te,
                 slice_in=si,
                 slice_out=so,
-                # window_length_func = Normalize.left_divisor()
                 where=wo,
+                divisor_func=df,
             )
             summation_args.append(s)
         return summation_args

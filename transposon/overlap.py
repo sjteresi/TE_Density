@@ -53,17 +53,13 @@ class Overlap:
         Number base pair overlap between the TE / gene on the relevant distance.
 
         Args:
-            gene_datum (GeneDatam): the relevant gene.
+            gene_datum (GeneDatum): the relevant gene.
             transposons (TransposonData): the transposable elements.
             window (int): no. base pairs from gene to calculate overlap.
         """
 
         w_start = gene_datum.left_win_start(window)
         w_stop = gene_datum.left_win_stop
-        # TODO implement validate window to fix the window length for the
-        # density caluclations, because w_len is not needed for the overlaps.
-        # w_len = gene_datum.win_length(window)
-        # w_len = validate_window(w_start, gene_datum.start, w_len)
         lower_bound = np.maximum(w_start, transposons.starts)
         upper_bound = np.minimum(w_stop, transposons.stops)
         te_overlaps = np.maximum(0, (upper_bound - lower_bound + 1))
@@ -76,7 +72,7 @@ class Overlap:
         Number base pair overlap between the TE / gene on the relevant distance.
 
         Args:
-            gene_datum (GeneDatam): the relevant gene.
+            gene_datum (GeneDatum): the relevant gene.
             transposons (TransposonData): the transposable elements.
             window (int): no. base pairs from gene to calculate overlap.
         """
@@ -95,7 +91,7 @@ class Overlap:
         Number base pair overlap between the TE / gene on the relevant distance.
 
         Args:
-            gene_datum (GeneDatam): the relevant gene.
+            gene_datum (GeneDatum): the relevant gene.
             transposons (TransposonData): the transposable elements.
             window (int): no. base pairs from gene to calculate overlap.
         """
