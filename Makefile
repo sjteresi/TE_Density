@@ -13,7 +13,7 @@ DEV_GENOME := "Camarosa"
 
 dev: | tags         ## execute with default testing arguments
 	mkdir -p $(DEV_CACHE)
-	$(ROOT_DIR)/process_genome.py $(DEV_GENES) $(DEV_TES) $(DEV_GENOME) -vv -s $(DEV_CACHE)
+	$(ROOT_DIR)/process_genome.py $(DEV_GENES) $(DEV_TES) $(DEV_GENOME) -vv
 
 help:               ## Show this help.
 	fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'

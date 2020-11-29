@@ -55,7 +55,7 @@ class GeneDatum(object):
 
         raise NotImplementedError()
 
-    @functools.cache
+    @functools.lru_cache(maxsize=None)
     def win_length(self, window):
         """Returns window length which is window val + 1
 
@@ -75,7 +75,7 @@ class GeneDatum(object):
         win_length = window + 1
         return win_length  # plus 1 b/c it's [0...N]
 
-    @functools.cache
+    @functools.lru_cache(maxsize=None)
     def left_win_start(self, window):
         """Calculate left window start and clip the window to non-negative
         values
@@ -91,7 +91,7 @@ class GeneDatum(object):
         left_win_start = np.clip(left_win_start, 0, None)
         return left_win_start
 
-    @functools.cache
+    @functools.lru_cache(maxsize=None)
     def right_win_stop(self, window):
         """Calculate the stop base-pair of the right-window
 
@@ -109,7 +109,7 @@ class GeneDatum(object):
     def start_stop_len(self):
         return (self.start, self.stop, self.length)
 
-    @functools.cache
+    @functools.lru_cache(maxsize=None)
     def validate_window(self, left_win_start, window_length):
         """Make sure clipped windows produce the correct value for density
         division

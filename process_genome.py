@@ -40,9 +40,6 @@ def validate_args(args, logger):
         msg_fmt="arg 'tes_input_file' not a file: %s",
     )
     raise_if_no_dir(
-        args.overlap_dir, logger=logger, msg_fmt="arg 'overlap_dir' not a dir: %s"
-    )
-    raise_if_no_dir(
         args.output_dir, logger=logger, msg_fmt="arg 'output_dir' not a dir: %s"
     )
 
@@ -127,7 +124,6 @@ if __name__ == "__main__":
     args.genes_input_file = os.path.abspath(args.genes_input_file)
     args.tes_input_file = os.path.abspath(args.tes_input_file)
     args.config_file = os.path.abspath(args.config_file)
-    args.overlap_dir = os.path.abspath(args.overlap_dir)
     args.output_dir = os.path.abspath(args.output_dir)
 
     filtered_input_data_loc = os.path.abspath(
