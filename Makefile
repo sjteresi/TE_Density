@@ -3,8 +3,9 @@
 # __author__ Michael Teresi
 
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-DEV_DATA := $(ROOT_DIR)/../TE_Data
-DEV_CACHE := $(DEV_DATA)/cache
+DEV_DATA := $(realpath $(ROOT_DIR)/../TE_Data)
+DEV_CACHE := $(DEV_DATA)/tmp                                # MAGIC default
+DEV_CACHE_OVERLAP := $(addsuffix /overlap,$(DEV_CACHE))     # MAGIC default
 DEV_GENES := $(DEV_DATA)/Camarosa_Genes.gtf
 DEV_TES := $(DEV_DATA)/Camarosa_EDTA_TEs.gff
 DEV_GENOME := "Camarosa"
@@ -18,9 +19,9 @@ dev: | tags         ## execute with default testing arguments
 help:               ## Show this help.
 	fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
 
-clean:              ## remove temporary output files
+clean_overlap:      ## remove overlap temp files
 	@echo cleaning temporary files
-	rm -f $(DEV_CACHE)/*.h5
+	cd $(DEV_CACHE_OVERLAP) && rm *.h5
 
 test:               ## run the tests
 	pytest $(ROOT_DIR)

@@ -42,6 +42,9 @@ def validate_args(args, logger):
     raise_if_no_dir(
         args.output_dir, logger=logger, msg_fmt="arg 'output_dir' not a dir: %s"
     )
+    raise_if_no_dir(
+        args.tmp_overlap, logger=logger, msg_fmt="arg 'tmp_overlap' not a dir: %s"
+    )
 
 
 def parse_algorithm_config(config_path):
@@ -63,7 +66,8 @@ if __name__ == "__main__":
     """Command line interface to calculate density."""
 
     path_main = os.path.abspath(__file__)
-
+    dir_main = os.path.dirname(path_main)
+    output_default = os.path.join(dir_main, "..", "TE_Data")
     parser = argparse.ArgumentParser(description="calculate TE density")
 
     parser.add_argument("genes_input_file", type=str, help="parent path of gene file")
@@ -78,7 +82,7 @@ if __name__ == "__main__":
         "--config_file",
         "-c",
         type=str,
-        default=os.path.join(path_main, "../", "config/test_run_config.ini"),
+        default=os.path.join(path_main, "..", "config/test_run_config.ini"),
         help="parent path of config file",
     )
 
@@ -113,9 +117,17 @@ if __name__ == "__main__":
         "--output_dir",
         "-o",
         type=str,
-        default=os.path.join(path_main, "../..", "TE_Data"),
+        default=output_default,
         help="parent directory to output results",
     )
+
+    parser.add_argument(
+        "--tmp_overlap",
+        type=str,
+        default=os.path.join(output_default, "tmp", "overlap"),
+        help="temporary directory for overlap files",
+    )
+
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="set debugging level to DEBUG"
     )
@@ -169,12 +181,11 @@ if __name__ == "__main__":
     filepaths = list(preprocessor.data_filepaths())
     overlap_mgr = OverlapManager(
             filepaths,
-            args.output_dir,
+            args.tmp_overlap,
             alg_parameters["window_range"]
             )
     overlap_results = overlap_mgr.calculate_overlap()
     logger.info("processed %d overlap jobs" % len(overlap_results))
     logger.info("process overlap... complete")
 
-    
-    raise NotImplementedError()
+    raise NotImplementedError("need to implement the summation")
