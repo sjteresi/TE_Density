@@ -32,7 +32,7 @@ import pandas as pd
 from tqdm import tqdm
 
 
-class Revise_Anno(object):
+class Revise_Anno:
     """Create a new TE annotation file without overlapping TEs.
 
     Contains methods to create an altered transposon annotation file (GFF

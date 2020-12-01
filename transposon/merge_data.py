@@ -16,7 +16,8 @@ from functools import partial
 import h5py
 import numpy as np
 
-import transposon
+import transposon  # TODO move all the functions in __init__ to utils and have an empty __init__ (and change all the imports)
+from transposon.gene_datum import GeneDatum
 
 
 _MergeConfigSink = namedtuple(
@@ -427,9 +428,9 @@ class MergeData:
         # function returns the divisor (float or int)
         # Single divisor for single gene at a specific window
         divisor_func = [
-            GeneDatum.divisor_left
-            GeneDatum.divisor_intra
-            GeneDatum.divisor_right
+            GeneDatum.divisor_left,
+            GeneDatum.divisor_intra,
+            GeneDatum.divisor_right,
         ]
 
 

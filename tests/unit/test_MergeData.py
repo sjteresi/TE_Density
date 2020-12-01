@@ -75,7 +75,10 @@ def temp_dir():
 def temp_file(temp_dir):
     """Temporary h5 file."""
 
-    yield os.path.join(temp_dir, "temp_merge.h5")
+    file = tempfile.NamedTemporaryFile(dir=temp_dir,
+                                       suffix='.h5')
+    with file as temp:
+        yield temp.name
 
 
 @pytest.yield_fixture
@@ -133,8 +136,10 @@ def transposondata_test_obj():
 def different_real_overlap_source(
     genedata_test_obj, transposondata_test_obj, temp_file
 ):
-    with tempfile.TemporaryDirectory() as temp_dir:
-        worker = OverlapWorker(temp_dir)
+    # TODO SCOTT pls add one liner ffor what this is
+
+    with tempfile.NamedTemporaryFile(suffix=".h5") as temp_file:
+        worker = OverlapWorker(temp_file.name)
         gene_data = genedata_test_obj
         te_data = transposondata_test_obj
         overlap_file = worker.calculate(
@@ -168,17 +173,17 @@ def merge_sink_real(transposondata_test_obj, genedata_test_obj, temp_dir):
         yield active_merge
 
 
+@pytest.mark.skip(reason="TODO")
 @pytest.yield_fixture
 def merge_real_summed(merge_sink_real, overlap_data):
     # THIS TEST will fail
-    pass
     # add the overlap data parameter (active)
     # call the sum
     # THIS FIXTURE FAILS WHEN IT IS USED
-    # merge_real_summed = merge_sink_real.sum(overlap_data)
-    # return merge_real_summed
+    merge_real_summed = merge_sink_real.sum(overlap_data)
 
 
+@pytest.mark.skip(reason="TODO")
 def test_merge_real_summed(merge_sink_real, different_real_overlap_source):
     pass
     # merge_sink_real.sum(different_real_overlap_source, None)
@@ -210,8 +215,8 @@ def active_merge_sink(merge_sink):
 @pytest.fixture(scope="module")
 def overlap_source():
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        worker = OverlapWorker(temp_dir)
+    with tempfile.NamedTemporaryFile(suffix=".h5") as temp_file:
+        worker = OverlapWorker(temp_file.name)
         gene_data = _gene_data()
         te_data = _te_data()
         overlap_file = worker.calculate(gene_data, te_data, WINDOWS, gene_data.names)
@@ -302,12 +307,14 @@ def test_list_sum_args_no_throw(active_merge_sink, overlap_source):
         assert isinstance(o, _SummationArgs)
 
 
+@pytest.mark.skip(reason="TODO")
 def test_sum_no_throw(active_merge_sink, overlap_source):
     # NOTE FAILS
     pass
     # active_merge_sink.sum(overlap_source, None)
 
 
+@pytest.mark.skip(reason="TODO")
 def test_process_sum():
     pass
 

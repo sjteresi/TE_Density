@@ -18,7 +18,7 @@ from transposon.overlap import Overlap
 # the scope is smaller so that we can do the pseudo split merge pattern more easily
 
 
-class MockData(object):
+class MockData:
 
     def __init__(self, g_start, g_stop, t_start, t_stop, window, expected_overlap_left,
                  expected_overlap_right, expected_overlap_intra, description='Test'):

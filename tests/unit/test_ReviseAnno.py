@@ -128,7 +128,6 @@ def ReviseAnno_TestObj_SingleC_SingleElongate_SupF(
     """
     revise_anno_obj = Revise_Anno(TEData_TestObj_SingleC_SingleElongate_SupF.data_frame,
                                   h5_cache_loc,
-                                  logger_obj,
                                   superfam_name)
     revise_anno_obj.create_superfam()
     revise_anno_obj.save_for_dev(revise_anno_obj.updated_te_annotation,
@@ -153,7 +152,6 @@ def ReviseAnno_TestObj_SingleC_MultiElongate_SupF(
     """
     revise_anno_obj = Revise_Anno(TEData_TestObj_SingleC_MultiElongate_SupF.data_frame,
                                   h5_cache_loc,
-                                  logger_obj,
                                   superfam_name)
     revise_anno_obj.create_superfam()
     revise_anno_obj.save_for_dev(revise_anno_obj.updated_te_annotation,
@@ -179,7 +177,6 @@ def ReviseAnno_TestObj_SingleC_ConcOverlap_SupF(
     """
     revise_anno_obj = Revise_Anno(TEData_TestObj_SingleC_ConcOverlap_SupF.data_frame,
                                   h5_cache_loc,
-                                  logger_obj,
                                   superfam_name)
     revise_anno_obj.create_superfam()
     revise_anno_obj.save_for_dev(revise_anno_obj.updated_te_annotation,
