@@ -112,7 +112,6 @@ def validate_window(left_window_start, left_window_stop, window_length):
         window_start (int): integer value for the left window start value, we need
         to make sure it isn't negative.
 
-        TODO add description
 
         window_length (int)
     """
@@ -416,7 +415,6 @@ if __name__ == "__main__":
         default=os.path.join(path_main, "../..", "filtered_input_data"),
         help="parent directory for cached input data",
     )
-    # TODO remove this option
     # if the user sets their own filtered_input_data location, this
     # h5_cache_loc location will not exactly follow their filtered_input_data
     # convention

@@ -24,6 +24,8 @@ from transposon.gene_data import GeneData
 from transposon.transposon_data import TransposonData
 from transposon.preprocess import PreProcessor
 from transposon.overlap_manager import OverlapManager
+from transposon.overlap import OverlapData
+from transposon.merge_data import MergeData
 
 
 def validate_args(args, logger):
@@ -56,9 +58,7 @@ def parse_algorithm_config(config_path):
     window_start = parser.getint("density_parameters", "first_window_size")
     window_step = parser.getint("density_parameters", "window_delta")
     window_stop = parser.getint("density_parameters", "last_window_size")
-    alg_param = {
-        "window_range": range(window_start, window_stop, window_step)
-    }
+    alg_param = {"window_range": range(window_start, window_stop, window_step)}
     return alg_param
 
 
@@ -178,14 +178,27 @@ if __name__ == "__main__":
     logger.info("preprocessing... complete")
 
     logger.info("process overlap...")
-    filepaths = list(preprocessor.data_filepaths())
+    gene_te_filepaths = list(preprocessor.data_filepaths())
     overlap_mgr = OverlapManager(
-            filepaths,
-            args.tmp_overlap,
-            alg_parameters["window_range"]
-            )
+        gene_te_filepaths, args.tmp_overlap, alg_parameters["window_range"]
+    )
     overlap_results = overlap_mgr.calculate_overlap()
     logger.info("processed %d overlap jobs" % len(overlap_results))
     logger.info("process overlap... complete")
+
+    logger.info("process merge_data")
+
+    for result in overlap_results:
+        transposons = TransposonData.read(result.te_file)
+        windows = alg_parameters["window_range"]  # TODO check this
+        output_dir = "/tmp"  # TODO get from args?
+        gene_data = GeneData.read(result.gene_file)
+        gene_names = gene_data.names  # NB process *all* the genes at once
+        merge_data = MergeData.from_param(transposons, gene_data, windows, output_dir)
+        # need to edit _MergeConfigSink
+        overlap_data = OverlapData.from_file(result.overlap_file)
+        with merge_data as merge_output:
+            with overlap_data as overlap_input:
+                merge_output.sum(overlap_input, gene_data)
 
     raise NotImplementedError("need to implement the summation")

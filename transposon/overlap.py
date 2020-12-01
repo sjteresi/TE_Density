@@ -25,12 +25,13 @@ _OverlapConfigSink = namedtuple(
 )
 _OverlapConfigSource = namedtuple("_OverlapConfigSource", ["filepath"])
 OverlapResult = namedtuple(
-    "OverlapResult", ["genes_processed", "filepath", "exception", "gene_file"]
-)
+    "OverlapResult", ["genes_processed", "exception", "overlap_file", "gene_file", "te_file"]
+) # TODO add the te_filepath to this.
 OverlapResult.__new__.__defaults__ = (
     0,
     None,
-    None,
+    "",
+    "",
     "",
 )  # REFACTOR to dataclass in 3.7+
 
