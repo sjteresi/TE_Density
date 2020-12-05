@@ -123,7 +123,7 @@ class TransposonData(object):
         Args:
             filename (str): a string of the filename to write.
         """
-        # TODO candidate for deletion, scott will handle
+        # TODO Come back to this post-v1.0 build and flesh out.
         self.gff_data_frame = self.data_frame.copy(deep=True)
         self.gff_data_frame.rename(columns={"Stop": "End"}, inplace=True)
         self.gff_data_frame["Source"] = "Test"
@@ -157,8 +157,6 @@ class TransposonData(object):
     @property
     def number_elements(self):
         """The number of transposable elements."""
-
-        # TODO verify
         return self.indices.shape[0]  # MAGIC NUMBER it's one column
 
     def subset_by_superfam(self):

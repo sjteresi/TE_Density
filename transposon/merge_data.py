@@ -22,13 +22,22 @@ from transposon.gene_datum import GeneDatum
 
 _MergeConfigSink = namedtuple(
     "_MergeConfigSink",
-    ["transposons", "gene_names", "windows", "filepath", "ram_bytes"],
+    ["transposons", "gene_data", "gene_names", "windows", "filepath", "ram_bytes"],
 )
 _MergeConfigSource = namedtuple("_MergeConfigSource", ["filepath"])
 _Density = namedtuple("_Density", ["left", "intra", "right"])
 _SummationArgs = namedtuple(
     "_SummationArgs",
-    ["input", "output", "windows", "te_idx_name", "slice_in", "slice_out", "where", "divisor_func"],
+    [
+        "input",
+        "output",
+        "windows",
+        "te_idx_name",
+        "slice_in",
+        "slice_out",
+        "where",
+        "divisor_func",
+    ],
 )
 
 
@@ -117,12 +126,13 @@ class MergeData:
 
     @classmethod
     def from_param(
-        cls, transposon_data, gene_names, windows, output_dir, ram=2, logger=None
+        cls, transposon_data, gene_data, windows, output_dir, ram=2, logger=None
     ):
         """Writable sink for a new file.
 
         Args:
             transposon_data (TransposonData): transposon container.
+            gene_data (GeneData): gene data container
             gene_names (iterable(str)): gene names to process.
             windows (iterable(int)): window inputs to process (not the same as windows).
             output_dir (str): directory to output merge data files.
@@ -140,7 +150,8 @@ class MergeData:
         filepath = os.path.join(output_dir, filename)
         config = _MergeConfigSink(
             transposons=transposon_data,
-            gene_names=gene_names,
+            gene_data=gene_data,
+            gene_names=gene_data.names,
             windows=windows,
             filepath=filepath,
             ram_bytes=ram_bytes,
@@ -190,8 +201,12 @@ class MergeData:
             raise ValueError("intra window must be None but is %s" % window_idx)
 
         # TODO SCOTT test this pls
-        w_slice = slice(0,1,1)  # use a slice (not 0) so you can get a view of the array
-        return cls.left_right_slice(group_idx=group_idx, gene_idx=gene_idx, window_idx=w_slice)
+        w_slice = slice(
+            0, 1, 1
+        )  # use a slice (not 0) so you can get a view of the array
+        return cls.left_right_slice(
+            group_idx=group_idx, gene_idx=gene_idx, window_idx=w_slice
+        )
 
     def __enter__(self):
         """Context manager begin."""
@@ -264,6 +279,7 @@ class MergeData:
 
         self._h5_file = h5py.File(cfg.filepath, "r")
         transposon.read_vlen_str_h5py(self._h5_file,)
+        # TODO
         # read windows
         # read chromosome id
         # read gene names
@@ -303,8 +319,15 @@ class MergeData:
         o_right = create_set(self._O_RIGHT, (n_orders, *lr_shape))
         self.order = _Density(left=o_left[:], intra=o_intra[:], right=o_right[:])
 
-    def sum(self, overlap, progress_bar=None):
-        """Sum across the superfamily / order dimension."""
+    def sum(self, overlap, gene_data, progress_bar=None):
+        """Sum across the superfamily / order dimension.
+
+        Args:
+            overlap(OverlapData): container for the intermediate overlap values
+            gene_data (GeneData): container for the gene data for one
+            chromosome
+            progress_bar(?):
+        """
 
         self._validate_chromosome(overlap)
         self._validate_windows(overlap)
@@ -315,15 +338,17 @@ class MergeData:
         iter_max = sum(
             len(arg.windows) * n_genes * len(arg.te_idx_name) for arg in sums_
         )
-        # TODO set progress bar
+        # TODO set progress bar values (max?)?
         for args in sums_:
-            self._process_sum(overlap, args, progress_bar)
+            self._process_sum(overlap, gene_data, args, progress_bar)
 
-    def _process_sum(self, overlap, sum_args, progress=None):
+    def _process_sum(self, overlap, gene_data, sum_args, progress=None):
         """Calculate the sum for one (left | intra | right) & (superfamily | order).
 
         Args:
             overlap (OverlapData): input data
+            gene_data (GeneData): container for the gene data for one
+            chromosome
             sum_args (_SummationArgs): container for arguments wrt sum
             progress (tqdm.std.tqdm): progress bar
         """
@@ -336,10 +361,8 @@ class MergeData:
         # a) left / intra / right, and, b) superfamily / order
         # although there are so few intra calcs it might be easier to do that separately
 
-        # TODO SCOTT move the get_gene call to the top b/c the gene_datum
-        # instance is the same for every window
         for gene_name in overlap.gene_names:
-            gene_datum = GeneData.get_gene(gene_name)
+            gene_datum = gene_data.get_gene(gene_name)
             g_idx = self._gene_2_idx[gene_name]
 
             for te_ in zip(*sum_args.te_idx_name):  # for every superfam | order
@@ -355,7 +378,11 @@ class MergeData:
                     # find which genes match the superfam | order, and sum those
                     superfam_or_order_match = sum_args.where(te_name)
                     slice_in_only_te = (superfam_or_order_match, *slice_in[1:])
+
+                    # NOTE this below is what does not work
                     overlap_sum = np.sum(sum_args.input[slice_in_only_te])
+                    # BUG, produces a ValueError for a index out of range in
+                    # the h5 code.
 
                     divisor = sum_args.divisor_func(gene_datum, window)
                     destination = sum_args.output[slice_out]
@@ -433,7 +460,6 @@ class MergeData:
             GeneDatum.divisor_right,
         ]
 
-
         # possible solution
         # store left/center/right functions to find window
         # zip it up same as below
@@ -475,6 +501,9 @@ class MergeData:
         The OverlapData cannot be marged into a container created for another chromosome.
         This is because the genes may be different, and more importantly the density is
             not defined between chromosomes as they are different locations.
+        
+        Args:
+            overlap(OverlapData): container for the intermediate overlap values
         """
 
         if self.chromosome_id is None:
@@ -490,7 +519,11 @@ class MergeData:
             )
 
     def _validate_windows(self, overlap):
-        """ValueError if the overlap windows are not in the destination."""
+        """ValueError if the overlap windows are not in the destination.
+
+        Args:
+            overlap(OverlapData): container for the intermediate overlap values
+        """
 
         if self.windows is None:
             raise ValueError(f"MergeData.windows (self) is None")
@@ -504,7 +537,11 @@ class MergeData:
             )
 
     def _validate_gene_names(self, overlap):
-        """ValueError if the overlap genes are not in the destination."""
+        """ValueError if the overlap genes are not in the destination.
+
+        Args:
+            overlap(OverlapData): container for the intermediate overlap values
+        """
 
         if self.gene_names is None:
             raise ValueError(f"MergeData.gene_names (self) is None")

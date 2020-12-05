@@ -1,52 +1,67 @@
 import pandas as pd
 
 
-def check_nulls(my_df):
-    # TODO add logging event and possibly crash
+def check_nulls(my_df, logger):
+    """Check the TE dataframe for ANY null values in ANY rows
+
+    Args:
+        my_df (pandas.core.DataFrame): Pandas dataframe of TE values from TE
+            annotation
+    """
     Bool = my_df.isnull().values.any()
     if Bool:
-        print('You have Null values in your dataframe that were not caught!')
+        logger.critical("You have null values in your dataframe!")
 
 
-# TODO SCOTT add an input argument for filtering the data, so a client can
-# provide a filtering function (TE_Renamer) instead of the import hard coded
-# that way the client doesn't have to modify your code to get it to work
-# also use lower case for function names and start only classes with capital
-# letters
-def import_transposons(tes_input_path, te_annot_renamer, contig_del):
-    """Import TE File.
-        Args: input_dir (command line argument) Specify the input directory of
-        the TE annotation data, this is the same as the Gene annotation
-        directory
+def import_transposons(tes_input_path, te_annot_renamer, contig_del, logger):
+    """Import TE file and read as a dataframe in Pandas
+        Args:
+            tes_input_path (str): string of the file path to the TE annotation
 
-        contig_drop (bool): logical whether to drop rows with a contig as the
-        chromosome id
+            te_annot_renamer (function containing a dictionary and other methods):
+                imported from separate file within the repository. This file
+                performs the more specific filtering steps on the TEs such as
+                changing the annotation details for specific TE types.
+
+            contig_drop (bool): logical whether to drop rows with a contig as the
+                chromosome id
+
+            logger (logging obj)
     """
-    col_names = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop',
-                 'Score', 'Strand', 'Frame', 'Attribute']
+    col_names = [
+        "Chromosome",
+        "Software",
+        "Feature",
+        "Start",
+        "Stop",
+        "Score",
+        "Strand",
+        "Frame",
+        "Attribute",
+    ]
 
-    col_to_use = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop',
-                  'Strand']
+    col_to_use = ["Chromosome", "Software", "Feature", "Start", "Stop", "Strand"]
 
     TE_Data = pd.read_csv(
         tes_input_path,
-        sep='\t+',
+        sep="\t+",
         header=None,
-        engine='python',
+        engine="python",
         names=col_names,
-        usecols=col_to_use)
+        usecols=col_to_use,
+    )
 
-    TE_Data = TE_Data[~TE_Data.Chromosome.str.contains('#')]  # remove comment
+    TE_Data = TE_Data[~TE_Data.Chromosome.str.contains("#")]  # remove comment
     # rows in annotation
-    TE_Data[['Order', 'SuperFamily']] = TE_Data.Feature.str.split('/', expand=True)
+    TE_Data[["Order", "SuperFamily"]] = TE_Data.Feature.str.split("/", expand=True)
 
-    TE_Data = TE_Data.drop(['Feature', 'Software'], axis=1)
+    TE_Data = TE_Data.drop(["Feature", "Software"], axis=1)
     TE_Data = te_annot_renamer(TE_Data)  # NOTE call to the cleaner
     TE_Data.Strand = TE_Data.Strand.astype(str)
-    TE_Data.Start = TE_Data.Start.astype('float32')
-    TE_Data.Stop = TE_Data.Stop.astype('float32')
-    TE_Data['Length'] = TE_Data.Stop - TE_Data.Start + 1
+    TE_Data.Start = TE_Data.Start.astype("float32")
+    TE_Data.Stop = TE_Data.Stop.astype("float32")
+    TE_Data["Length"] = TE_Data.Stop - TE_Data.Start + 1
     if contig_del:
-        TE_Data = TE_Data[~TE_Data.Chromosome.str.contains('contig', case=False)]
-    check_nulls(TE_Data)
+        TE_Data = TE_Data[~TE_Data.Chromosome.str.contains("contig", case=False)]
+    check_nulls(TE_Data, logger)
     return TE_Data

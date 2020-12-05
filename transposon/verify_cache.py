@@ -125,7 +125,9 @@ def verify_TE_cache(
         if te_annot_time > cleaned_te_time:
             logger.info("filtered TEs are old: %s" % cleaned_transposons)
             logger.info("reload annotation:    %s" % tes_input_file)
-            te_data = import_transposons(tes_input_file, te_annot_renamer, contig_del)
+            te_data = import_transposons(
+                tes_input_file, te_annot_renamer, contig_del, logger
+            )
             te_data.sort_values(by=["Chromosome", "Start"], inplace=True)
             te_data.to_csv(cleaned_transposons, sep="\t", header=True, index=False)
         else:
@@ -139,7 +141,9 @@ def verify_TE_cache(
     else:
         logger.info("filtered TEs DNE...")
         logger.info("load unfiltered TEs: %s" % tes_input_file)
-        te_data = import_transposons(tes_input_file, te_annot_renamer, contig_del)
+        te_data = import_transposons(
+            tes_input_file, te_annot_renamer, contig_del, logger
+        )
         te_data.sort_values(by=["Chromosome", "Start"], inplace=True)
         te_data.to_csv(cleaned_transposons, sep="\t", header=True, index=False)
     return te_data
@@ -223,22 +227,7 @@ def revise_annotation(
         TE_Data (pandaframe): A pandas dataframe of the TE data
     """
 
-    # TODO SCOTT you have copy / paste code here
-    # just check exists AND (not force_revision), load if true, else create
-    # that way it will get loaded if it's there and you are recreating it
-    if revise_anno:
-        logger.info("forcing TE dataset revision:  %s" % revised_transposons_loc)
-        # Want a higher recursion limit for the code
-        sys.setrecursionlimit(11 ** 6)
-        revised_TE_Data = Revise_Anno(TE_Data, revised_cache_loc, genome_id)
-        revised_TE_Data.create_superfam()
-        revised_TE_Data.create_order()
-        revised_TE_Data.create_nameless()
-        logger.info("write revised TE: " % revised_transposons_loc)
-        revised_TE_Data.save_whole_te_annotation(revised_transposons_loc)
-        TE_Data = revised_TE_Data.whole_te_annotation
-
-    elif os.path.exists(revised_transposons_loc):
+    if os.path.exists(revised_transposons_loc) and not revise_anno:
         logger.info("load revised TE: %s" % revised_transposons_loc)
         TE_Data = pd.read_csv(
             revised_transposons_loc,
@@ -247,10 +236,9 @@ def revise_annotation(
             sep="\t",
         )
     else:
-        logger.info("revised TEs DNE: %s" % revised_transposons_loc)
         logger.info("creating revised TE dataset...")
-        logger.warn("revising the TE dataset will take a long time!")
-        # Want a higher recursion limit for the code
+        logger.info("revising the TE dataset will take a long time!")
+        # N.B we want higher recursion limit for the code
         sys.setrecursionlimit(11 ** 6)
         revised_TE_Data = Revise_Anno(TE_Data, revised_cache_loc, genome_id)
         revised_TE_Data.create_superfam()

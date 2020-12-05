@@ -132,7 +132,7 @@ class GeneDatum(object):
             logger.critical(msg)
             raise ValueError(msg)
         if left_win_start == 0:
-            divisor = self.left_window_stop - left_win_start + 1
+            divisor = self.left_win_stop - left_win_start + 1
         return divisor
 
     def divisor_left(self, window):
@@ -180,7 +180,7 @@ class GeneDatum(object):
             return self.length
         else:
             msg = "window must be None for intronic calculations"
-            logger.critical(msg)
+            self._logger.critical(msg)
             raise ValueError(msg)
 
     def divisor_right(self, window):

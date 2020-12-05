@@ -24,8 +24,17 @@ from transposon.overlap import OverlapWorker, OverlapResult, OverlapData
 
 _OverlapJob = namedtuple(
     "_OverlapJob",
-    ['gene_uid', 'gene_path', 'te_path', 'output_filepath', 'window_range',
-     'gene_names', 'progress_queue', 'result_queue', 'stop_event']
+    [
+        "gene_uid",
+        "gene_path",
+        "te_path",
+        "output_filepath",
+        "window_range",
+        "gene_names",
+        "progress_queue",
+        "result_queue",
+        "stop_event",
+    ],
 )
 
 # monkeypatch multiprocessing in py 3.6
@@ -34,11 +43,18 @@ _OverlapJob = namedtuple(
 backup_autoproxy = multiprocessing.managers.AutoProxy
 
 # Defining a new AutoProxy that handles unwanted key argument 'manager_owned'
-def redefined_autoproxy(token, serializer, manager=None, authkey=None,
-          exposed=None, incref=True, manager_owned=True):
+def redefined_autoproxy(
+    token,
+    serializer,
+    manager=None,
+    authkey=None,
+    exposed=None,
+    incref=True,
+    manager_owned=True,
+):
     # Calling original AutoProxy without the unwanted key argument
-    return backup_autoproxy(token, serializer, manager, authkey,
-                     exposed, incref)
+    return backup_autoproxy(token, serializer, manager, authkey, exposed, incref)
+
 
 # Updating AutoProxy definition in multiprocessing.managers package
 multiprocessing.managers.AutoProxy = redefined_autoproxy
@@ -65,7 +81,9 @@ def _calculate_overlap_job(job):
         stop=job.stop_event,
         progress=progress_cb,
     )
-    result = OverlapResult(filepath=file, gene_file=job.gene_path)
+    result = OverlapResult(
+        overlap_file=file, gene_file=job.gene_path, te_file=job.te_path
+    )
     return result
 
 
@@ -80,7 +98,7 @@ def _process_overlap_job(job):
         result = _calculate_overlap_job(job)
     except Exception as err:  # BUG SIGINT not caught here during testing?
         result = OverlapResult(exception=err, gene_file=job.gene_path)
-        os.path.remove(result.output_filepath)
+        os.path.remove(result.overlap_file)
     finally:
         job.result_queue.put(result)
 
@@ -90,7 +108,9 @@ class _ProgressBars:
 
     COLUMNS = 79  # MAGIC arbirtary col limit (no one has physical terminals anymore)
 
-    def __init__(self, n_gene_names, n_chrome, result_queue, progress_queue, logger=None):
+    def __init__(
+        self, n_gene_names, n_chrome, result_queue, progress_queue, logger=None
+    ):
         """Initializer.
 
         Args:
@@ -103,16 +123,16 @@ class _ProgressBars:
 
         self.chromosomes = tqdm(
             total=n_chrome,
-            desc="process".ljust(12,' '),
+            desc="process".ljust(12, " "),
             position=0,
-            ncols=self.COLUMNS
-            )
+            ncols=self.COLUMNS,
+        )
         self.gene_names = tqdm(
             total=n_gene_names,
-            desc="genes".ljust(12, ' '),
+            desc="genes".ljust(12, " "),
             position=1,
-            ncols=self.COLUMNS
-            )
+            ncols=self.COLUMNS,
+        )
         self.result_queue = result_queue
         self.progress_queue = progress_queue
         self.stop_event = threading.Event()
@@ -165,12 +185,16 @@ class _ProgressBars:
         """Log details on result if necessary."""
 
         if not isinstance(result, OverlapResult):
-            self._logger.warning("expecting %s but got %s" %
-                                 (OverlapResult.__name__, result))
+            self._logger.warning(
+                "expecting %s but got %s" % (OverlapResult.__name__, result)
+            )
             return
         if result.exception is not None:
-            self._logger.error("failed to process gene '{}':  {}"
-                               .format(result.gene_file, result.exception))
+            self._logger.error(
+                "failed to process gene '{}':  {}".format(
+                    result.gene_file, result.exception
+                )
+            )
 
     def handle_gene(self):
         """Target to consume gene results."""
@@ -197,12 +221,7 @@ class _ProgressBars:
 class OverlapManager:
     """Orchestrate multiple OverlapWorkers."""
 
-    def __init__(self,
-                 data_paths,
-                 results_dir,
-                 window_range,
-                 n_workers=None
-                 ):
+    def __init__(self, data_paths, results_dir, window_range, n_workers=None):
         """Initializer.
 
         Args:
@@ -223,7 +242,6 @@ class OverlapManager:
         if not self.gene_transposon_paths:
             msg = "input paths are empty: {}".format(self.gene_transposon_paths)
             raise ValueError(msg)
-
 
         # FUTURE OPTIMIZE accept list of gene names to process, process subset per core
         self.window_range = window_range
@@ -247,7 +265,11 @@ class OverlapManager:
         return sub_dir
 
     def calculate_overlap(self):
-        """Calculate and write OverlapData to disk."""
+        """Calculate and write OverlapData to disk.
+
+        Returns:
+            list(OverlapResult): the result from completing the job
+        """
 
         self._clear()
         jobs = list(self._produce_jobs())
@@ -291,8 +313,11 @@ class OverlapManager:
         todo = []
         for job in jobs:
             if os.path.isfile(job.output_filepath):
-                self._logger.debug("skipping '%s', output exists '%s'",
-                                   job.gene_uid, job.output_filepath)
+                self._logger.debug(
+                    "skipping '%s', output exists '%s'",
+                    job.gene_uid,
+                    job.output_filepath,
+                )
                 completed.append(job)
             else:
                 todo.append(job)
@@ -310,16 +335,16 @@ class OverlapManager:
         """Create job for processing an overlap."""
 
         job = _OverlapJob(
-                gene_uid=gene_data.chromosome_unique_id,
-                gene_path=gene_path,
-                te_path=te_path,
-                output_filepath=filepath,
-                window_range=self.window_range,
-                gene_names=list(gene_data.names),  # NB process all genes
-                progress_queue=self._progress_queue,
-                result_queue=self._result_queue,
-                stop_event=None,
-                )
+            gene_uid=gene_data.chromosome_unique_id,
+            gene_path=gene_path,
+            te_path=te_path,
+            output_filepath=filepath,
+            window_range=self.window_range,
+            gene_names=list(gene_data.names),  # NB process all genes
+            progress_queue=self._progress_queue,
+            result_queue=self._result_queue,
+            stop_event=None,
+        )
         return job
 
     def _yield_gene_trans_paths(self):
@@ -338,12 +363,7 @@ class OverlapManager:
 
         n_genes = sum(len(job.gene_names) for job in jobs)
         n_jobs = sum(1 for j in jobs)
-        prog = _ProgressBars(
-                n_genes,
-                n_jobs,
-                self._result_queue,
-                self._progress_queue,
-                )
+        prog = _ProgressBars(n_genes, n_jobs, self._result_queue, self._progress_queue,)
         return prog
 
     @property
@@ -374,9 +394,10 @@ class OverlapManager:
         """
 
         result = OverlapResult(
-                genes_processed=len(job.gene_names),
-                filepath=job.output_filepath,
-                exception=None,
-                gene_file=job.gene_path,
-            )
+            genes_processed=len(job.gene_names),
+            exception=None,
+            overlap_file=job.output_filepath,
+            gene_file=job.gene_path,
+            te_file=job.te_path,
+        )
         return result

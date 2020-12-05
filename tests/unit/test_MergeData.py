@@ -15,12 +15,15 @@ import coloredlogs
 import numpy as np
 import pandas as pd
 from io import StringIO
+from collections import namedtuple
 
 from transposon.merge_data import MergeData
 from transposon.merge_data import _MergeConfigSink, _MergeConfigSource, _SummationArgs
 from transposon.transposon_data import TransposonData
 from transposon.gene_data import GeneData
 from transposon.overlap import OverlapData, OverlapWorker
+
+# pytestmark = pytest.mark.skip
 
 
 MAX_RAM = 1024 * 4
@@ -75,8 +78,7 @@ def temp_dir():
 def temp_file(temp_dir):
     """Temporary h5 file."""
 
-    file = tempfile.NamedTemporaryFile(dir=temp_dir,
-                                       suffix='.h5')
+    file = tempfile.NamedTemporaryFile(dir=temp_dir, suffix=".h5")
     with file as temp:
         yield temp.name
 
@@ -85,6 +87,7 @@ def temp_file(temp_dir):
 def config_sink(te_data, gene_data, temp_file):
     sink = _MergeConfigSink(
         transposons=te_data,
+        gene_data=gene_data,
         gene_names=gene_data.names,
         windows=WINDOWS,
         filepath=temp_file,
@@ -100,13 +103,20 @@ def merge_sink(te_data, gene_data, temp_dir):
     The resource is managed by the yield.
     """
 
-    yield MergeData.from_param(te_data, gene_data.names, WINDOWS, temp_dir)
+    yield MergeData.from_param(te_data, gene_data, WINDOWS, temp_dir)
 
 
 # -----------------------------------------------------
 # SCOTT
+
+
+windows_real = [500, 1000, 1500, 2000]  # NOTE used for the
+# MergeData.from_param parts
+
+
 @pytest.fixture
 def genedata_test_obj():
+    """Create test object for GeneData information, reads from file"""
     gene_file = "tests/input_data/Test_Genes_MergeData.tsv"
     gene_pandas = pd.read_csv(
         gene_file,
@@ -121,6 +131,7 @@ def genedata_test_obj():
 
 @pytest.fixture
 def transposondata_test_obj():
+    """Create test object for TransposonData information, reads from file"""
     te_file = "tests/input_data/Test_TEs_MergeData.tsv"
     te_pandas = pd.read_csv(
         te_file,
@@ -132,76 +143,90 @@ def transposondata_test_obj():
     return sample_genome
 
 
-@pytest.fixture()
-def different_real_overlap_source(
-    genedata_test_obj, transposondata_test_obj, temp_file
-):
-    # TODO SCOTT pls add one liner ffor what this is
-
-    with tempfile.NamedTemporaryFile(suffix=".h5") as temp_file:
-        worker = OverlapWorker(temp_file.name)
-        gene_data = genedata_test_obj
-        te_data = transposondata_test_obj
-        overlap_file = worker.calculate(
-            gene_data, te_data, windows_real, gene_data.names
-        )
-        with OverlapData.from_file(overlap_file) as active_source:
-            yield active_source
-
-
-@pytest.fixture
-def real_overlap_data(genedata_test_obj, transposondata_test_obj):
-    """Default OverlapData instance."""
-    my_overlap_data = OverlapData.from_param(
-        genedata_test_obj,
-        transposondata_test_obj.number_elements,
-        windows_real,
-        "tests/test_h5_cache_loc/",
-    )
-    with my_overlap_data as active_overlap:
-        yield active_overlap
-
-
-# Then use merge_sink_real as an input to another functions to check the math
 @pytest.yield_fixture
-def merge_sink_real(transposondata_test_obj, genedata_test_obj, temp_dir):
-    """Yield a MergeData instance."""
+def active_merge_sink_real(transposondata_test_obj, genedata_test_obj, temp_dir):
+    """Yield an active MergeData instance from real data"""
     my_merge = MergeData.from_param(
-        transposondata_test_obj, genedata_test_obj.names, windows_real, temp_dir
+        transposondata_test_obj, genedata_test_obj, windows_real, temp_dir
     )
     with my_merge as active_merge:
         yield active_merge
 
 
-@pytest.mark.skip(reason="TODO")
 @pytest.yield_fixture
-def merge_real_summed(merge_sink_real, overlap_data):
-    # THIS TEST will fail
-    # add the overlap data parameter (active)
-    # call the sum
-    # THIS FIXTURE FAILS WHEN IT IS USED
-    merge_real_summed = merge_sink_real.sum(overlap_data)
+def active_real_overlap_data(genedata_test_obj, transposondata_test_obj, temp_file):
+    """Yield an active OverlapData instance from real data"""
+    my_overlap_data = OverlapData.from_param(
+        genedata_test_obj,
+        transposondata_test_obj.number_elements,
+        windows_real,
+        temp_file,
+    )
+    with my_overlap_data as active_overlap:
+        yield active_overlap
 
 
 @pytest.mark.skip(reason="TODO")
-def test_merge_real_summed(merge_sink_real, different_real_overlap_source):
-    pass
-    # merge_sink_real.sum(different_real_overlap_source, None)
+def test_scott_process_sum(
+    active_merge_sink_real,
+    active_real_overlap_data,
+    genedata_test_obj,
+    list_sum_args_real,
+):
+
+    # This was my attempt at reproducing the sum issue.
+    # But I wasn't able to get the stuff preceeding it to work.
+
+    for sum_args in list_sum_args_real:
+
+        for gene_name in active_real_overlap_data.gene_names:
+            gene_datum = genedata_test_obj.get_gene(gene_name)
+            g_idx = active_merge_sink_real._gene_2_idx[gene_name]
+
+            for te_ in zip(*sum_args.te_idx_name):  # for every superfam | order
+                te_idx, te_name = te_  # the supefamily / order index and string
+
+                for window in sum_args.windows:  # for every window value
+                    w_idx = self._window_2_idx.get(window, None)
+
+                    slice_out = sum_args.slice_out(
+                        window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx
+                    )
+                    slice_in = sum_args.slice_in(w_idx, g_idx)
+                    # find which genes match the superfam | order, and sum those
+                    superfam_or_order_match = sum_args.where(te_name)
+                    slice_in_only_te = (superfam_or_order_match, *slice_in[1:])
+
+                    # BUG below this is what fails
+                    # slice_sum = sum_args.input[slice_in_only_te]
 
 
-def test_slice_left_right(merge_sink_real, different_real_overlap_source):
-    """Can we get a slice?"""
-
-    merge_sink_real.left_right_slice(1, 0, 1)  # left right slice needs to be run on an active merge sink
-
-def test_slice_intra(merge_sink_real, different_real_overlap_source):
-    """Can we get a slice?"""
-
-    merge_sink_real.intra_slice(1, 0, None)  # left right slice needs to be run on an active merge sink
+@pytest.fixture
+def list_sum_args_real(active_merge_sink_real, active_real_overlap_data):
+    sums = active_merge_sink_real._list_sum_args(active_real_overlap_data)
+    return sums
 
 
-TRUE_SUPER_VALS = 1
-windows_real = [500, 1000, 1500, 2000]
+@pytest.mark.skip(reason="TODO")
+def test_merge_real_summed(
+    active_merge_sink_real, active_real_overlap_data, genedata_test_obj
+):
+    """Can MergeData calculate the sum of overlaps"""
+    merge_real_summed = active_merge_sink_real.sum(
+        active_real_overlap_data, genedata_test_obj
+    )
+
+
+def test_slice_left_right(active_merge_sink_real):
+    """Can we get a slice from on active merge sink of real data?"""
+
+    active_merge_sink_real.left_right_slice(1, 0, 1)
+
+
+def test_slice_intra(active_merge_sink_real):
+    """Can we get a slice from on active merge sink of real data?"""
+
+    active_merge_sink_real.intra_slice(1, 0, None)
 
 
 # -----------------------------------------------------
