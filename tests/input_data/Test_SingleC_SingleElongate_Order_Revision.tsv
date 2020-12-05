@@ -1,0 +1,13 @@
+Chromosome	Start	Stop	Strand	Order	SuperFamily	Length
+Fvb1-1	3350.0	3957.0	-	LTR	Copia	608.0
+Fvb1-1	3795.0	4133.0	-	LTR	Gypsy	339.0
+Fvb1-1	4209.0	4761.0	-	LTR	Copia	553.0
+Fvb1-1	4670.0	5229.0	-	LTR	Gypsy	560.0
+Fvb1-1	8459.0	9266.0	-	Completely_Unknown	Completely_Unknown	808.0
+Fvb1-1	8794.0	9370.0	+	Completely_Unknown	Completely_Unknown	577.0
+Fvb1-1	9556.0	9677.0	+	Completely_Unknown	Completely_Unknown	122.0
+Fvb1-1	9675.0	11249.0	-	Completely_Unknown	Completely_Unknown	1575.0
+Fvb1-1	23456.0	24419.0	-	TIR	CACTA	963.0
+Fvb1-1	24415.0	24625.0	-	TIR	Test	211.0
+Fvb1-1	24000.0	24500.0	-	DNA	MULE	501.0
+Fvb1-1	24200.0	24550.0	-	LTR	Copia	351.0
