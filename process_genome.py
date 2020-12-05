@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """
 Calculate transposable element density.
@@ -186,19 +186,33 @@ if __name__ == "__main__":
     logger.info("processed %d overlap jobs" % len(overlap_results))
     logger.info("process overlap... complete")
 
-    logger.info("process merge_data")
+    logger.info("process density")
 
+    # FUTURE move to multiprocessing solution
+    n_genes = 0
     for result in overlap_results:
-        transposons = TransposonData.read(result.te_file)
-        windows = alg_parameters["window_range"]  # TODO check this
-        output_dir = "/tmp"  # TODO get from args?
         gene_data = GeneData.read(result.gene_file)
-        gene_names = gene_data.names  # NB process *all* the genes at once
-        merge_data = MergeData.from_param(transposons, gene_data, windows, output_dir)
-        # need to edit _MergeConfigSink
-        overlap_data = OverlapData.from_file(result.overlap_file)
-        with merge_data as merge_output:
-            with overlap_data as overlap_input:
-                merge_output.sum(overlap_input, gene_data)
+        n_genes += sum(1 for _g in (gene_data.names))
 
-    raise NotImplementedError("need to implement the summation")
+    pbar_genes = tqdm(
+        total=n_genes,
+        desc="genes",
+        position=0,
+        ncols=80,
+    )
+
+    with pbar_genes as pbar:
+        for result in overlap_results:
+            transposons = TransposonData.read(result.te_file)
+            windows = alg_parameters["window_range"]  # TODO check this
+            output_dir = args.output_dir
+            gene_data = GeneData.read(result.gene_file)
+            gene_names = gene_data.names  # NB process *all* the genes at once
+            merge_data = MergeData.from_param(transposons, gene_data, windows, output_dir)
+            overlap_data = OverlapData.from_file(result.overlap_file)
+            with merge_data as merge_output:
+                with overlap_data as overlap_input:
+                    merge_output.sum(overlap_input, gene_data, pbar.update)
+
+    logger.info("process density... complete")
+
