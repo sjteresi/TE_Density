@@ -8,6 +8,7 @@ DEV_CACHE := $(DEV_DATA)/tmp                                # MAGIC default
 DEV_CACHE_OVERLAP := $(addsuffix /overlap,$(DEV_CACHE))     # MAGIC default
 DEV_GENES := $(DEV_DATA)/Camarosa_Genes.gtf
 DEV_TES := $(DEV_DATA)/Camarosa_EDTA_TEs.gff
+DEV_PROD_CONF := $(ROOT_DIR)/config/production_run_config.ini
 DEV_GENOME := "Camarosa"
 
 .PHONY: dev help clean test flake8 lint
@@ -15,6 +16,11 @@ DEV_GENOME := "Camarosa"
 dev: | tags         ## execute with default testing arguments
 	mkdir -p $(DEV_CACHE)
 	$(ROOT_DIR)/process_genome.py $(DEV_GENES) $(DEV_TES) $(DEV_GENOME) -vv
+
+
+production: | tags         ## execute with default production arguments
+	mkdir -p $(DEV_CACHE)
+	$(ROOT_DIR)/process_genome.py $(DEV_GENES) $(DEV_TES) $(DEV_GENOME) -c $(DEV_PROD_CONF) -vv
 
 help:               ## Show this help.
 	fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
