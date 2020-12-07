@@ -2,8 +2,6 @@
 
 """
 Sums and contains OverlapData with respect to the genes / transposons.
-
-
 """
 
 __author__ = "Michael Teresi, Scott Teresi"
@@ -41,8 +39,24 @@ _SummationArgs = namedtuple(
 )
 
 
+#class MergeCommand:  # TODO refactor the list density args into a command
+#
+#    DIV_LEFT = GeneDatum.divisor_left
+#    DIV_INTRA = GeneDatum.divisor_intra
+#    DIV_RIGHT = GeneDatum.divisor_right
+#
+#    def __init__(self, overlap, transposons, gene_idx, window_idx):
+#        """"""
+#
+#    def exec_superfam(self, superfam_idx):
+#        """"""
+#
+#    def exec_order(self, order_idx):
+#        """"""
+
+
 class MergeData:
-    """Contains the sum and density of the overlap wrt superfamilies and orders.
+    """Contains density of superfamilies and orders.
 
     Merges from one or more OverlapData into two sets: superfamilies, orders.
     The result has the following dimensions (not necessarily in this order):
@@ -126,7 +140,7 @@ class MergeData:
 
     @classmethod
     def from_param(
-        cls, transposon_data, gene_data, windows, output_dir, ram=2, logger=None
+        cls, transposon_data, gene_data, windows, output_dir, ram=1, logger=None
     ):
         """Writable sink for a new file.
 
@@ -333,12 +347,11 @@ class MergeData:
         self._validate_windows(overlap)
         self._validate_gene_names(overlap)
 
-        sums_ = self._list_sum_args(overlap)
+        sums_ = self._list_density_args(overlap)
         n_genes = len(overlap.gene_names)
         iter_max = sum(
             len(arg.windows) * n_genes * len(arg.te_idx_name) for arg in sums_
         )
-        # TODO set progress bar values (max?)?
         for args in sums_:
             self._process_sum(overlap, gene_data, args, progress_bar)
 
@@ -347,14 +360,14 @@ class MergeData:
 
         Args:
             overlap (OverlapData): input data
-            gene_data (GeneData): container for the gene data for one
-            chromosome
-            sum_args (_SummationArgs): container for arguments wrt sum
-            progress (tqdm.std.tqdm): progress bar
+            gene_data (GeneData): chromosome conatiner
+            sum_args (_SummationArgs): parameters for calculations
+            progress (callable): command to update progress
         """
 
         # N.B. loop order affects speed wrt order in data set (SEE self._create_sets)
         # N.B. also affected by memory layout, default row major (SEE numpy.array)
+        # (process outer most variable in the inner-most loop)
 
         # FUTURE could use refactoring or a redesign, unfortunately it was rushed
         # the point of the _SummationArgs tuple was to have the same syntax to deal with
@@ -365,30 +378,33 @@ class MergeData:
             gene_datum = gene_data.get_gene(gene_name)
             g_idx = self._gene_2_idx[gene_name]
 
-            for te_ in zip(*sum_args.te_idx_name):  # for every superfam | order
-                te_idx, te_name = te_  # the supefamily / order index and string
+            te_indices, te_names = sum_args.te_idx_name
+            for _i_te, _te_idx_name in enumerate(zip(te_indices, te_names)):
+                te_idx, te_name = _te_idx_name
 
-                for window in sum_args.windows:  # for every window value
+                for window in sum_args.windows:
                     w_idx = self._window_2_idx.get(window, None)
-
+                    slice_in = sum_args.slice_in(w_idx, g_idx)
+                    # for one gene, one window, and all the TEs, we have overlap values
+                    # select only the overlaps for the TEs that match the TE type
+                    superfam_or_order_match = sum_args.where(te_name)
+                    g_slice_in, w_slice_in, te_slice_in = slice_in
+                    filtered_slice_in = (g_slice_in, w_slice_in, superfam_or_order_match)
+                    # sum all the entries for the gene/window at that TE type
+                    overlaps = sum_args.input
+                    overlap_sum = np.sum(overlaps[g_slice_in, w_slice_in, slice(None)],
+                                         where=superfam_or_order_match)
                     slice_out = sum_args.slice_out(
                         window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx
                     )
-                    slice_in = sum_args.slice_in(w_idx, g_idx)
-                    # find which genes match the superfam | order, and sum those
-                    superfam_or_order_match = sum_args.where(te_name)
-                    slice_in_only_te = (superfam_or_order_match, *slice_in[1:])
-
-                    # NOTE this below is what does not work
-                    overlap_sum = np.sum(sum_args.input[slice_in_only_te])
-                    # BUG, produces a ValueError for a index out of range in
-                    # the h5 code.
-
                     divisor = sum_args.divisor_func(gene_datum, window)
                     destination = sum_args.output[slice_out]
                     density = np.divide(overlap_sum, divisor, out=destination)
+            if progress is not None:
+                progress()
 
-    def _list_sum_args(self, overlap):
+    def _list_density_args(self, overlap):
+        """List all arguments for calculating the densities."""
 
         superfam = self._list_sum_input_outputs(
             overlap,
@@ -452,22 +468,11 @@ class MergeData:
             *(partial(np.equal, te_group),) * 3,
         ]  # compare ID to name
 
-        # function returns the divisor (float or int)
-        # Single divisor for single gene at a specific window
         divisor_func = [
             GeneDatum.divisor_left,
             GeneDatum.divisor_intra,
             GeneDatum.divisor_right,
         ]
-
-        # possible solution
-        # store left/center/right functions to find window
-        # zip it up same as below
-        # store in the job instance (the named tuple)
-        # then call the function for norm in _process_sum
-        # finally, do the division after np.sum
-        # store that result in the container instead of the sum
-        # https://en.wikipedia.org/wiki/Pair_programming
 
         summation_args = []
         for i, o, w, te, si, so, wo, df in zip(
@@ -480,8 +485,6 @@ class MergeData:
             where_out,
             divisor_func,
         ):
-            # SCOTT this is likely where you need to add the function
-            # to get the window length
             s = _SummationArgs(
                 input=i,
                 output=o,
@@ -501,7 +504,7 @@ class MergeData:
         The OverlapData cannot be marged into a container created for another chromosome.
         This is because the genes may be different, and more importantly the density is
             not defined between chromosomes as they are different locations.
-        
+
         Args:
             overlap(OverlapData): container for the intermediate overlap values
         """

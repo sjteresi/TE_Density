@@ -203,7 +203,7 @@ def test_scott_process_sum(
 
 @pytest.fixture
 def list_sum_args_real(active_merge_sink_real, active_real_overlap_data):
-    sums = active_merge_sink_real._list_sum_args(active_real_overlap_data)
+    sums = active_merge_sink_real._list_density_args(active_real_overlap_data)
     return sums
 
 
@@ -327,7 +327,7 @@ def test_list_sum_input_outputs_order_no_throw(active_merge_sink, overlap_source
 def test_list_sum_args_no_throw(active_merge_sink, overlap_source):
     """Does it produce the right tuples?"""
 
-    out = active_merge_sink._list_sum_args(overlap_source)
+    out = active_merge_sink._list_density_args(overlap_source)
     for o in out:
         assert isinstance(o, _SummationArgs)
 
