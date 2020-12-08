@@ -1,22 +1,29 @@
 #!/bin/bash -login
 
 #SBATCH -J TE_Density_Teresi
-#SBATCH --time=11:59:00
+#SBATCH --time=120:59:00
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=2
-#SBATCH --mem-per-cpu=8G
+#SBATCH --cpus-per-task=16
+#SBATCH --mem-per-cpu=20G
 #SBATCH -o TE_Density.out
 #SBATCH -e TE_Density.err
 #--------------------------------------------------------
+#$(ROOT_DIR)=/mnt/research/edgerpat_lab/Scotty/TE_Density
+#$(DATA_DIR)=/mnt/research/edgerpat_lab/Scotty/TE_Data
+#$(GENOME)="Camarosa"
+
+
+# Load the Python scripts
+module load GCC/7.3.0-2.30 OpenMPI/3.1.1 Python/3.7.0
 
 # Source the Python packages that are version controlled
 source /mnt/research/edgerpat_lab/Scotty/venvs/TE_Density/bin/activate
 
 # Go to project directory
+#cd $(ROOT_DIR)
 cd /mnt/research/edgerpat_lab/Scotty/TE_Density
 
 # Run the code
-python transposon/density.py \
-/mnt/research/edgerpat_lab/Scotty/Camarosa/Cam_Genes.gtf \
-/mnt/research/edgerpat_lab/Scotty/Camarosa/Camarosa_EDTA_TEs.gff \
-Camarosa
+make clean_overlap
+make production
+# python process_genome.py $(DATA_DIR)/Camarosa_Genes.gtf $(DATA_DIR)/Camarosa_EDTA_TEs.gff $(GENOME) -c $(ROOT_DIR)/config/production_run_config.ini 

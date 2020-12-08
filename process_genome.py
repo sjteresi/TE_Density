@@ -79,6 +79,13 @@ if __name__ == "__main__":
     parser.add_argument("genome_id", type=str, help="name of genome")
 
     parser.add_argument(
+        "--num_threads",
+        "-n",
+        default=None,
+        help="number of threads for code, defaults to machine max",
+    )
+
+    parser.add_argument(
         "--config_file",
         "-c",
         type=str,
@@ -137,6 +144,7 @@ if __name__ == "__main__":
     args.tes_input_file = os.path.abspath(args.tes_input_file)
     args.config_file = os.path.abspath(args.config_file)
     args.output_dir = os.path.abspath(args.output_dir)
+    args.num_threads = int(args.num_threads)
 
     filtered_input_data_loc = os.path.abspath(
         os.path.join(args.output_dir, "filtered_input_data")
@@ -157,7 +165,7 @@ if __name__ == "__main__":
     validate_args(args, logger)
     alg_parameters = parse_algorithm_config(args.config_file)
 
-    set_numexpr_threads()  # prevents an unenecessary log call from numexpr
+    set_numexpr_threads(args.num_threads)  # prevents an unenecessary log call from numexpr
 
     logger.info("preprocessing...")
     preprocessor = PreProcessor(
