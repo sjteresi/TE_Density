@@ -79,6 +79,13 @@ if __name__ == "__main__":
     parser.add_argument("genome_id", type=str, help="name of genome")
 
     parser.add_argument(
+        "--num_threads",
+        "-n",
+        default=None,
+        help="number of threads for code, defaults to machine max",
+    )
+
+    parser.add_argument(
         "--config_file",
         "-c",
         type=str,
@@ -137,6 +144,8 @@ if __name__ == "__main__":
     args.tes_input_file = os.path.abspath(args.tes_input_file)
     args.config_file = os.path.abspath(args.config_file)
     args.output_dir = os.path.abspath(args.output_dir)
+    if args.num_threads is not None:
+        args.num_threads = int(args.num_threads)
 
     filtered_input_data_loc = os.path.abspath(
         os.path.join(args.output_dir, "filtered_input_data")
@@ -157,7 +166,9 @@ if __name__ == "__main__":
     validate_args(args, logger)
     alg_parameters = parse_algorithm_config(args.config_file)
 
-    set_numexpr_threads()  # prevents an unenecessary log call from numexpr
+    set_numexpr_threads(
+        args.num_threads
+    )  # prevents an unenecessary log call from numexpr
 
     logger.info("preprocessing...")
     preprocessor = PreProcessor(
@@ -194,12 +205,7 @@ if __name__ == "__main__":
         gene_data = GeneData.read(result.gene_file)
         n_genes += sum(1 for _g in (gene_data.names))
 
-    pbar_genes = tqdm(
-        total=n_genes,
-        desc="genes",
-        position=0,
-        ncols=80,
-    )
+    pbar_genes = tqdm(total=n_genes, desc="genes", position=0, ncols=80,)
 
     with pbar_genes as pbar:
         for result in overlap_results:
@@ -208,11 +214,12 @@ if __name__ == "__main__":
             output_dir = args.output_dir
             gene_data = GeneData.read(result.gene_file)
             gene_names = gene_data.names  # NB process *all* the genes at once
-            merge_data = MergeData.from_param(transposons, gene_data, windows, output_dir)
+            merge_data = MergeData.from_param(
+                transposons, gene_data, windows, output_dir
+            )
             overlap_data = OverlapData.from_file(result.overlap_file)
             with merge_data as merge_output:
                 with overlap_data as overlap_input:
                     merge_output.sum(overlap_input, gene_data, pbar.update)
 
     logger.info("process density... complete")
-

@@ -20,7 +20,7 @@ dev: | tags         ## execute with default testing arguments
 
 production: | tags         ## execute with default production arguments
 	mkdir -p $(DEV_CACHE)
-	$(ROOT_DIR)/process_genome.py $(DEV_GENES) $(DEV_TES) $(DEV_GENOME) -c $(DEV_PROD_CONF) -vv
+	$(ROOT_DIR)/process_genome.py $(DEV_GENES) $(DEV_TES) $(DEV_GENOME) -c $(DEV_PROD_CONF) -n 16 -vv
 
 help:               ## Show this help.
 	fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
