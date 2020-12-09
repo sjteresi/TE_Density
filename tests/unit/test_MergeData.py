@@ -207,7 +207,7 @@ def list_sum_args_real(active_merge_sink_real, active_real_overlap_data):
     return sums
 
 
-@pytest.mark.skip(reason="TODO")
+# @pytest.mark.skip(reason="TODO")
 def test_merge_real_summed(
     active_merge_sink_real, active_real_overlap_data, genedata_test_obj
 ):
@@ -223,7 +223,7 @@ def test_slice_left_right(active_merge_sink_real):
     active_merge_sink_real.left_right_slice(1, 0, 1)
 
 
-def test_slice_intra(active_merge_sink_real):
+def test_slice_intra_valid(active_merge_sink_real):
     """Can we get a slice from on active merge sink of real data?"""
 
     active_merge_sink_real.intra_slice(1, 0, None)

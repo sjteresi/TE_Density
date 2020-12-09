@@ -39,7 +39,7 @@ _SummationArgs = namedtuple(
 )
 
 
-#class MergeCommand:  # TODO refactor the list density args into a command
+# class MergeCommand:  # TODO refactor the list density args into a command
 #
 #    DIV_LEFT = GeneDatum.divisor_left
 #    DIV_INTRA = GeneDatum.divisor_intra
@@ -388,12 +388,31 @@ class MergeData:
                     # for one gene, one window, and all the TEs, we have overlap values
                     # select only the overlaps for the TEs that match the TE type
                     superfam_or_order_match = sum_args.where(te_name)
+                    if w_idx is None:
+                        print(superfam_or_order_match)
+
+                    # This below will fail on a intronic calculation
+                    # It fails because there is a call above during the
+                    # creation of the slice_in variable to
+                    # OverlapData.intra_slice and that returns a 2 length
+                    # tuple. However I am unsure what I believe should be the
+                    # corresponding value to w_slice_in. If I try to make that
+                    # variable None, things crash down the line
                     g_slice_in, w_slice_in, te_slice_in = slice_in
-                    filtered_slice_in = (g_slice_in, w_slice_in, superfam_or_order_match)
+
+                    # NOTE not used at all
+                    filtered_slice_in = (
+                        g_slice_in,
+                        w_slice_in,
+                        superfam_or_order_match,
+                    )
+
                     # sum all the entries for the gene/window at that TE type
                     overlaps = sum_args.input
-                    overlap_sum = np.sum(overlaps[g_slice_in, w_slice_in, slice(None)],
-                                         where=superfam_or_order_match)
+                    overlap_sum = np.sum(
+                        overlaps[g_slice_in, w_slice_in, slice(None)],
+                        where=superfam_or_order_match,
+                    )
                     slice_out = sum_args.slice_out(
                         window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx
                     )
