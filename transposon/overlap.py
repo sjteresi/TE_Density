@@ -25,8 +25,9 @@ _OverlapConfigSink = namedtuple(
 )
 _OverlapConfigSource = namedtuple("_OverlapConfigSource", ["filepath"])
 OverlapResult = namedtuple(
-    "OverlapResult", ["genes_processed", "exception", "overlap_file", "gene_file", "te_file"]
-) # TODO add the te_filepath to this.
+    "OverlapResult",
+    ["genes_processed", "exception", "overlap_file", "gene_file", "te_file"],
+)  # TODO add the te_filepath to this.
 OverlapResult.__new__.__defaults__ = (
     0,
     None,
@@ -117,9 +118,9 @@ class OverlapData:
         Use the slice methods to provide slices for the array public instance variables.
     """
 
-    DTYPE = np.float32   # MAGIC NUMBER depends on your data
+    DTYPE = np.float32  # MAGIC NUMBER depends on your data
     COMPRESSION = "lzf"  # MAGIC NUMBER experimental, fast w/ decent compression ratio
-    EXT = "h5"           # MAGIC NUMBER h5 extension for h5 files
+    EXT = "h5"  # MAGIC NUMBER h5 extension for h5 files
     _LEFT = Overlap.Direction.LEFT.name
     _RIGHT = Overlap.Direction.RIGHT.name
     _INTRA = Overlap.Direction.INTRA.name
@@ -164,9 +165,7 @@ class OverlapData:
         return self._h5_file.filename if self._h5_file is not None else None
 
     @classmethod
-    def from_param(
-        cls, genes, n_transposons, windows, filepath, ram=1.2, logger=None
-    ):
+    def from_param(cls, genes, n_transposons, windows, filepath, ram=1.2, logger=None):
         """Writable sink for a new file.
 
         Args:
@@ -184,9 +183,11 @@ class OverlapData:
 
         chromosome = genes.chromosome_unique_id
         _prefix, ext = os.path.splitext(filepath)
-        if ext != "."+cls.EXT:
-            raise ValueError("output filepath extension must be '%s', but got %s"
-                             % (cls.EXT, filepath))
+        if ext != "." + cls.EXT:
+            raise ValueError(
+                "output filepath extension must be '%s', but got %s"
+                % (cls.EXT, filepath)
+            )
 
         config = _OverlapConfigSink(
             genes=genes,
@@ -212,7 +213,7 @@ class OverlapData:
     def left_right_slice(window_idx, gene_idx):
         """Slice for left or right overlap for one window / gene."""
 
-        return (gene_idx, window_idx, slice(None))
+        return (gene_idx, slice(None), window_idx)
 
     @staticmethod
     def intra_slice(gene_idx):
@@ -505,4 +506,6 @@ class OverlapWorker:
         self._window_2_idx = self._map_windows_2_indices(self._windows)
 
         n_te = transposons.number_elements
-        self._data = OverlapData.from_param(genes, n_te, self._windows, self.output_filepath)
+        self._data = OverlapData.from_param(
+            genes, n_te, self._windows, self.output_filepath
+        )

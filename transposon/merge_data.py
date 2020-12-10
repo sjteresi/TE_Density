@@ -398,7 +398,7 @@ class MergeData:
                     # tuple. However I am unsure what I believe should be the
                     # corresponding value to w_slice_in. If I try to make that
                     # variable None, things crash down the line
-                    g_slice_in, w_slice_in, te_slice_in = slice_in
+                    g_slice_in, te_slice_in, *w_slice_in = slice_in
 
                     # NOTE not used at all
                     filtered_slice_in = (
