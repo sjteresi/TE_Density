@@ -113,7 +113,7 @@ class Revise_Anno:
         nameless_transposon_data = self.transposon_data.copy(deep=True)
         nameless_transposon_data["Order"] = "Total_TE_Density"
         nameless_transposon_data["SuperFamily"] = "Total_TE_Density"
-        self.iterate_call_merge(nameless_transposon_data, "Nameless")
+        self.iterate_call_merge(nameless_transposon_data, "Nameless", "Nameless")
         self._write(self.updated_te_annotation, self.nameless_cache_loc)
 
     def _merge_all(self):
@@ -192,7 +192,9 @@ class Revise_Anno:
         self.seed_frame = None
         self.search_frame = None
 
-    def iterate_call_merge(self, modified_transposon_data, te_type_to_split):
+    def iterate_call_merge(
+        self, modified_transposon_data, te_type_to_split, *pbar_split
+    ):
         """
         This is an entry point, define self variables and initiate the search
         space functions.
@@ -203,15 +205,19 @@ class Revise_Anno:
 
         te_type_to_split (str): The TE identity to perform the merge on.
         """
+        if pbar_split:
+            pbar_split, *extra = pbar_split
+        else:
+            pbar_split = te_type_to_split
         with tqdm(
             total=len(Revise_Anno.chromosome_groups(modified_transposon_data)),
             ncols=88,
-            desc="revising a chromosome for " + te_type_to_split,
         ) as pbar:
             if te_type_to_split == "Nameless":
                 te_type_to_split = "Order"  # Can be Order or Superfamily,
                 # doesn't matter, just wanted to have nameless for the tqdm
-                # object above.
+                # object below. Needs to be order or super because of splitting
+                # and the data columns inherent to the data
             for chromosome_of_data in Revise_Anno.chromosome_groups(
                 modified_transposon_data
             ):
@@ -219,7 +225,7 @@ class Revise_Anno:
                 for te_frame in self.split(chromosome_of_data, te_type_to_split):
                     chromosome = te_frame.Chromosome.unique()[0]  # Magic number
                     pbar.set_description(
-                        "revising '%s' for '%s'" % (te_type_to_split, chromosome)
+                        "revising '%s' for '%s'" % (pbar_split, chromosome)
                     )
                     pbar.refresh()
                     self.current_te_identity = te_frame[te_type_to_split].unique()[

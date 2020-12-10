@@ -80,6 +80,18 @@ TRUE_SingleC_MultiE_ORDER = [1880, 1219, 2209, 301, 212, 150, 94, 2452, 2611]
 TRUE_SingleC_ConcOverlap_ORDER = [608, 792, 201]
 
 
+TRUE_SingleC_SingleE_NAMELESS = [
+    784,
+    1021,
+    912,
+    1694,
+    1170,
+    551,
+]
+TRUE_SingleC_MultiE_NAMELESS = [1880, 1219, 2209, 212, 150, 2545, 2611]
+TRUE_SingleC_ConcOverlap_NAMELESS = [608, 792, 201]
+
+
 # -------------------------------------------------------------
 
 
@@ -126,6 +138,14 @@ def order_name():
     return "test_order_set"
 
 
+@pytest.fixture
+def nameless_name():
+    """
+    Dummy name used for Revise_Anno constructor
+    """
+    return "test_nameless_set"
+
+
 # Supers
 SingleC_SingleElongate_Super = (
     "tests/input_data/Test_SingleC_SingleElongate_Superfam_Revision.tsv"
@@ -145,6 +165,16 @@ SingleC_MultiElongate_Order = (
 )
 SingleC_Conc_Order = (
     "tests/input_data/Test_SingleC_ConcurrentOverlap_Order_Revision.tsv"
+)
+# Nameless
+SingleC_SingleElongate_Nameless = (
+    "tests/input_data/Test_SingleC_SingleElongate_Nameless_Revision.tsv"
+)
+SingleC_MultiElongate_Nameless = (
+    "tests/input_data/Test_SingleC_MultiElongate_Nameless_Revision.tsv"
+)
+SingleC_Conc_Nameless = (
+    "tests/input_data/Test_SingleC_ConcurrentOverlap_Nameless_Revision.tsv"
 )
 
 
@@ -229,14 +259,54 @@ def test_order(
     true_values,
     output_filenames,
     h5_cache_loc,
-    superfam_name,
+    order_name,
     revised_te_annotation_loc,
 ):
     """Create order revisions"""
-    revise_anno_obj = Revise_Anno(
-        TEData_TestObj.data_frame, h5_cache_loc, superfam_name
-    )
+    revise_anno_obj = Revise_Anno(TEData_TestObj.data_frame, h5_cache_loc, order_name)
     revise_anno_obj.create_order()
+    observed = revise_anno_obj.updated_te_annotation.Length.to_numpy(copy=False)
+    revise_anno_obj.save_for_dev(
+        revise_anno_obj.updated_te_annotation,
+        os.path.join(revised_te_annotation_loc, output_filenames),
+    )
+    assert np.array_equal(observed, true_values)
+
+
+@pytest.mark.parametrize(
+    "TEData_TestObj, true_values, output_filenames",
+    [
+        (
+            SingleC_SingleElongate_Nameless,
+            TRUE_SingleC_SingleE_NAMELESS,
+            "SingleC_SingleE_Nameless.tsv",
+        ),
+        (
+            SingleC_MultiElongate_Nameless,
+            TRUE_SingleC_MultiE_NAMELESS,
+            "SingleC_MultiE_Nameless.tsv",
+        ),
+        (
+            SingleC_Conc_Nameless,
+            TRUE_SingleC_ConcOverlap_NAMELESS,
+            "SingleC_Conc_Nameless.tsv",
+        ),
+    ],
+    indirect=["TEData_TestObj"],
+)
+def test_nameless(
+    TEData_TestObj,
+    true_values,
+    output_filenames,
+    h5_cache_loc,
+    nameless_name,
+    revised_te_annotation_loc,
+):
+    """Create nameless revisions"""
+    revise_anno_obj = Revise_Anno(
+        TEData_TestObj.data_frame, h5_cache_loc, nameless_name
+    )
+    revise_anno_obj.create_nameless()
     observed = revise_anno_obj.updated_te_annotation.Length.to_numpy(copy=False)
     revise_anno_obj.save_for_dev(
         revise_anno_obj.updated_te_annotation,
