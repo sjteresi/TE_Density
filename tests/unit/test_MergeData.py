@@ -4,7 +4,7 @@
 Unit test MergeData.
 """
 
-__author__ = "Michael Teresi"
+__author__ = "Michael Teresi, Scott Teresi"
 
 import logging
 import os
@@ -166,40 +166,6 @@ def active_real_overlap_data(genedata_test_obj, transposondata_test_obj, temp_fi
         yield active_overlap
 
 
-@pytest.mark.skip(reason="TODO")
-def test_scott_process_sum(
-    active_merge_sink_real,
-    active_real_overlap_data,
-    genedata_test_obj,
-    list_sum_args_real,
-):
-
-    # This was my attempt at reproducing the sum issue.
-    # But I wasn't able to get the stuff preceeding it to work.
-
-    for sum_args in list_sum_args_real:
-
-        for gene_name in active_real_overlap_data.gene_names:
-            gene_datum = genedata_test_obj.get_gene(gene_name)
-            g_idx = active_merge_sink_real._gene_2_idx[gene_name]
-
-            for te_ in zip(*sum_args.te_idx_name):  # for every superfam | order
-                te_idx, te_name = te_  # the supefamily / order index and string
-
-                for window in sum_args.windows:  # for every window value
-                    w_idx = self._window_2_idx.get(window, None)
-
-                    slice_out = sum_args.slice_out(
-                        window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx
-                    )
-                    slice_in = sum_args.slice_in(w_idx, g_idx)
-                    # find which genes match the superfam | order, and sum those
-                    superfam_or_order_match = sum_args.where(te_name)
-                    slice_in_only_te = (superfam_or_order_match, *slice_in[1:])
-
-                    # BUG below this is what fails
-                    # slice_sum = sum_args.input[slice_in_only_te]
-
 
 @pytest.fixture
 def list_sum_args_real(active_merge_sink_real, active_real_overlap_data):
@@ -207,7 +173,7 @@ def list_sum_args_real(active_merge_sink_real, active_real_overlap_data):
     return sums
 
 
-@pytest.mark.skip(reason="TODO")
+#@pytest.mark.skip(reason="TODO")
 def test_merge_real_summed(
     active_merge_sink_real, active_real_overlap_data, genedata_test_obj
 ):
