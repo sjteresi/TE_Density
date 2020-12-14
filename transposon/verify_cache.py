@@ -244,7 +244,7 @@ def revise_annotation(
         revised_TE_Data.create_superfam()
         revised_TE_Data.create_order()
         revised_TE_Data.create_nameless()
-        logger.info("write revised TE: " % revised_transposons_loc)
+        logger.info("write revised TE: %s" % revised_transposons_loc)
         revised_TE_Data.save_updated_te_annotation(revised_transposons_loc)
         TE_Data = revised_TE_Data.whole_te_annotation
     return TE_Data
