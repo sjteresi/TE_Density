@@ -62,6 +62,86 @@ def parse_algorithm_config(config_path):
     return alg_param
 
 
+# FUTURE move to class
+from collections import namedtuple
+from functools import partial
+from multiprocessing import Pool, Manager
+from threading import Thread, Event
+from queue import Empty
+
+
+MergeJob = namedtuple("MergeJob",
+    ["overlap_file",
+     "te_file",
+     "gene_file",
+     "windows",
+     "output_dir",
+     "progress_bar"])
+
+
+def calc_merge(job):
+    """Target for a process to calculate density given a job."""
+
+    transposons = TransposonData.read(job.te_file)
+    windows = list(job.windows)
+    output_dir = str(job.output_dir)
+    gene_data = GeneData.read(job.gene_file)
+    gene_names = gene_data.names  # NB process *all* the genes at once
+    merge_data = MergeData.from_param(
+        transposons, gene_data, windows, output_dir
+    )
+    overlap_data = OverlapData.from_file(job.overlap_file)
+    with merge_data as merge_output:
+        with overlap_data as overlap_input:
+            merge_output.sum(overlap_input, gene_data, job.progress_bar)
+
+
+class MergeProgress:
+    """Show progress of the merge."""
+
+    def __init__(self, queue, progress):
+
+        self.stop_event = Event()
+        self.queue = queue
+        self.progress = progress
+        self._thread = None
+
+    def __enter__(self):
+
+        self.stop_event.clear()
+        if self._thread is not None:
+            self._thread.join()
+        self._thread = Thread(target=self.exec)
+        self._thread.start()
+        return self
+
+    def __exit__(self, type, val, trace):
+
+        self.stop_event.set()
+
+    def exec(self):
+        while not self.stop_event.is_set():
+            try:
+                result = self.queue.get(timeout=0.2)
+            except Empty:
+                continue
+
+            self.progress.update()
+
+
+def result_to_job(result, windows, output_dir, pbar_callback):
+    """Convert an overlap result to a merge job."""
+    job = MergeJob(
+            str(result.overlap_file),
+            str(result.te_file),
+            str(result.gene_file),
+            list(windows),
+            str(output_dir),
+            pbar_callback)
+    return job
+
+
+
 if __name__ == "__main__":
     """Command line interface to calculate density."""
 
@@ -198,28 +278,19 @@ if __name__ == "__main__":
     logger.info("process overlap... complete")
 
     logger.info("process density")
-
-    # FUTURE move to multiprocessing solution
     n_genes = 0
     for result in overlap_results:
         gene_data = GeneData.read(result.gene_file)
         n_genes += sum(1 for _g in (gene_data.names))
-
     pbar_genes = tqdm(total=n_genes, desc="genes", position=0, ncols=80,)
 
-    with pbar_genes as pbar:
-        for result in overlap_results:
-            transposons = TransposonData.read(result.te_file)
-            windows = alg_parameters["window_range"]  # TODO check this
-            output_dir = args.output_dir
-            gene_data = GeneData.read(result.gene_file)
-            gene_names = gene_data.names  # NB process *all* the genes at once
-            merge_data = MergeData.from_param(
-                transposons, gene_data, windows, output_dir
-            )
-            overlap_data = OverlapData.from_file(result.overlap_file)
-            with merge_data as merge_output:
-                with overlap_data as overlap_input:
-                    merge_output.sum(overlap_input, gene_data, pbar.update)
+    win = alg_parameters["window_range"]
+    pbar_update_mgr = Manager()
+    pbar_update_queue = pbar_update_mgr.Queue()
+    pbar_update = partial(pbar_update_queue.put_nowait, None)
+    jobs = [result_to_job(res, win, args.output_dir, pbar_update) for res in overlap_results]
+    with MergeProgress(pbar_update_queue, pbar_genes) as my_progress:
+        with Pool(processes=args.num_threads) as my_pool:
+            my_pool.map(calc_merge, jobs)
 
     logger.info("process density... complete")
