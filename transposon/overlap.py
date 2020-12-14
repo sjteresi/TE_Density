@@ -222,8 +222,9 @@ class OverlapData:
             gene_idx(int): zero based index for the gene
         """
 
-        # TODO really should just have one window so the interfaces are consistent...
-        return (gene_idx, slice(None))
+        # MAGIC intra is not calculcated wrt window
+        # so use 0 to be consistent
+        return (gene_idx, 0, slice(None))
 
     def start(self):
         """Obtain the resource by opening the file."""
@@ -288,7 +289,9 @@ class OverlapData:
         chunks = tuple((gene_chunks, n_win, n_tes))  # MAGIC NUMBER experimental
         self.left = create_set(self._LEFT, left_right_shape, chunks=chunks)
         self.right = create_set(self._RIGHT, left_right_shape, chunks=chunks)
-        intra_shape = (n_genes, n_tes)
+        # MAGIC intra is not calculated wrt window
+        # but keep the same dimensions for consistency
+        intra_shape = (n_genes, 1, n_tes)
         self.intra = create_set(self._INTRA, intra_shape)
 
     def _open_dispatcher(self):
