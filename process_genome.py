@@ -86,7 +86,10 @@ def calc_merge(job):
     windows = list(job.windows)
     output_dir = str(job.output_dir)
     gene_data = GeneData.read(job.gene_file)
-    gene_names = gene_data.names  # NB process *all* the genes at once
+    logging.warning("processing a subset of genes for testing!")
+    # NB process a subset for testing
+    subset = min(100, sum(1 for i in gene_data.names))
+    gene_names = list(gene_data.names)[:subset]
     merge_data = MergeData.from_param(
         transposons, gene_data, windows, output_dir
     )
