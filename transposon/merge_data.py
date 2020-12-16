@@ -400,8 +400,8 @@ class MergeData:
                     divisor = sum_args.divisor_func(gene_datum, window)
                     destination = sum_args.output[slice_out]
                     density = np.divide(overlap_sum, divisor, out=destination)
-            if progress is not None:
-                progress()
+        if progress is not None:
+            progress()
 
     def _list_density_args(self, overlap):
         """List all arguments for calculating the densities."""
