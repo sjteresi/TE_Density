@@ -11,9 +11,12 @@ humanfriendly==4.18
 importlib-metadata==0.19
 isort==4.3.21
 lazy-object-proxy==1.4.3
+llvmlite==0.35.0
 mccabe==0.6.1
 more-itertools==7.2.0
 mypy-extensions==0.4.3
+:x
+:x
 numexpr==2.7.1
 numpy==1.17.0
 packaging==19.1
