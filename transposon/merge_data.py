@@ -286,6 +286,8 @@ class MergeData:
         transposon.write_vlen_str_h5py(
             self._h5_file, self.chromosome_id, self._CHROME_ID
         )
+        transposon.write_vlen_str_h5py(self._h5_file, self.order_names, self._ORDER_NAMES)
+        transposon.write_vlen_str_h5py(self._h5_file, self.superfamily_names, self._SUPERFAMILY_NAMES)
         self._window_2_idx = {w: i for i, w in enumerate(self.windows)}
         self._gene_2_idx = {g: i for i, g in enumerate(self.gene_names)}
 
