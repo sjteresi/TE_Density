@@ -82,6 +82,18 @@ def temp_file(temp_dir):
     with file as temp:
         yield temp.name
 
+@pytest.yield_fixture
+def perm_file():
+    """Permanent file."""
+    with open("tests/output_data/MergeData.h5") as my_file:
+        yield my_file
+
+#@pytest.yield_fixture
+#def perm_dir():
+    #"""Permanent directory."""
+    #with "tests/output_data/" as dir:
+        #yield dir
+
 
 @pytest.yield_fixture
 def config_sink(te_data, gene_data, temp_file):
@@ -114,10 +126,52 @@ windows_real = [500, 1000, 1500, 2000]  # NOTE used for the
 # MergeData.from_param parts
 
 
+#@pytest.fixture
+#def genedata_test_obj():
+#    """Create test object for GeneData information, reads from file"""
+#    gene_file = "tests/input_data/Test_Genes_MergeData.tsv"
+#    gene_pandas = pd.read_csv(
+#        gene_file,
+#        header="infer",
+#        sep="\t",
+#        dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
+#        index_col="Gene_Name",
+#    )
+#    sample_genome = GeneData(gene_pandas, "Mock_Camarosa")
+#    return sample_genome
+
+
+#@pytest.fixture
+#def transposondata_test_obj():
+#    """Create test object for TransposonData information, reads from file"""
+#    te_file = "tests/input_data/Test_TEs_MergeData.tsv"
+#    te_pandas = pd.read_csv(
+#        te_file,
+#        header="infer",
+#        sep="\t",
+#        dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
+#    )
+#    sample_genome = TransposonData(te_pandas, "Mock_Camarosa")
+#    return sample_genome
+
+
+@pytest.fixture
+def transposondata_test_obj():
+    """Create test object for TransposonData information, reads from file"""
+    te_file = "tests/input_data/Test_SmallSet_TEs_MergeData.tsv"
+    te_pandas = pd.read_csv(
+        te_file,
+        header="infer",
+        sep="\t",
+        dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
+    )
+    sample_genome = TransposonData(te_pandas, "Mock_Camarosa")
+    return sample_genome
+
 @pytest.fixture
 def genedata_test_obj():
     """Create test object for GeneData information, reads from file"""
-    gene_file = "tests/input_data/Test_Genes_MergeData.tsv"
+    gene_file = "tests/input_data/Test_SmallSet_Genes_MergeData.tsv"
     gene_pandas = pd.read_csv(
         gene_file,
         header="infer",
@@ -126,20 +180,6 @@ def genedata_test_obj():
         index_col="Gene_Name",
     )
     sample_genome = GeneData(gene_pandas, "Mock_Camarosa")
-    return sample_genome
-
-
-@pytest.fixture
-def transposondata_test_obj():
-    """Create test object for TransposonData information, reads from file"""
-    te_file = "tests/input_data/Test_TEs_MergeData.tsv"
-    te_pandas = pd.read_csv(
-        te_file,
-        header="infer",
-        sep="\t",
-        dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
-    )
-    sample_genome = TransposonData(te_pandas, "Mock_Camarosa")
     return sample_genome
 
 
@@ -173,7 +213,6 @@ def list_sum_args_real(active_merge_sink_real, active_real_overlap_data):
     return sums
 
 
-#@pytest.mark.skip(reason="TODO")
 def test_merge_real_summed(
     active_merge_sink_real, active_real_overlap_data, genedata_test_obj
 ):

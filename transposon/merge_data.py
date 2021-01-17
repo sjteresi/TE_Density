@@ -397,8 +397,21 @@ class MergeData:
                     slice_out = sum_args.slice_out(
                         window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx
                     )
+                    #print(slice_out)
                     divisor = sum_args.divisor_func(gene_datum, window)
                     destination = sum_args.output[slice_out]
+                    #print(destination)
+                    #print(destination.shape)
+                    #print(type(destination))
+                    print()
+                    print(gene_datum)
+                    print(window)
+                    print(overlaps[g_slice_in, w_slice_in, slice(None)])
+                    print(overlap_sum)
+                    #print(type(overlap_sum))
+                    #print(divisor)
+                    #print(type(divisor))
+                    #print(np.divide(overlap_sum, divisor))
                     density = np.divide(overlap_sum, divisor, out=destination)
         if progress is not None:
             progress()
