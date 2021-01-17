@@ -406,6 +406,7 @@ class MergeData:
                     print()
                     print(gene_datum)
                     print(window)
+                    print(divisor)
                     print(overlaps[g_slice_in, w_slice_in, slice(None)])
                     print(overlap_sum)
                     #print(type(overlap_sum))

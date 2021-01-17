@@ -1,0 +1,5 @@
+Gene_Name	Chromosome	Feature	Start	Stop	Strand	Length
+gene_1	Fvb1-1	gene	2000.0	2500.0	+	501.0
+gene_2	Fvb1-1	gene	3000.0	3300.0	+	301.0
+gene_3	Fvb1-1	gene	3500.0	4000.0	+	501.0
+gene_4	Fvb1-1	gene	7000.0	8000.0	+	1001.0
