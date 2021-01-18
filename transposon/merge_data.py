@@ -327,13 +327,13 @@ class MergeData:
         s_left = create_set(self._S_LEFT, (n_sfams, *lr_shape))
         s_intra = create_set(self._S_INTRA, (n_sfams, *i_shape))
         s_right = create_set(self._S_RIGHT, (n_sfams, *lr_shape))
-        self.superfamily = _Density(left=s_left[:], intra=s_intra[:], right=s_right[:])
+        self.superfamily = _Density(left=s_left, intra=s_intra, right=s_right)
 
         n_orders = len(self.order_names)
         o_left = create_set(self._O_LEFT, (n_orders, *lr_shape))
         o_intra = create_set(self._O_INTRA, (n_orders, *i_shape))
         o_right = create_set(self._O_RIGHT, (n_orders, *lr_shape))
-        self.order = _Density(left=o_left[:], intra=o_intra[:], right=o_right[:])
+        self.order = _Density(left=o_left, intra=o_intra, right=o_right)
 
     def sum(self, overlap, gene_data, progress_bar=None):
         """Sum across the superfamily / order dimension.
@@ -400,8 +400,10 @@ class MergeData:
                         window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx
                     )
                     divisor = sum_args.divisor_func(gene_datum, window)
-                    destination = sum_args.output[slice_out]
-                    density = np.divide(overlap_sum, divisor, out=destination)
+                    # NOTE np.divide w/ 'out' flag didn't work?
+                    # NOTE must assign to the slice, rather than storing a reference to array
+                    # and then assigning to it
+                    sum_args.output[slice_out] = np.divide(overlap_sum, divisor)
         if progress is not None:
             progress()
 
