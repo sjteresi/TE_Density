@@ -26,6 +26,7 @@ from transposon.preprocess import PreProcessor
 from transposon.overlap_manager import OverlapManager
 from transposon.overlap import OverlapData
 from transposon.merge_data import MergeData
+from transposon.merge_data import MergeProgressUpdate
 
 
 def validate_args(args, logger):
@@ -86,10 +87,6 @@ def calc_merge(job):
     windows = list(job.windows)
     output_dir = str(job.output_dir)
     gene_data = GeneData.read(job.gene_file)
-    logging.warning("processing a subset of genes for testing!")
-    # NB process a subset for testing
-    subset = min(100, sum(1 for i in gene_data.names))
-    gene_names = list(gene_data.names)[:subset]
     merge_data = MergeData.from_param(
         transposons, gene_data, windows, output_dir
     )
@@ -102,14 +99,21 @@ def calc_merge(job):
 class MergeProgress:
     """Show progress of the merge."""
 
-    def __init__(self, queue, progress):
+    def __init__(self, queue, gene_progress):
+        """Initialize.
+
+        Args:
+            queue(Queue): queue of progress updates
+            progress(tqdm): progress bar
+        """
 
         self.stop_event = Event()
         self.queue = queue
-        self.progress = progress
+        self.gene_progress = gene_progress
         self._thread = None
 
     def __enter__(self):
+        """Context manager begin."""
 
         self.stop_event.clear()
         if self._thread is not None:
@@ -119,17 +123,21 @@ class MergeProgress:
         return self
 
     def __exit__(self, type, val, trace):
+        """Context manager end."""
 
         self.stop_event.set()
 
     def exec(self):
+        """Process updates."""
+
         while not self.stop_event.is_set():
             try:
                 result = self.queue.get(timeout=0.2)
             except Empty:
                 continue
 
-            self.progress.update()
+            if result == MergeProgressUpdate.GENE:
+                self.gene_progress.update()
 
 
 def result_to_job(result, windows, output_dir, pbar_callback):
@@ -280,15 +288,18 @@ if __name__ == "__main__":
 
     logger.info("process density")
     n_genes = 0
+    n_tes = 0
     for result in overlap_results:
         gene_data = GeneData.read(result.gene_file)
         n_genes += sum(1 for _g in (gene_data.names))
+        te_data = TransposonData.read(result.te_file)
+        n_tes += te_data.number_elements
     pbar_genes = tqdm(total=n_genes, desc="genes", position=0, ncols=80,)
 
     win = alg_parameters["window_range"]
     pbar_update_mgr = Manager()
     pbar_update_queue = pbar_update_mgr.Queue()
-    pbar_update = partial(pbar_update_queue.put_nowait, None)
+    pbar_update = partial(pbar_update_queue.put_nowait)
     jobs = [result_to_job(res, win, args.output_dir, pbar_update) for res in overlap_results]
     with MergeProgress(pbar_update_queue, pbar_genes) as my_progress:
         with Pool(processes=args.num_threads) as my_pool:

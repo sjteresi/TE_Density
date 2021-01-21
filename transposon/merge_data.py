@@ -10,6 +10,7 @@ from collections import namedtuple
 import logging
 import os
 from functools import partial
+from enum import IntEnum
 
 import h5py
 import numpy as np
@@ -37,6 +38,12 @@ _SummationArgs = namedtuple(
         "divisor_func",
     ],
 )
+
+class MergeProgressUpdate(IntEnum):
+    """Temporary identifier to coordinate progress updates."""
+
+    GENE = 0
+    TRANSPOSON = 1
 
 
 #class MergeCommand:  # TODO refactor the list density args into a command
@@ -354,16 +361,15 @@ class MergeData:
         iter_max = sum(
             len(arg.windows) * n_genes * len(arg.te_idx_name) for arg in sums_
         )
-        for args in sums_:
-            self._process_sum(overlap, gene_data, args, progress_bar)
+        self._process_sum(overlap, gene_data, sums_, progress_bar)
 
-    def _process_sum(self, overlap, gene_data, sum_args, progress=None):
+    def _process_sum(self, overlap, gene_data, calculations, progress=None):
         """Calculate the sum for one (left | intra | right) & (superfamily | order).
 
         Args:
             overlap (OverlapData): input data
             gene_data (GeneData): chromosome conatiner
-            sum_args (_SummationArgs): parameters for calculations
+            calculations (list(_SummationArgs)): parameters for calculations
             progress (callable): command to update progress
         """
 
@@ -376,36 +382,51 @@ class MergeData:
         # a) left / intra / right, and, b) superfamily / order
         # although there are so few intra calcs it might be easier to do that separately
 
+        # TODO check the order of these loops compared to how it is stored (e.g. row/col major)
+        gene_datum = None
+        w_idx = None
+        overlap_sum = None
+        divisor = None
+        te_indices = None
+        te_names = None
+        superfam_or_order_match = None
+        divisor_func = None
+
         for gene_name in overlap.gene_names:
-            gene_datum = gene_data.get_gene(gene_name)
-            g_idx = self._gene_2_idx[gene_name]
+            gene_datum = gene_data.get_gene(gene_name)  # TODO don't need gene datum, just divisor
+            g_idx = self._gene_2_idx[gene_name]  # TODO don't need gene_name, just index
 
-            te_indices, te_names = sum_args.te_idx_name
-            for _i_te, _te_idx_name in enumerate(zip(te_indices, te_names)):
-                te_idx, te_name = _te_idx_name
-
-                for window in sum_args.windows:
-                    w_idx = self._window_2_idx.get(window, None)
-                    slice_in = sum_args.slice_in(w_idx, g_idx)
-                    # for one gene, one window, and all the TEs, we have overlap values
-                    # select only the overlaps for the TEs that match the TE type
+            for sum_args in calculations:
+                te_indices, te_names = sum_args.te_idx_name
+                divisor_func = sum_args.divisor_func
+                overlaps = sum_args.input
+                slice_out_func = sum_args.slice_out
+                slice_in_func = sum_args.slice_in
+                np_sum = partial(np.sum)
+                np_div = partial(np.divide)
+                for _i_te, _te_idx_name in enumerate(zip(te_indices, te_names)):
+                    te_idx, te_name = _te_idx_name
                     superfam_or_order_match = sum_args.where(te_name)
-                    g_slice_in, w_slice_in, te_slice_in = slice_in
-                    filtered_slice_in = (g_slice_in, w_slice_in, superfam_or_order_match)
-                    # sum all the entries for the gene/window at that TE type
-                    overlaps = sum_args.input
-                    overlap_sum = np.sum(overlaps[g_slice_in, w_slice_in, slice(None)],
-                                         where=superfam_or_order_match)
-                    slice_out = sum_args.slice_out(
-                        window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx
-                    )
-                    divisor = sum_args.divisor_func(gene_datum, window)
-                    # NOTE np.divide w/ 'out' flag didn't work?
-                    # NOTE must assign to the slice, rather than storing a reference to array
-                    # and then assigning to it
-                    sum_args.output[slice_out] = np.divide(overlap_sum, divisor)
+                    for window in sum_args.windows:
+                        w_idx = self._window_2_idx.get(window, None)
+                        slice_in = slice_in_func(w_idx, g_idx)
+                        # for one gene, one window, and all the TEs, we have overlap values
+                        # select only the overlaps for the TEs that match the TE type
+                        g_slice_in, w_slice_in, te_slice_in = slice_in
+                        filtered_slice_in = (g_slice_in, w_slice_in, superfam_or_order_match)
+                        # sum all the entries for the gene/window at that TE type
+                        overlap_sum = np_sum(overlaps[g_slice_in, w_slice_in, slice(None)],
+                                             where=superfam_or_order_match)
+                        slice_out = slice_out_func(
+                            window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx
+                        )
+                        divisor = divisor_func(gene_datum, window)
+                        # NOTE np.divide w/ 'out' flag didn't work?
+                        # NOTE must assign to the slice, rather than storing a reference to array
+                        # and then assigning to it
+                        sum_args.output[slice_out] = np_div(overlap_sum, divisor)
         if progress is not None:
-            progress()
+            progress(MergeProgressUpdate.GENE)
 
     def _list_density_args(self, overlap):
         """List all arguments for calculating the densities."""
