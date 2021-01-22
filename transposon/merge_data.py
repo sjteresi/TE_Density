@@ -376,6 +376,7 @@ class MergeData:
         # a) left / intra / right, and, b) superfamily / order
         # although there are so few intra calcs it might be easier to do that separately
 
+        overlaps = sum_args.input[()]
         for gene_name in overlap.gene_names:
             gene_datum = gene_data.get_gene(gene_name)
             g_idx = self._gene_2_idx[gene_name]
@@ -393,7 +394,6 @@ class MergeData:
                     g_slice_in, w_slice_in, te_slice_in = slice_in
                     filtered_slice_in = (g_slice_in, w_slice_in, superfam_or_order_match)
                     # sum all the entries for the gene/window at that TE type
-                    overlaps = sum_args.input
                     overlap_sum = np.sum(overlaps[g_slice_in, w_slice_in, slice(None)],
                                          where=superfam_or_order_match)
                     slice_out = sum_args.slice_out(

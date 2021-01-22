@@ -8,7 +8,7 @@ __author__ = "Scott Teresi, Michael Teresi"
 
 import argparse
 import os
-
+import cProfile, pstats, io
 import logging
 import coloredlogs
 import numpy as np
@@ -86,10 +86,6 @@ def calc_merge(job):
     windows = list(job.windows)
     output_dir = str(job.output_dir)
     gene_data = GeneData.read(job.gene_file)
-    logging.warning("processing a subset of genes for testing!")
-    # NB process a subset for testing
-    subset = min(100, sum(1 for i in gene_data.names))
-    gene_names = list(gene_data.names)[:subset]
     merge_data = MergeData.from_param(
         transposons, gene_data, windows, output_dir
     )
@@ -217,6 +213,12 @@ if __name__ == "__main__":
         default=os.path.join(output_default, "tmp", "overlap"),
         help="temporary directory for overlap files",
     )
+     
+    parser.add_argument(
+        "--single_process",
+        action="store_true",
+        help="""Run without multiprocessing; useful for profiling."""
+    )
 
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="set debugging level to DEBUG"
@@ -291,7 +293,24 @@ if __name__ == "__main__":
     pbar_update = partial(pbar_update_queue.put_nowait, None)
     jobs = [result_to_job(res, win, args.output_dir, pbar_update) for res in overlap_results]
     with MergeProgress(pbar_update_queue, pbar_genes) as my_progress:
-        with Pool(processes=args.num_threads) as my_pool:
-            my_pool.map(calc_merge, jobs)
+        if not args.single_process:
+            with Pool(processes=args.num_threads) as my_pool:
+                my_pool.map(calc_merge, jobs)
+        else:
+            for job in jobs:
+                try:
+                    pr = cProfile.Profile()
+                    pr.enable()
+                    calc_merge(job)
+                except KeyboardInterrupt as keybr:
+                    pr.disable()
+                    stream = io.StringIO()
+                    sortby = 'cumulative'
+                    ps = pstats.Stats(pr, stream=stream).sort_stats(sortby)
+                    ps.print_stats(0.1)  # MAGIC percent to print
+                    print(stream.getvalue())
+                    raise keybr
+
+
 
     logger.info("process density... complete")
