@@ -10,6 +10,7 @@ from collections import namedtuple
 import logging
 import os
 from functools import partial
+import random
 
 import h5py
 import numpy as np
@@ -335,6 +336,11 @@ class MergeData:
         o_right = create_set(self._O_RIGHT, (n_orders, *lr_shape))
         self.order = _Density(left=o_left, intra=o_intra, right=o_right)
 
+    def n_updates(self, overlap):
+        """Number of progress bar updates for processing density."""
+
+        return len(self._list_density_args(overlap))
+
     def sum(self, overlap, gene_data, progress_bar=None):
         """Sum across the superfamily / order dimension.
 
@@ -354,10 +360,13 @@ class MergeData:
         iter_max = sum(
             len(arg.windows) * n_genes * len(arg.te_idx_name) for arg in sums_
         )
+        random.shuffle(sums_)  # make progress bar update more evenly
         for args in sums_:
-            self._process_sum(overlap, gene_data, args, progress_bar)
+            self._process_sum(overlap, gene_data, args)
+            if progress_bar is not None:
+                progress_bar()
 
-    def _process_sum(self, overlap, gene_data, sum_args, progress=None):
+    def _process_sum(self, overlap, gene_data, sum_args):
         """Calculate the sum for one (left | intra | right) & (superfamily | order).
 
         Args:
@@ -404,8 +413,6 @@ class MergeData:
                     # NOTE must assign to the slice, rather than storing a reference to array
                     # and then assigning to it
                     sum_args.output[slice_out] = np.divide(overlap_sum, divisor)
-        if progress is not None:
-            progress()
 
     def _list_density_args(self, overlap):
         """List all arguments for calculating the densities."""

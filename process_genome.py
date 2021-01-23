@@ -79,8 +79,8 @@ MergeJob = namedtuple("MergeJob",
      "progress_bar"])
 
 
-def calc_merge(job):
-    """Target for a process to calculate density given a job."""
+def job_2_merge_and_overlap(job):
+    """Return an instance of MergeData, OverlapData given the job."""
 
     transposons = TransposonData.read(job.te_file)
     windows = list(job.windows)
@@ -90,6 +90,29 @@ def calc_merge(job):
         transposons, gene_data, windows, output_dir
     )
     overlap_data = OverlapData.from_file(job.overlap_file)
+    return merge_data, overlap_data
+
+
+def calc_merge_number_operations(job):
+    """Number of expected progress updates for processing a MergeJob.
+
+    NOTE this is a candidate for refactoring alongside the way density is calculated.
+
+    Args:
+        job(MergeJob): the job
+    """
+
+    merge_data, overlap_data = job_2_merge_and_overlap(job)
+    with merge_data as merge_output:
+        with overlap_data as overlap_input:
+            return merge_data.n_updates(overlap_data)
+
+
+def calc_merge(job):
+    """Target for a process to calculate density given a job."""
+
+    merge_data, overlap_data = job_2_merge_and_overlap(job)
+    gene_data = GeneData.read(job.gene_file)
     with merge_data as merge_output:
         with overlap_data as overlap_input:
             merge_output.sum(overlap_input, gene_data, job.progress_bar)
@@ -281,18 +304,15 @@ if __name__ == "__main__":
     logger.info("process overlap... complete")
 
     logger.info("process density")
-    n_genes = 0
-    for result in overlap_results:
-        gene_data = GeneData.read(result.gene_file)
-        n_genes += sum(1 for _g in (gene_data.names))
-    pbar_genes = tqdm(total=n_genes, desc="genes", position=0, ncols=80,)
 
     win = alg_parameters["window_range"]
     pbar_update_mgr = Manager()
     pbar_update_queue = pbar_update_mgr.Queue()
     pbar_update = partial(pbar_update_queue.put_nowait, None)
     jobs = [result_to_job(res, win, args.output_dir, pbar_update) for res in overlap_results]
-    with MergeProgress(pbar_update_queue, pbar_genes) as my_progress:
+    n_subsets = sum(calc_merge_number_operations(job) for job in jobs)
+    pbar_subsets = tqdm(total=n_subsets, desc="subsets", position=0, ncols=80,)
+    with MergeProgress(pbar_update_queue, pbar_subsets) as my_progress:
         if not args.single_process:
             with Pool(processes=args.num_threads) as my_pool:
                 my_pool.map(calc_merge, jobs)
