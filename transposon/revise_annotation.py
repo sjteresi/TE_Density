@@ -131,7 +131,7 @@ class Revise_Anno:
         orders = self._read(self.order_cache_loc)
         nameless = self._read(self.nameless_cache_loc)
         self.whole_te_annotation = pd.concat([supers, orders, nameless])
-        self.whole_te_annotation.sort_values(by=["Start", "Chromosome"], inplace=True)
+        self.whole_te_annotation.sort_values(by=["Chromosome", "Start"], inplace=True)
 
     def save_updated_te_annotation(self, filename, header=True, index=False):
         """Save the annotation.
