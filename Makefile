@@ -15,7 +15,7 @@ DEV_GENOME := "Camarosa"
 
 dev: | tags         ## execute with default testing arguments
 	mkdir -p $(DEV_CACHE)
-	$(ROOT_DIR)/process_genome.py $(DEV_GENES) $(DEV_TES) $(DEV_GENOME) -vv
+	$(ROOT_DIR)/process_genome.py $(DEV_GENES) $(DEV_TES) $(DEV_GENOME) --single_process -vv
 
 
 production: | tags         ## execute with default production arguments

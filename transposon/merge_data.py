@@ -14,6 +14,7 @@ import random
 
 import h5py
 import numpy as np
+from numba import jit
 
 import transposon  # TODO move all the functions in __init__ to utils and have an empty __init__ (and change all the imports)
 from transposon.gene_datum import GeneDatum
@@ -389,30 +390,73 @@ class MergeData:
         for gene_name in overlap.gene_names:
             gene_datum = gene_data.get_gene(gene_name)
             g_idx = self._gene_2_idx[gene_name]
+            divisors = [sum_args.divisor_func(gene_datum, w) for w in sum_args.windows]
+            w_indices = [self._window_2_idx.get(window, None) for window in sum_args.windows]
+            slices_in = [sum_args.slice_in(window_idx=w, gene_idx=g_idx) for w in w_indices]
 
             te_indices, te_names = sum_args.te_idx_name
             for _i_te, _te_idx_name in enumerate(zip(te_indices, te_names)):
                 te_idx, te_name = _te_idx_name
 
-                for window in sum_args.windows:
-                    w_idx = self._window_2_idx.get(window, None)
-                    slice_in = sum_args.slice_in(w_idx, g_idx)
-                    # for one gene, one window, and all the TEs, we have overlap values
-                    # select only the overlaps for the TEs that match the TE type
-                    superfam_or_order_match = sum_args.where(te_name)
-                    g_slice_in, w_slice_in, te_slice_in = slice_in
-                    filtered_slice_in = (g_slice_in, w_slice_in, superfam_or_order_match)
-                    # sum all the entries for the gene/window at that TE type
-                    overlap_sum = np.sum(overlaps[g_slice_in, w_slice_in, slice(None)],
-                                         where=superfam_or_order_match)
-                    slice_out = sum_args.slice_out(
-                        window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx
-                    )
-                    divisor = sum_args.divisor_func(gene_datum, window)
-                    # NOTE np.divide w/ 'out' flag didn't work?
-                    # NOTE must assign to the slice, rather than storing a reference to array
-                    # and then assigning to it
-                    sum_args.output[slice_out] = np.divide(overlap_sum, divisor)
+                superfam_or_order_match = sum_args.where(te_name)
+                slices_out = [sum_args.slice_out(window_idx=w,
+                                                 gene_idx=g_idx,
+                                                 group_idx=te_idx) for w in w_indices]
+
+
+                div_array = np.array(divisors)
+                densities = self._process_windows(
+                    slices_in,
+                    div_array,
+                    superfam_or_order_match,
+                    overlaps)
+
+                for i, slice_out in enumerate(slices_out):
+                    sum_args.output[slice_out] = densities[i]
+                
+                #for window in sum_args.windows:
+                #    w_idx = self._window_2_idx.get(window, None)
+                #    slice_in = sum_args.slice_in(w_idx, g_idx)
+                #    # for one gene, one window, and all the TEs, we have overlap values
+                #    # select only the overlaps for the TEs that match the TE type
+                #    g_slice_in, w_slice_in, te_slice_in = slice_in
+                #    filtered_slice_in = (g_slice_in, w_slice_in, superfam_or_order_match)
+                #    # sum all the entries for the gene/window at that TE type
+                #    overlap_sum = np.sum(overlaps[g_slice_in, w_slice_in, slice(None)],
+                #                         where=superfam_or_order_match)
+                #    slice_out = sum_args.slice_out(
+                #        window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx
+                #    )
+                #    divisor = sum_args.divisor_func(gene_datum, window)
+                #    # NOTE np.divide w/ 'out' flag didn't work?
+                #    # NOTE must assign to the slice, rather than storing a reference to array
+                #    # and then assigning to it
+                #    sum_args.output[slice_out] = np.divide(overlap_sum, divisor)
+     
+
+    @staticmethod
+    @jit(nopython=True)
+    def _process_windows(slices_in, divisors, superfam_or_order_match, overlaps):
+        # TODO move input args of type list to numpy arrays (for numba)
+    
+        rhos = np.zeros(len(slices_in))
+        for i in range(len(slices_in)):
+            slice_in = slices_in[i]
+            g_slice_in, w_slice_in, te_slice_in = slice_in
+            #overlap_sum = np.sum(overlaps[g_slice_in, w_slice_in, slice(None)],
+            #        where=superfam_or_order_match)
+            # NB can't use more the keyword arg 'where' for np.sum w/ numba
+            # so break up the operations explicitly
+            overlap_filtered = overlaps[g_slice_in, w_slice_in, slice(None)]
+            # NB don't get the superfam/order sub array first, it is slower
+            overlap_filtered_ = overlap_filtered[superfam_or_order_match]
+            overlap_sum = np.sum(overlap_filtered)
+            divisor = divisors[i]
+            rhos[i] = np.divide(overlap_sum, divisor)
+        return rhos
+
+
+
 
     def _list_density_args(self, overlap):
         """List all arguments for calculating the densities."""
