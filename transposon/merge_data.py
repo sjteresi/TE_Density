@@ -386,20 +386,21 @@ class MergeData:
         # although there are so few intra calcs it might be easier to do that separately
 
         overlaps = sum_args.input[()]
+        w_indices = [self._window_2_idx.get(w, None) for w in sum_args.windows]
         for gene_name in overlap.gene_names:
             gene_datum = gene_data.get_gene(gene_name)
             g_idx = self._gene_2_idx[gene_name]
+            divisors = [sum_args.divisor_func(gene_datum, w) for w in sum_args.windows]
 
             te_indices, te_names = sum_args.te_idx_name
             for _i_te, _te_idx_name in enumerate(zip(te_indices, te_names)):
                 te_idx, te_name = _te_idx_name
+                superfam_or_order_match = sum_args.where(te_name)
 
-                for window in sum_args.windows:
-                    w_idx = self._window_2_idx.get(window, None)
+                for w_idx, divisor in zip(w_indices, divisors):
                     slice_in = sum_args.slice_in(w_idx, g_idx)
                     # for one gene, one window, and all the TEs, we have overlap values
                     # select only the overlaps for the TEs that match the TE type
-                    superfam_or_order_match = sum_args.where(te_name)
                     g_slice_in, w_slice_in, te_slice_in = slice_in
                     filtered_slice_in = (g_slice_in, w_slice_in, superfam_or_order_match)
                     # sum all the entries for the gene/window at that TE type
@@ -408,7 +409,6 @@ class MergeData:
                     slice_out = sum_args.slice_out(
                         window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx
                     )
-                    divisor = sum_args.divisor_func(gene_datum, window)
                     # NOTE np.divide w/ 'out' flag didn't work?
                     # NOTE must assign to the slice, rather than storing a reference to array
                     # and then assigning to it
