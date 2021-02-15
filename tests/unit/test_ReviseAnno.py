@@ -109,7 +109,10 @@ def h5_cache_loc():
     """
     Location for outputting h5 revised annotation files.
     """
+    path_main = os.path.abspath(__file__)
     h5_cache_loc = "tests/test_h5_cache_loc/"
+    if not os.path.isdir(os.path.abspath(os.path.join(path_main, h5_cache_loc))):
+        os.makedirs(h5_cache_loc, exist_ok=True)
     return h5_cache_loc
 
 
@@ -118,7 +121,10 @@ def revised_te_annotation_loc():
     """
     Location for outputing revised annotation files for visual inspection.
     """
+    path_main = os.path.abspath(__file__)
     data_output = "tests/output_data/"
+    if not os.path.isdir(os.path.abspath(os.path.join(path_main, data_output))):
+        os.makedirs(data_output, exist_ok=True)
     return data_output
 
 
@@ -146,6 +152,11 @@ def nameless_name():
     return "test_nameless_set"
 
 
+# Input Data
+path_main = os.path.abspath(__file__)
+data_input = "tests/input_data/"
+if not os.path.isdir(os.path.abspath(os.path.join(path_main, data_input))):
+    os.makedirs(data_input, exist_ok=True)
 # Supers
 SingleC_SingleElongate_Super = (
     "tests/input_data/Test_SingleC_SingleElongate_Superfam_Revision.tsv"
