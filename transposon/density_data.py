@@ -10,6 +10,11 @@ import h5py
 import numpy as np
 import os
 import shutil
+from collections import namedtuple
+
+DensitySlice = namedtuple(
+    "DensitySlice", ["slice", "direction", "window_val", "te_type"]
+)
 
 
 class DensityData:
@@ -88,9 +93,6 @@ class DensityData:
         order_dict = {}
         for i in range(len(self.order_list)):
             order_dict[self.order_list[i]] = i
-        # TODO remove the revision groupings only for the dotplots
-        # Removed temporarily for other coding
-        # order_dict.pop("S_Revision")  # MAGIC pop the revision set
         return order_dict
 
     @property
@@ -100,10 +102,48 @@ class DensityData:
         super_dict = {}
         for i in range(len(self.super_list)):
             super_dict[self.super_list[i]] = i
-        # TODO remove the revision groupings only for the dotplots
-        # Removed temporarily for other coding
-        # super_dict.pop("O_Revision")  # MAGIC pop the revision set
         return super_dict
+
+    def yield_all_slices(self):
+        """
+        Yields a DensitySlice (named tuple) object for each TE
+        type/direction/window combination for all genes in the DensityData obj.
+        """
+        directions = ["Upstream", "Downstream"]
+        for direction in directions:
+            for window_idx, window_val in enumerate(self.window_list):
+                for te_type, te_order_idx in self.order_index_dict.items():
+                    if direction == "Upstream":
+                        yield DensitySlice(
+                            self.left_orders[te_order_idx, window_idx, :],
+                            direction,
+                            window_val,
+                            te_type,
+                        )
+                    if direction == "Downstream":
+                        yield DensitySlice(
+                            self.right_orders[te_order_idx, window_idx, :],
+                            direction,
+                            window_val,
+                            te_type,
+                        )
+
+                # Iterate over SuperFamilies now
+                for te_type, te_super_idx in self.super_index_dict.items():
+                    if direction == "Upstream":
+                        yield DensitySlice(
+                            self.left_supers[te_super_idx, window_idx, :],
+                            direction,
+                            window_val,
+                            te_type,
+                        )
+                    if direction == "Downstream":
+                        yield DensitySlice(
+                            self.right_supers[te_super_idx, window_idx, :],
+                            direction,
+                            window_val,
+                            te_type,
+                        )
 
     def _swap_strand_vals(self, gene_names):
         """Switch density values for the genes in which it is antisense due to
