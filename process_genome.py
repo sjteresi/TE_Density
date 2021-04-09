@@ -58,7 +58,9 @@ def parse_algorithm_config(config_path):
     window_start = parser.getint("density_parameters", "first_window_size")
     window_step = parser.getint("density_parameters", "window_delta")
     window_stop = parser.getint("density_parameters", "last_window_size")
-    alg_param = {"window_range": range(window_start, window_stop, window_step)}
+    alg_param = {"window_range": range(window_start, window_stop + 1,
+                                       window_step)}  # MAGIC we want inclusive
+    # range of windows
     return alg_param
 
 
