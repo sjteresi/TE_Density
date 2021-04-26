@@ -1,0 +1,30 @@
+#!/bin/bash -login
+
+#SBATCH -J EDTA_Blueberry
+#SBATCH --time=167:00:00
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=25
+#SBATCH --mem-per-cpu=30G
+#SBATCH -o EDTA_Blueberry.out
+#SBATCH -e EDTA_Blueberry.err
+#--------------------------------------------------------
+# NOTE the user should change these paths to match their machine
+EDTA_DIR=/mnt/research/edgerpat_lab/EDTA
+GENOME_DIR=/mnt/research/edgerpat_lab/Scotty/Blueberry_Data/Genome
+OUT_DATA_DIR=/mnt/research/edgerpat_lab/Scotty/Blueberry_Data/Blueberry_TE_Density/Annotation
+
+
+# NOTE
+# Do these commands ahead of trying to run EDTA to properly install
+# git clone https://github.com/oushujun/EDTA.git
+# cd EDTA
+# conda env create -f EDTA.yml
+
+module purge
+module load Conda/3
+conda activate EDTA  # activate the conda environment of packages
+
+cd $OUT_DATA_DIR  # cd to output data dir for any extraneous files that get outputted
+
+# Run EDTA
+perl $EDTA_DIR/EDTA.pl --genome $GENOME_DIR/Vaccinium_corymbosum.faa --cds $GENOME_DIR/Vacc_c_CoGe_CDS.fasta --sensitive 1 --anno 1 --threads 25

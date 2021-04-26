@@ -1,0 +1,29 @@
+#!/bin/bash -login
+
+#SBATCH -J EDTA_Human
+#SBATCH --time=167:00:00
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=25
+#SBATCH --mem-per-cpu=30G
+#SBATCH -o Human_Glaberrima.out
+#--------------------------------------------------------
+# NOTE the user should change these paths to match their machine
+EDTA_DIR=/mnt/research/edgerpat_lab/EDTA
+GENOME_DIR=/mnt/research/edgerpat_lab/Scotty/TE_Density_Example_Data/Rice/Oryza_Glaberrima/Sequences
+OUT_DATA_DIR=/mnt/research/edgerpat_lab/Scotty/TE_Density_Example_Data/Rice/Oryza_Glaberrima/TEs
+
+
+# NOTE
+# Do these commands ahead of trying to run EDTA to properly install
+# git clone https://github.com/oushujun/EDTA.git
+# cd EDTA
+# conda env create -f EDTA.yml
+
+module purge
+module load Conda/3
+conda activate EDTA  # activate the conda environment of packages
+
+cd $OUT_DATA_DIR  # cd to output data dir for any extraneous files that get outputted
+
+# Run EDTA
+perl $EDTA_DIR/EDTA.pl --genome $GENOME_DIR/Oryza_Glaberrima_NewNames.fasta --cds $GENOME_DIR/Oryza_Glaberrima_CDS_NewNames.fasta --sensitive 1 --anno 1 --threads 25

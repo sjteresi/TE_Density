@@ -10,9 +10,14 @@ import os
 import logging
 import coloredlogs
 
+from transposon import check_nulls
 
-def write_cleaned_genes(gene_pandaframe, output_dir, genome_name, logger):
-    file_name = os.path.join(output_dir, ("Cleaned_" + genome_name + "_Genes.tsv"))
+
+def write_cleaned_genes(gene_pandaframe, output_dir, old_filename, logger):
+    file_name = os.path.join(
+        output_dir,
+        ("Cleaned_" + os.path.splitext(os.path.basename(old_filename))[0]) + ".tsv",
+    )  # MAGIC to get proper extension
 
     logger.info("Writing cleaned gene file to: %s" % file_name)
     gene_pandaframe.to_csv(file_name, sep="\t", header=True, index=True)
@@ -51,39 +56,67 @@ def import_genes(genes_input_path, contig_del=False):
         "FullName",
     ]
 
-    Gene_Data = pd.read_csv(
+    gene_data = pd.read_csv(
         genes_input_path,
         sep="\t+",
         header=None,
         engine="python",
         names=col_names,
         usecols=col_to_use,
-        dtype={"Stop": "float64", "Start": "float64"},
+        dtype={
+            "Stop": "float64",
+            "Start": "float64",
+            "Chromosome": str,
+            "Strand": str,
+            "Fullname": str,
+            "Feature": str,
+            "Software": str,
+        },
         comment="#",
     )
 
     # rows in annotation
-    Gene_Data = Gene_Data[Gene_Data.Feature == "gene"]  # drop non-gene rows
+    gene_data = gene_data[gene_data.Feature == "gene"]  # drop non-gene rows
 
-    # clean the names and set as the index (get row wrt name c.f. idx)
-
-    Gene_Data["Gene_Name"] = Gene_Data["FullName"].str.extract(r";gene_name=(.*?);")
-
-    Gene_Data.set_index("Gene_Name", inplace=True)
-    Gene_Data = Gene_Data.drop(columns=["FullName", "Software"])
-
-    Gene_Data.Strand = Gene_Data.Strand.astype(str)
-
-    Gene_Data["Length"] = Gene_Data.Stop - Gene_Data.Start + 1
+    gene_data["Gene_Name"] = gene_data["FullName"].str.extract(r"ID=(.*?);")
+    gene_data = gene_data.drop(columns=["FullName", "Software"])
+    gene_data["Length"] = gene_data.Stop - gene_data.Start + 1
 
     if contig_del:
-        Gene_Data = Gene_Data[~Gene_Data.Chromosome.str.contains("contig", case=False)]
+        gene_data = gene_data[~gene_data.Chromosome.str.contains("contig", case=False)]
 
-    Gene_Data.sort_values(by=["Chromosome", "Start"], inplace=True)
-    # MAGIC I only want the first 48 chromosomes
-    chromosomes_i_want = ["VaccDscaff" + str(i) for i in range(49)]
-    Gene_Data = Gene_Data.loc[Gene_Data["Chromosome"].isin(chromosomes_i_want)]
-    return Gene_Data
+    gene_data.sort_values(by=["Chromosome", "Start"], inplace=True)
+    check_nulls(gene_data, logger)
+
+    # Set the gene name as the index
+    gene_data.set_index("Gene_Name", inplace=True)
+    return gene_data
+
+
+def get_nulls(my_df, logger):
+    """
+    Print out the row IDs where the null values exist
+
+    Args:
+        my_df (Pandaframes): Pandaframe to check null values in
+        logger
+    """
+    nas = my_df[my_df.isna().any(axis=1)]
+    logger.warning("Rows where null exist: %s" % nas)
+
+
+def drop_nulls(my_df, logger):
+    """
+    Drop null values inside a Pandaframe
+
+    Args:
+        my_df (Pandaframes): Pandaframe to drop null values
+    """
+    nas = my_df[my_df.isna().any(axis=1)]
+    if not nas.empty:
+        logger.warning("Dropping rows with at least one Null value!")
+        my_df = my_df.dropna(axis=0, how="any")
+    return my_df
 
 
 if __name__ == "__main__":
@@ -91,7 +124,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Reformat gene annotation file")
     path_main = os.path.abspath(__file__)
     dir_main = os.path.dirname(path_main)
-    output_default = os.path.join(dir_main, "../../", "TE_Data/filtered_input_data")
+    output_default = os.path.join(
+        dir_main, "../../../../", "TE_Data/filtered_input_data"
+    )
     parser.add_argument(
         "gene_input_file", type=str, help="Parent path of gene annotation file"
     )
@@ -118,4 +153,4 @@ if __name__ == "__main__":
 
     # Execute
     cleaned_genes = import_genes(args.gene_input_file, logger)
-    write_cleaned_genes(cleaned_genes, args.output_dir, "Blueberry", logger)
+    write_cleaned_genes(cleaned_genes, args.output_dir, args.gene_input_file, logger)

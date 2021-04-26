@@ -12,7 +12,7 @@ import coloredlogs
 
 
 def write_cleaned_genes(gene_pandaframe, output_dir, genome_name, logger):
-    file_name = os.path.join(output_dir, ("Cleaned_" + genome_name + "_Genes.tsv"))
+    file_name = os.path.join(output_dir, ("Cleaned_Chr7_13_" + genome_name + "_Genes.tsv"))
 
     logger.info("Writing cleaned gene file to: %s" % file_name)
     gene_pandaframe.to_csv(file_name, sep="\t", header=True, index=True)
@@ -29,61 +29,63 @@ def import_genes(genes_input_path, contig_del=False):
         chromosome id
     """
 
-    col_names = [
-        "Chromosome",
-        "Software",
-        "Feature",
-        "Start",
-        "Stop",
-        "Score",
-        "Strand",
-        "Frame",
-        "FullName",
-    ]
+    col_names = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop',
+                 'Score', 'Strand', 'Frame', 'FullName']
 
-    col_to_use = [
-        "Chromosome",
-        "Software",
-        "Feature",
-        "Start",
-        "Stop",
-        "Strand",
-        "FullName",
-    ]
+    col_to_use = ['Chromosome', 'Software', 'Feature', 'Start', 'Stop',
+                  'Strand', 'FullName']
 
     Gene_Data = pd.read_csv(
         genes_input_path,
-        sep="\t+",
+        sep='\t+',
         header=None,
-        engine="python",
+        engine='python',
         names=col_names,
         usecols=col_to_use,
-        dtype={"Stop": "float64", "Start": "float64"},
-        comment="#",
-    )
+        dtype={'Stop':'float64', 'Start': 'float64'},
+        comment='#')
 
     # rows in annotation
-    Gene_Data = Gene_Data[Gene_Data.Feature == "gene"]  # drop non-gene rows
+    Gene_Data = Gene_Data[Gene_Data.Feature == 'gene']  # drop non-gene rows
 
     # clean the names and set as the index (get row wrt name c.f. idx)
 
+
     Gene_Data["Gene_Name"] = Gene_Data["FullName"].str.extract(r";gene_name=(.*?);")
 
-    Gene_Data.set_index("Gene_Name", inplace=True)
-    Gene_Data = Gene_Data.drop(columns=["FullName", "Software"])
+    # NOTE
+    Gene_Data.drop_duplicates(subset=['Gene_Name'],keep=False, inplace=True)
+    # Drop duplicate gene  names for the human data set, will add explicit
+    # function to fix duplicate gene names in future so that the code doesn't
+    # crash (Crashes TE_Density due to shape error). TODO add error handling
+    # and elegant renaming function to fix duplicate gene names
+
+
+
+
+    Gene_Data = Gene_Data.drop(columns=['FullName', 'Software'])
 
     Gene_Data.Strand = Gene_Data.Strand.astype(str)
 
-    Gene_Data["Length"] = Gene_Data.Stop - Gene_Data.Start + 1
+    Gene_Data['Length'] = Gene_Data.Stop - Gene_Data.Start + 1
 
     if contig_del:
-        Gene_Data = Gene_Data[~Gene_Data.Chromosome.str.contains("contig", case=False)]
+        Gene_Data = Gene_Data[~Gene_Data.Chromosome.str.contains('contig',
+                                                                 case=False)]
 
     Gene_Data.sort_values(by=["Chromosome", "Start"], inplace=True)
     # MAGIC I only want the first 48 chromosomes
-    chromosomes_i_want = ["VaccDscaff" + str(i) for i in range(49)]
-    Gene_Data = Gene_Data.loc[Gene_Data["Chromosome"].isin(chromosomes_i_want)]
+    chromosomes_i_want = ['chr7', 'chr13']
+    Gene_Data = Gene_Data.loc[Gene_Data['Chromosome'].isin(chromosomes_i_want)]
+
+
+
+
+    Gene_Data.set_index('Gene_Name', inplace=True)
     return Gene_Data
+
+def return_duplicate_indices(dataframe):
+    return dataframe[dataframe.index.duplicated(keep=False)]
 
 
 if __name__ == "__main__":
@@ -91,7 +93,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Reformat gene annotation file")
     path_main = os.path.abspath(__file__)
     dir_main = os.path.dirname(path_main)
-    output_default = os.path.join(dir_main, "../../", "TE_Data/filtered_input_data")
+    output_default = os.path.join(dir_main, "../../../../", "TE_Data/filtered_input_data")
     parser.add_argument(
         "gene_input_file", type=str, help="Parent path of gene annotation file"
     )
@@ -117,5 +119,9 @@ if __name__ == "__main__":
     coloredlogs.install(level=log_level)
 
     # Execute
-    cleaned_genes = import_genes(args.gene_input_file, logger)
-    write_cleaned_genes(cleaned_genes, args.output_dir, "Blueberry", logger)
+    cleaned_genes = import_genes(
+        args.gene_input_file, logger
+    )
+    write_cleaned_genes(
+        cleaned_genes, args.output_dir, "Human", logger
+    )

@@ -1,6 +1,7 @@
 import pandas as pd
 from transposon import check_nulls
 
+
 def import_filtered_TEs(tes_input_path, logger):
     """
     Import a pre-filtered TE file to the pipeline
@@ -13,11 +14,17 @@ def import_filtered_TEs(tes_input_path, logger):
     transposon_data = pd.read_csv(
         tes_input_path,
         header="infer",
-        engine='python',
+        engine="python",
         sep="\t",
-        dtype={"Start": "float64", "Stop": "float64", "Length": "float64",
-               'Chromosome': str, 'Strand': str, 'Order': str, 'SuperFamily':
-               str },
+        dtype={
+            "Start": "float64",
+            "Stop": "float64",
+            "Length": "float64",
+            "Chromosome": str,
+            "Strand": str,
+            "Order": str,
+            "SuperFamily": str,
+        },
     )
     check_nulls(transposon_data, logger)
     # Sort for legibility

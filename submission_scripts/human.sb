@@ -1,0 +1,28 @@
+#!/bin/bash -login
+
+#SBATCH -J Human_Density
+#SBATCH --time=72:00:00
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --mem-per-cpu=60G
+#SBATCH -o human.out
+#--------------------------------------------------------
+ROOT_DIR=/mnt/research/edgerpat_lab/Scotty/TE_Density
+DATA_DIR=/mnt/research/edgerpat_lab/Scotty/TE_Density_Example_Data/Human
+GENOME="Human_Chrom_Subset"
+
+
+# Load the Python scripts
+module load GCC/7.3.0-2.30 OpenMPI/3.1.1 Python/3.7.0
+
+# Source the Python packages that are version controlled
+source /mnt/research/edgerpat_lab/Scotty/venvs/TE_Density/bin/activate
+
+# Go to project directory
+#cd $(ROOT_DIR)
+cd /mnt/research/edgerpat_lab/Scotty/TE_Density
+
+# Run the code
+# make clean_overlap
+# make production
+python process_genome.py $DATA_DIR/Genes/Chr7_13_Human_Genes.tsv $DATA_DIR/TEs/Chr7_13_Human_TEs.tsv $GENOME -c $ROOT_DIR/config/production_run_config.ini -n 2

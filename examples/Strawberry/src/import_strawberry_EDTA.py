@@ -1,6 +1,8 @@
 """
 Filter a EDTA-created TE annotation to the appropriate format for TE
-Density algorithm
+Density algorithm. This version of import EDTA is slightly different from the
+Rice and Blueberry datasets because the EDTA used to make the annotation for
+the strawberries was a little older.
 """
 
 __author__ = "Scott Teresi"
@@ -11,7 +13,7 @@ import os
 import logging
 import coloredlogs
 
-from examples.Rice_Synteny.src.replace_names_rice import te_annot_renamer
+from examples.Strawberry.src.replace_names_strawberry import te_annot_renamer
 
 
 def check_nulls(my_df, logger):
@@ -30,10 +32,6 @@ def check_nulls(my_df, logger):
 
 
 def write_cleaned_transposons(te_pandaframe, output_dir, old_filename, logger):
-    file_name = os.path.join(
-        output_dir,
-        ("Cleaned_" + os.path.splitext(os.path.basename(old_filename))[0]) + ".tsv",
-    )  # MAGIC to get proper extension
     file_name = os.path.join(
         output_dir,
         ("Cleaned_" + os.path.splitext(os.path.basename(old_filename))[0]) + ".tsv",
@@ -70,35 +68,30 @@ def import_transposons(tes_input_path, te_annot_renamer, logger):
         engine="python",
         names=col_names,
         comment="#",
-        dtype={"Start": "float64", "Stop": "float64"},
+        dtype={
+            "Chromosome": str,
+            "Start": "float64",
+            "Stop": "float64",
+            "Feature": str,
+            "Strand": str,
+        },
     )
 
     # Drop extraneous columns
-    te_data.drop(columns=["Score", "Software", "Phase", "Feature"], inplace=True)
+    te_data.drop(columns=["Score", "Software", "Phase", "Attribute"], inplace=True)
 
-    # Create Order and SuperFamily column from Attribute column
+    # Create Order and SuperFamily column from Feature column
     # Because that column contains the detailed TE information
-    # Then remove old Attribute column
-    te_data["Attribute"] = te_data["Attribute"].str.extract(r"Classification=(.*?);")
-    te_data[["Order", "SuperFamily"]] = te_data.Attribute.str.split("/", expand=True)
-    te_data.drop(columns=["Attribute"], inplace=True)
-    te_data.Order = te_data.Order.astype(str)
-    te_data.SuperFamily = te_data.SuperFamily.astype(str)
-    te_data.Strand = te_data.Strand.astype(str)
+    # Then remove old Feature column
+    te_data[["Order", "SuperFamily"]] = te_data.Feature.str.split("/", expand=True)
+    te_data.drop(columns=["Feature"], inplace=True)
 
     # Call renamer
     te_data = te_annot_renamer(te_data)
 
-    # Declare data types
+    # Get correct length
     te_data["Length"] = te_data.Stop - te_data.Start + 1
     check_nulls(te_data, logger)
-
-    te_data.sort_values(by=["Chromosome", "Start"], inplace=True)
-
-    # MAGIC I only want the first 12 chromosomes
-    chromosomes_i_want = [str(i) for i in range(1, 12 + 1)]  # MAGIC plus 1 bc range
-    # NB, chromosomes_i_want must be string
-    te_data = te_data.loc[te_data["Chromosome"].isin(chromosomes_i_want)]
     te_data.sort_values(by=["Chromosome", "Start"], inplace=True)
 
     return te_data
