@@ -471,7 +471,7 @@ class OverlapWorker:
         for name in names:
             # could use list comprehension but we need to log if it fails
             if name not in gene_data.names:
-                msg = ("gene name '%s' not in gene '%s'" % name, gene_data.genome_id)
+                msg = ("gene name '%s' not in gene '%s'" % (name, gene_data.genome_id))
                 self._logger.error(msg)
             else:
                 yield name
