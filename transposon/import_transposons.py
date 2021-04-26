@@ -48,6 +48,8 @@ def import_transposons(tes_input_path, te_annot_renamer, contig_del, logger):
         header=None,
         engine="python",
         names=col_names,
+        dtypes={'Start': 'float64', 'Stop': 'float64', 'Chromosome': str,
+                'Strand': str},
         usecols=col_to_use,
     )
 
@@ -57,9 +59,6 @@ def import_transposons(tes_input_path, te_annot_renamer, contig_del, logger):
 
     TE_Data = TE_Data.drop(["Feature", "Software"], axis=1)
     TE_Data = te_annot_renamer(TE_Data)  # NOTE call to the cleaner
-    TE_Data.Strand = TE_Data.Strand.astype(str)
-    TE_Data.Start = TE_Data.Start.astype("float32")
-    TE_Data.Stop = TE_Data.Stop.astype("float32")
     TE_Data["Length"] = TE_Data.Stop - TE_Data.Start + 1
     if contig_del:
         TE_Data = TE_Data[~TE_Data.Chromosome.str.contains("contig", case=False)]
