@@ -314,7 +314,10 @@ class OverlapData:
     def _open_existing_file(self, cfg):
         """Open the file, mutates self."""
 
-        self._h5_file = h5py.File(cfg.filepath, "r")
+        try:
+            self._h5_file = h5py.File(cfg.filepath, "r")
+        except:
+            raise ValueError(cfg.filepath)
         self.gene_names = self._read_gene_names()
         self.windows = self._read_windows()
         self.chromosome_id = self._read_chromosome_id()
