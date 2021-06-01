@@ -1,0 +1,202 @@
+
+########################################################
+##### Extensive de-novo TE Annotator (EDTA) v1.9.7  ####
+##### Shujun Ou (shujun.ou.1@gmail.com)             ####
+########################################################
+
+
+
+Tue Jun  1 18:09:21 EDT 2021	Dependency checking:
+				All passed!
+
+	A CDS file /mnt/research/edgerpat_lab/Scotty/TE_Density_Example_Data/Arabidopsis/Sequences/Arabidopsis_CDS.fasta is provided via --cds. Please make sure this is the DNA sequence of coding regions only.
+
+Tue Jun  1 18:09:27 EDT 2021	Obtain raw TE libraries using various structure-based programs: 
+Tue Jun  1 18:09:27 EDT 2021	EDTA_raw: Check dependencies, prepare working directories.
+
+Tue Jun  1 18:09:30 EDT 2021	Start to find LTR candidates.
+
+Tue Jun  1 18:09:30 EDT 2021	Identify LTR retrotransposon candidates from scratch.
+
+Tue Jun  1 18:17:10 EDT 2021	Finish finding LTR candidates.
+
+Tue Jun  1 18:17:10 EDT 2021	Start to find TIR candidates.
+
+Tue Jun  1 18:17:10 EDT 2021	Identify TIR candidates from scratch.
+
+Species: others
+Tue Jun  1 18:58:45 EDT 2021	Finish finding TIR candidates.
+
+Tue Jun  1 18:58:45 EDT 2021	Start to find Helitron candidates.
+
+Tue Jun  1 18:58:45 EDT 2021	Identify Helitron candidates from scratch.
+
+Tue Jun  1 19:45:30 EDT 2021	Finish finding Helitron candidates.
+
+Tue Jun  1 19:45:30 EDT 2021	Execution of EDTA_raw.pl is finished!
+
+Tue Jun  1 19:45:31 EDT 2021	Obtain raw TE libraries finished.
+				All intact TEs found by EDTA: 
+					TAIR10_chr_main_chromosomes.fas.mod.EDTA.intact.fa
+					TAIR10_chr_main_chromosomes.fas.mod.EDTA.intact.gff3
+
+Tue Jun  1 19:45:31 EDT 2021	Perform EDTA advance filtering for raw TE candidates and generate the stage 1 library: 
+
+Tue Jun  1 19:49:27 EDT 2021	EDTA advance filtering finished.
+
+Tue Jun  1 19:49:27 EDT 2021	Perform EDTA final steps to generate a non-redundant comprehensive TE library:
+
+				Use RepeatModeler to identify any remaining TEs that are missed by structure-based methods.
+
+2021-06-01 22:32:58,525 -WARNING- Grid computing is not available because DRMAA not configured properly: Could not find drmaa library.  Please specify its full path using the environment variable DRMAA_LIBRARY_PATH
+2021-06-01 22:32:58,605 -INFO- VARS: {'sequence': 'TAIR10_chr_main_chromosomes.fas.mod.RM.consensi.fa', 'hmm_database': 'rexdb', 'seq_type': 'nucl', 'prefix': 'TAIR10_chr_main_chromosomes.fas.mod.RM.consensi.fa.rexdb', 'force_write_hmmscan': False, 'processors': 25, 'tmp_dir': './tmp', 'min_coverage': 20, 'max_evalue': 0.001, 'disable_pass2': False, 'pass2_rule': '80-80-80', 'no_library': False, 'no_reverse': False, 'no_cleanup': False, 'p2_identity': 80.0, 'p2_coverage': 80.0, 'p2_length': 80.0}
+2021-06-01 22:32:58,606 -INFO- checking dependencies:
+2021-06-01 22:32:58,690 -INFO- hmmer	3.3.1	OK
+2021-06-01 22:32:58,756 -INFO- blastn	2.10.0+	OK
+2021-06-01 22:32:58,759 -INFO- check database rexdb
+2021-06-01 22:32:58,759 -INFO- db path: /mnt/ufs18/home-115/teresisc/anaconda3/envs/EDTA/lib/python3.6/site-packages/TEsorter/database
+2021-06-01 22:32:58,759 -INFO- db file: REXdb_protein_database_viridiplantae_v3.0_plus_metazoa_v3.hmm
+2021-06-01 22:32:58,760 -INFO- REXdb_protein_database_viridiplantae_v3.0_plus_metazoa_v3.hmm	OK
+2021-06-01 22:32:58,761 -INFO- Start classifying pipeline
+2021-06-01 22:32:58,930 -INFO- total 300 sequences
+2021-06-01 22:32:58,930 -INFO- translating `TAIR10_chr_main_chromosomes.fas.mod.RM.consensi.fa` in six frames
+/mnt/home/teresisc/anaconda3/envs/EDTA/lib/python3.6/site-packages/Bio/Seq.py:2338: BiopythonWarning: Partial codon, len(sequence) not a multiple of three. Explicitly trim the sequence or add trailing N before translation. This may become an error in future.
+  BiopythonWarning,
+2021-06-01 22:32:59,254 -INFO- HMM scanning against `/mnt/ufs18/home-115/teresisc/anaconda3/envs/EDTA/lib/python3.6/site-packages/TEsorter/database/REXdb_protein_database_viridiplantae_v3.0_plus_metazoa_v3.hmm`
+2021-06-01 22:32:59,284 -INFO- Creating server instance (pp-1.6.4.4)
+2021-06-01 22:32:59,284 -INFO- Running on Python 3.6.12 linux
+2021-06-01 22:33:00,804 -INFO- pp local server started with 25 workers
+2021-06-01 22:33:00,912 -INFO- Task 0 started
+2021-06-01 22:33:00,913 -INFO- Task 1 started
+2021-06-01 22:33:00,913 -INFO- Task 2 started
+2021-06-01 22:33:00,913 -INFO- Task 3 started
+2021-06-01 22:33:00,913 -INFO- Task 4 started
+2021-06-01 22:33:00,913 -INFO- Task 5 started
+2021-06-01 22:33:00,914 -INFO- Task 6 started
+2021-06-01 22:33:00,914 -INFO- Task 7 started
+2021-06-01 22:33:00,914 -INFO- Task 8 started
+2021-06-01 22:33:00,914 -INFO- Task 9 started
+2021-06-01 22:33:00,915 -INFO- Task 10 started
+2021-06-01 22:33:00,915 -INFO- Task 11 started
+2021-06-01 22:33:00,915 -INFO- Task 12 started
+2021-06-01 22:33:00,915 -INFO- Task 13 started
+2021-06-01 22:33:00,915 -INFO- Task 14 started
+2021-06-01 22:33:00,916 -INFO- Task 15 started
+2021-06-01 22:33:00,916 -INFO- Task 16 started
+2021-06-01 22:33:00,916 -INFO- Task 17 started
+2021-06-01 22:33:00,916 -INFO- Task 18 started
+2021-06-01 22:33:00,917 -INFO- Task 19 started
+2021-06-01 22:33:00,917 -INFO- Task 20 started
+2021-06-01 22:33:00,918 -INFO- Task 21 started
+2021-06-01 22:33:00,918 -INFO- Task 22 started
+2021-06-01 22:33:00,918 -INFO- Task 23 started
+2021-06-01 22:33:00,919 -INFO- Task 24 started
+2021-06-01 22:33:12,710 -INFO- generating gene anntations
+2021-06-01 22:33:12,737 -INFO- 16 sequences classified by HMM
+2021-06-01 22:33:12,738 -INFO- see protein domain sequences in `TAIR10_chr_main_chromosomes.fas.mod.RM.consensi.fa.rexdb.dom.faa` and annotation gff3 file in `TAIR10_chr_main_chromosomes.fas.mod.RM.consensi.fa.rexdb.dom.gff3`
+2021-06-01 22:33:12,738 -INFO- classifying the unclassified sequences by searching against the classified ones
+2021-06-01 22:33:12,751 -INFO- using the 80-80-80 rule
+2021-06-01 22:33:12,751 -INFO- run CMD: `makeblastdb -in ./tmp/pass1_classified.fa -dbtype nucl`
+2021-06-01 22:33:12,906 -INFO- run CMD: `blastn -query ./tmp/pass1_unclassified.fa -db ./tmp/pass1_classified.fa -out ./tmp/pass1_unclassified.fa.blastout -outfmt '6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen qcovs qcovhsp sstrand' -num_threads 25`
+2021-06-01 22:33:13,051 -INFO- 0 sequences classified in pass 2
+2021-06-01 22:33:13,051 -INFO- total 16 sequences classified.
+2021-06-01 22:33:13,052 -INFO- see classified sequences in `TAIR10_chr_main_chromosomes.fas.mod.RM.consensi.fa.rexdb.cls.tsv`
+2021-06-01 22:33:13,052 -INFO- writing library for RepeatMasker in `TAIR10_chr_main_chromosomes.fas.mod.RM.consensi.fa.rexdb.cls.lib`
+2021-06-01 22:33:13,060 -INFO- writing classified protein domains in `TAIR10_chr_main_chromosomes.fas.mod.RM.consensi.fa.rexdb.cls.pep`
+2021-06-01 22:33:13,062 -INFO- Summary of classifications:
+Order           Superfamily      # of Sequences# of Clade Sequences    # of Clades# of full Domains
+LTR             Copia                         1              1              1              0
+LINE            unknown                       9              0              0              0
+TIR             MuDR_Mutator                  4              0              0              0
+TIR             hAT                           1              0              0              0
+Maverick        unknown                       1              0              0              0
+2021-06-01 22:33:13,063 -INFO- Pipeline done.
+2021-06-01 22:33:13,063 -INFO- cleaning the temporary directory ./tmp
+Tue Jun  1 22:35:07 EDT 2021	Clean up TE-related sequences in the CDS file with TEsorter:
+
+2021-06-01 22:35:09,043 -WARNING- Grid computing is not available because DRMAA not configured properly: Could not find drmaa library.  Please specify its full path using the environment variable DRMAA_LIBRARY_PATH
+2021-06-01 22:35:09,048 -INFO- VARS: {'sequence': 'Arabidopsis_CDS.fasta.code', 'hmm_database': 'rexdb', 'seq_type': 'nucl', 'prefix': 'Arabidopsis_CDS.fasta.code.rexdb', 'force_write_hmmscan': False, 'processors': 25, 'tmp_dir': './tmp', 'min_coverage': 20, 'max_evalue': 0.001, 'disable_pass2': False, 'pass2_rule': '80-80-80', 'no_library': False, 'no_reverse': False, 'no_cleanup': False, 'p2_identity': 80.0, 'p2_coverage': 80.0, 'p2_length': 80.0}
+2021-06-01 22:35:09,049 -INFO- checking dependencies:
+2021-06-01 22:35:09,058 -INFO- hmmer	3.3.1	OK
+2021-06-01 22:35:09,108 -INFO- blastn	2.10.0+	OK
+2021-06-01 22:35:09,111 -INFO- check database rexdb
+2021-06-01 22:35:09,111 -INFO- db path: /mnt/ufs18/home-115/teresisc/anaconda3/envs/EDTA/lib/python3.6/site-packages/TEsorter/database
+2021-06-01 22:35:09,111 -INFO- db file: REXdb_protein_database_viridiplantae_v3.0_plus_metazoa_v3.hmm
+2021-06-01 22:35:09,112 -INFO- REXdb_protein_database_viridiplantae_v3.0_plus_metazoa_v3.hmm	OK
+2021-06-01 22:35:09,112 -INFO- Start classifying pipeline
+2021-06-01 22:35:09,364 -INFO- total 35176 sequences
+2021-06-01 22:35:09,364 -INFO- translating `Arabidopsis_CDS.fasta.code` in six frames
+/mnt/home/teresisc/anaconda3/envs/EDTA/lib/python3.6/site-packages/Bio/Seq.py:2338: BiopythonWarning: Partial codon, len(sequence) not a multiple of three. Explicitly trim the sequence or add trailing N before translation. This may become an error in future.
+  BiopythonWarning,
+2021-06-01 22:35:55,038 -INFO- HMM scanning against `/mnt/ufs18/home-115/teresisc/anaconda3/envs/EDTA/lib/python3.6/site-packages/TEsorter/database/REXdb_protein_database_viridiplantae_v3.0_plus_metazoa_v3.hmm`
+2021-06-01 22:35:56,837 -INFO- Creating server instance (pp-1.6.4.4)
+2021-06-01 22:35:56,837 -INFO- Running on Python 3.6.12 linux
+2021-06-01 22:35:58,394 -INFO- pp local server started with 25 workers
+2021-06-01 22:35:58,414 -INFO- Task 0 started
+2021-06-01 22:35:58,414 -INFO- Task 1 started
+2021-06-01 22:35:58,415 -INFO- Task 2 started
+2021-06-01 22:35:58,415 -INFO- Task 3 started
+2021-06-01 22:35:58,415 -INFO- Task 4 started
+2021-06-01 22:35:58,415 -INFO- Task 5 started
+2021-06-01 22:35:58,416 -INFO- Task 6 started
+2021-06-01 22:35:58,416 -INFO- Task 7 started
+2021-06-01 22:35:58,416 -INFO- Task 8 started
+2021-06-01 22:35:58,417 -INFO- Task 9 started
+2021-06-01 22:35:58,417 -INFO- Task 10 started
+2021-06-01 22:35:58,417 -INFO- Task 11 started
+2021-06-01 22:35:58,417 -INFO- Task 12 started
+2021-06-01 22:35:58,418 -INFO- Task 13 started
+2021-06-01 22:35:58,418 -INFO- Task 14 started
+2021-06-01 22:35:58,419 -INFO- Task 15 started
+2021-06-01 22:35:58,419 -INFO- Task 16 started
+2021-06-01 22:35:58,420 -INFO- Task 17 started
+2021-06-01 22:35:58,420 -INFO- Task 18 started
+2021-06-01 22:35:58,421 -INFO- Task 19 started
+2021-06-01 22:35:58,421 -INFO- Task 20 started
+2021-06-01 22:35:58,421 -INFO- Task 21 started
+2021-06-01 22:35:58,421 -INFO- Task 22 started
+2021-06-01 22:35:58,422 -INFO- Task 23 started
+2021-06-01 22:35:58,422 -INFO- Task 24 started
+2021-06-01 22:58:40,453 -INFO- generating gene anntations
+2021-06-01 22:58:42,652 -INFO- 432 sequences classified by HMM
+2021-06-01 22:58:42,652 -INFO- see protein domain sequences in `Arabidopsis_CDS.fasta.code.rexdb.dom.faa` and annotation gff3 file in `Arabidopsis_CDS.fasta.code.rexdb.dom.gff3`
+2021-06-01 22:58:42,652 -INFO- classifying the unclassified sequences by searching against the classified ones
+2021-06-01 22:58:43,694 -INFO- using the 80-80-80 rule
+2021-06-01 22:58:43,695 -INFO- run CMD: `makeblastdb -in ./tmp/pass1_classified.fa -dbtype nucl`
+2021-06-01 22:58:43,882 -INFO- run CMD: `blastn -query ./tmp/pass1_unclassified.fa -db ./tmp/pass1_classified.fa -out ./tmp/pass1_unclassified.fa.blastout -outfmt '6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen qcovs qcovhsp sstrand' -num_threads 25`
+2021-06-01 22:58:51,013 -INFO- 50 sequences classified in pass 2
+2021-06-01 22:58:51,013 -INFO- total 482 sequences classified.
+2021-06-01 22:58:51,013 -INFO- see classified sequences in `Arabidopsis_CDS.fasta.code.rexdb.cls.tsv`
+2021-06-01 22:58:51,013 -INFO- writing library for RepeatMasker in `Arabidopsis_CDS.fasta.code.rexdb.cls.lib`
+2021-06-01 22:58:51,805 -INFO- writing classified protein domains in `Arabidopsis_CDS.fasta.code.rexdb.cls.pep`
+2021-06-01 22:58:51,825 -INFO- Summary of classifications:
+Order           Superfamily      # of Sequences# of Clade Sequences    # of Clades# of full Domains
+LTR             Bel-Pao                       7              0              0              0
+LTR             Copia                        76             56             13              0
+LTR             Gypsy                       107             88             16              0
+LTR             Retrovirus                    1              0              0              0
+LTR             mixture                       6              0              0              0
+Penelope        unknown                       2              0              0              0
+LINE            unknown                      82              0              0              0
+TIR             EnSpm_CACTA                   2              0              0              0
+TIR             MuDR_Mutator                 29              0              0              0
+TIR             PIF_Harbinger                16              0              0              0
+TIR             hAT                          29              0              0              0
+Helitron        unknown                       3              0              0              0
+Maverick        unknown                     121              0              0              0
+mixture         mixture                       1              0              0              0
+2021-06-01 22:58:51,826 -INFO- Pipeline done.
+2021-06-01 22:58:51,826 -INFO- cleaning the temporary directory ./tmp
+				Remove CDS-related sequences in the EDTA library:
+
+Tue Jun  1 23:01:15 EDT 2021	EDTA final stage finished! You may check out:
+				The final EDTA TE library: TAIR10_chr_main_chromosomes.fas.mod.EDTA.TElib.fa
+Tue Jun  1 23:01:15 EDT 2021	Perform post-EDTA analysis for whole-genome annotation:
+
+Tue Jun  1 23:01:15 EDT 2021	Homology-based annotation of TEs using TAIR10_chr_main_chromosomes.fas.mod.EDTA.TElib.fa from scratch.
+
+Tue Jun  1 23:04:10 EDT 2021	TE annotation using the EDTA library has finished! Check out:
+				Whole-genome TE annotation (total TE: 14.91%): TAIR10_chr_main_chromosomes.fas.mod.EDTA.TEanno.gff3
+				Whole-genome TE annotation summary: TAIR10_chr_main_chromosomes.fas.mod.EDTA.TEanno.sum
+				Low-threshold TE masking for MAKER gene annotation (masked: 7.61%): TAIR10_chr_main_chromosomes.fas.mod.MAKER.masked
+
