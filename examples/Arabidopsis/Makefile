@@ -9,9 +9,9 @@ DEV_DATA := $(realpath $(ROOT_DIR)/../../../TE_Density_Example_Data/Arabidopsis)
 DEV_ARAB_FASTA_DATA := $(DEV_DATA)/Sequences/TAIR10_chr_main_chromosomes.fas
 DEV_ARAB_GENES := $(DEV_DATA)/Genes/TAIR10_GFF3_genes_main_chromosomes.gff
 DEV_ARAB_TEs := $(DEV_DATA)/TEs/TAIR10_chr_main_chromosomes.fas.mod.EDTA.TEanno.gff3
-#DEV_FILTERED := $(realpath $(ROOT_DIR)/../../../TE_Data/filtered_input_data)
-#DEV_HDF5 := $(realpath $(ROOT_DIR)/../../../TE_Data/finalized_data/10KB)
-#DEV_RESULTS:= $(realpath $(ROOT_DIR)/results)
+DEV_FILTERED := $(realpath $(ROOT_DIR)/../../../TE_Data/filtered_input_data)
+DEV_HDF5 := $(realpath $(ROOT_DIR)/../../../TE_Data/finalized_data/10KB/Arabidopsis)
+DEV_RESULTS:= $(realpath $(ROOT_DIR)/results)
 
 .PHONY: create_CDS fix_fasta_names fix_CDS_names
 
@@ -37,3 +37,8 @@ run_TE_Density_HPCC:
 	@echo Running TE Density for Glaberrima
 	@echo sbatch file contains paths inside
 	sbatch $(ROOT_DIR)/src/TE_Density_Arabidopsis.sb
+
+generate_dotplots:
+	@echo Generating TE density dotplot for Arabidopsis
+	mkdir -p $(DEV_RESULTS)/graphs
+	python $(ROOT_DIR)/src/graph.py $(DEV_HDF5)/Arabidopsis_Chr1.h5 $(DEV_FILTERED)/Cleaned_TAIR10_GFF3_genes_main_chromosomes.tsv 1 -o $(DEV_RESULTS)/graphs
