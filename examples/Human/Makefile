@@ -12,6 +12,10 @@ DEV_GENES := $(DEV_DATA)/Genes/gencode.v37.annotation.gff3
 DEV_TES := $(DEV_DATA)/TEs/Human_TEs.tsv
 DEV_PROD_CONF := $(ROOT_DIR)/../../config/production_run_config.ini
 
+DEV_FILTERED := $(realpath $(ROOT_DIR)/../../../TE_Data/filtered_input_data)
+DEV_HDF5 := $(realpath $(ROOT_DIR)/../../../TE_Data/finalized_data/10KB)
+DEV_RESULTS:= $(realpath $(ROOT_DIR)/results)
+
 create_CDS:
 	@echo
 	@echo Creating CDS from GFF and fasta file for Human 
@@ -50,6 +54,10 @@ filter_genes:
 filter_TEs:
 	python $(ROOT_DIR)/src/import_human_te_anno.py $(DEV_TES)
 
-
+examine_TE_levels:
+	@echo
+	python $(ROOT_DIR)/src/retrieve_info_of_genes.py $(DEV_HDF5)/Human/Human_Chrom_Subset_chr7.h5 $(DEV_FILTERED)/Cleaned_Chr7_13_Human_Genes.tsv 7 Human_Chr7 $(ROOT_DIR)/list_of_chr7_genes.txt
+	@echo
+	python $(ROOT_DIR)/src/retrieve_info_of_genes.py $(DEV_HDF5)/Human/Human_Chrom_Subset_chr13.h5 $(DEV_FILTERED)/Cleaned_Chr7_13_Human_Genes.tsv 13 Human_Chr13 $(ROOT_DIR)/list_of_chr13_genes.txt
 help:               ## Show this help.
 	fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
