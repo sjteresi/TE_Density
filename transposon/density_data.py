@@ -202,6 +202,31 @@ class DensityData:
                             te_type,
                         )
 
+    @classmethod
+    def verify_h5_cache(cls, h5_file, gene_data_instance, logger):
+        """
+        Verify that previously value swapped H5 values are saved to disk and import
+        those instead of swapping the values once more
+
+        Args:
+            h5_file (str): Path to string of TE density HDF5 file saved to disk
+            gene_data_instance (GeneData): An instance of GeneData
+            logger (logging.Logger):
+
+        Returns:
+            processed_density_data (DensityData): An instance of DensityData that
+            combines information from the TE density HDF5 data and GeneData
+        """
+        if os.path.exists(h5_file.replace(".h5", "_SenseSwapped.HDF5")):
+            logger.info("Previous sense swapped data exists, reading...")
+            processed_density_data = cls(
+                h5_file, gene_data_instance, logger, sense_swap=False
+            )
+        else:
+            logger.info("Writing new sense swapped DensityData...")
+            processed_density_data = cls(h5_file, gene_data_instance, logger)
+        return processed_density_data
+
     def _swap_strand_vals(self, gene_names):
         """Switch density values for the genes in which it is antisense due to
         the fact that antisense genes point in the opposite direction to sense
