@@ -1,0 +1,46 @@
+
+########################################################
+##### Extensive de-novo TE Annotator (EDTA) v1.9.7  ####
+##### Shujun Ou (shujun.ou.1@gmail.com)             ####
+########################################################
+
+
+
+Fri Mar 19 14:21:25 EDT 2021	Dependency checking:
+				All passed!
+
+Fri Mar 19 14:22:40 EDT 2021	The longest sequence ID in the genome contains 18 characters, which is longer than the limit (15)
+				Trying to reformat seq IDs...
+				Attempt 1...
+				Attempt 2...
+Fri Mar 19 14:23:25 EDT 2021	Seq ID conversion successful!
+
+	A CDS file /mnt/research/edgerpat_lab/Scotty/Blueberry_Data/Genome/Vacc_c_CoGe_CDS.fasta is provided via --cds. Please make sure this is the DNA sequence of coding regions only.
+
+Fri Mar 19 14:24:05 EDT 2021	Obtain raw TE libraries using various structure-based programs: 
+Fri Mar 19 14:24:24 EDT 2021	Obtain raw TE libraries finished.
+				All intact TEs found by EDTA: 
+					Vaccinium_corymbosum.faa.mod.EDTA.intact.fa
+					Vaccinium_corymbosum.faa.mod.EDTA.intact.gff3
+
+Fri Mar 19 14:24:24 EDT 2021	Perform EDTA advance filtering for raw TE candidates and generate the stage 1 library: 
+
+Fri Mar 19 16:50:16 EDT 2021	EDTA advance filtering finished.
+
+Fri Mar 19 16:50:16 EDT 2021	Perform EDTA final steps to generate a non-redundant comprehensive TE library:
+
+				Use RepeatModeler to identify any remaining TEs that are missed by structure-based methods.
+
+Mon Mar 22 05:38:12 EDT 2021	Clean up TE-related sequences in the CDS file with TEsorter:
+
+				Remove CDS-related sequences in the EDTA library:
+
+Mon Mar 22 09:24:38 EDT 2021	EDTA final stage finished! You may check out:
+				The final EDTA TE library: Vaccinium_corymbosum.faa.mod.EDTA.TElib.fa
+Mon Mar 22 09:24:38 EDT 2021	Perform post-EDTA analysis for whole-genome annotation:
+
+Mon Mar 22 17:03:06 EDT 2021	TE annotation using the EDTA library has finished! Check out:
+				Whole-genome TE annotation (total TE: 46.50%): Vaccinium_corymbosum.faa.mod.EDTA.TEanno.gff3
+				Whole-genome TE annotation summary: Vaccinium_corymbosum.faa.mod.EDTA.TEanno.sum
+				Low-threshold TE masking for MAKER gene annotation (masked: 14.91%): Vaccinium_corymbosum.faa.mod.MAKER.masked
+
