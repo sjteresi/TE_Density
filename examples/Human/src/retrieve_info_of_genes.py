@@ -16,30 +16,6 @@ from transposon.density_data import DensityData
 from transposon.import_filtered_genes import import_filtered_genes
 
 
-def verify_h5_cache(h5_file, gene_data_instance):
-    """
-    Verify that previously value swapped H5 values are saved to disk and import
-    those instead of swapping the values once more
-
-    Args:
-        h5_file (str): Path to string of TE density HDF5 file saved to disk
-        gene_data_instance (GeneData): An instance of GeneData
-
-    Returns:
-        processed_density_data (DensityData): An instance of DensityData that
-        combines information from the TE density HDF5 data and GeneData
-    """
-    if os.path.exists(h5_file.replace(".h5", "_SenseSwapped.HDF5")):
-        logger.info("Previous sense swapped data exists, reading...")
-        processed_density_data = DensityData(
-            h5_file, gene_data_instance, logger, sense_swap=False
-        )
-    else:
-        logger.info("Writing new sense swapped DensityData...")
-        processed_density_data = DensityData(h5_file, gene_data_instance, logger)
-    return processed_density_data
-
-
 if __name__ == "__main__":
     path_main = os.path.abspath(__file__)
     dir_main = os.path.dirname(path_main)
@@ -132,8 +108,8 @@ if __name__ == "__main__":
     )
 
     # Initialize DensityData obj
-    processed_density_data = verify_h5_cache(
-        args.te_density_hdf5_result, specific_chromosome_gene_data
+    processed_density_data = DensityData.verify_h5_cache(
+        args.te_density_hdf5_result, specific_chromosome_gene_data, logger
     )
 
     # Read list of genes file from user and begin printing output to console

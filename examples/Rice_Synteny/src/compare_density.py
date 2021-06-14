@@ -50,30 +50,6 @@ def read_ortholog_table(rice_ortholog_table):
     return dataframe
 
 
-def verify_h5_cache(h5_file, gene_data_instance):
-    """
-    Verify that previously value swapped H5 values are saved to disk and import
-    those instead of swapping the values once more
-
-    Args:
-        h5_file (str): Path to string of TE density HDF5 file saved to disk
-        gene_data_instance (GeneData): An instance of GeneData
-
-    Returns:
-        processed_density_data (DensityData): An instance of DensityData that
-        combines information from the TE density HDF5 data and GeneData
-    """
-    if os.path.exists(h5_file.replace(".h5", "_SenseSwapped.HDF5")):
-        logger.info("Previous sense swapped data exists, reading...")
-        processed_density_data = DensityData(
-            h5_file, gene_data_instance, logger, sense_swap=False
-        )
-    else:
-        logger.info("Writing new sense swapped DensityData...")
-        processed_density_data = DensityData(h5_file, gene_data_instance, logger)
-    return processed_density_data
-
-
 def save_ortholog_table(ortholog_table, filename, output_dir, logger):
     """
     Saves an ortholog table (pandas.DataFrame) to disk
@@ -435,9 +411,11 @@ if __name__ == "__main__":
     sativa_hdf5 = args.sativa_chromosome_1
     glaberrima_hdf5 = args.glaberrima_chromosome_1
 
-    processed_sativa_density_data = verify_h5_cache(sativa_hdf5, sativa_gene_data)
-    processed_glaberrima_density_data = verify_h5_cache(
-        glaberrima_hdf5, glaberrima_gene_data
+    processed_sativa_density_data = DensityData.verify_h5_cache(
+        sativa_hdf5, sativa_gene_data, logger
+    )
+    processed_glaberrima_density_data = DensityData.verify_h5_cache(
+        glaberrima_hdf5, glaberrima_gene_data, logger
     )
 
     syntelog_table_w_indices = identify_indices_of_syntelogs(

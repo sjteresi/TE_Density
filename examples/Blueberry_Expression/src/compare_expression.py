@@ -34,74 +34,16 @@ def supply_density_data_files(path_to_folder):
     Returns:
         raw_file_list (list of str): A list containing the absolute paths to
         each relevant H5 file of density data
-
-        processed_files (list of str): A list containing absolute paths to each
-        previously processed DensityData file
     """
     raw_file_list = []  # init empty list to store filenames
-    processed_file_list = []  # init empty list to store filenames
     for root, dirs, files in os.walk(path_to_folder):
         for a_file_object in files:
             # N.B very particular usage of abspath and join.
             a_file_object = os.path.abspath(os.path.join(root, a_file_object))
             if a_file_object.endswith(".h5"):  # MAGIC
                 raw_file_list.append(a_file_object)
-            if a_file_object.endswith("SenseSwapped.HDF5"):  # MAGIC
-                processed_file_list.append(a_file_object)
 
-    return (raw_file_list, processed_file_list)
-
-
-def verify_sense_swapped_files(
-    density_files, processed_density_files, gene_data_list, logger
-):
-    """
-    Return a list of DensityData objects for a given set of TE density (raw
-    HDF5) files. Initializes multiple objects
-
-    Args:
-        density_files (list of str): A list of str paths to the raw h5 output
-        from the TE density tool
-
-        processed_density_files (list of str): A list of str paths to the
-        previously processed density data
-
-        gene_data_list (list of str): A list of GeneData instances
-
-        logger (logging.Logger)
-    """
-    density_data = []
-    if len(density_files) == len(processed_density_files):
-        for filename in processed_density_files:
-            current_hdf5_file_chromosome = re.search(
-                "Vacc_Cory_(.*?)_SenseSwapped.HDF5", filename
-            ).group(
-                1
-            )  # MAGIC
-            for gene_data_obj in gene_data_list:
-                if gene_data_obj.chromosome_unique_id == current_hdf5_file_chromosome:
-                    logger.info(
-                        "Initializing DensityData from previously processed file %s"
-                        % filename
-                    )
-                    prev_processed_density_data = DensityData(
-                        filename, gene_data_obj, logger, sense_swap=False
-                    )
-                    density_data.append(prev_processed_density_data)
-    else:
-        for filename in density_files:
-            current_hdf5_file_chromosome = re.search(
-                "Vacc_Cory_(.*?).h5", filename
-            ).group(1)
-            # MAGIC
-            for gene_data_obj in gene_data_list:
-                if gene_data_obj.chromosome_unique_id == current_hdf5_file_chromosome:
-                    logger.info("Initializing DensityData from raw file %s" % filename)
-                    prev_processed_density_data = DensityData(
-                        filename, gene_data_obj, logger, sense_swap=False
-                    )
-                    density_data.append(prev_processed_density_data)
-    return density_data
+    return raw_file_list
 
 
 def read_TPM_matrix(tpm_matrix_file):
@@ -370,14 +312,18 @@ if __name__ == "__main__":
         GeneData(dataframe, dataframe["Chromosome"].unique()[0])
         for dataframe in gene_dataframe_list
     ]
-
-    # MAGIC tuple for files
-    density_files = supply_density_data_files(args.density_data_folder)[0]
-    processed_density_files = supply_density_data_files(args.density_data_folder)[1]
-
-    processed_dd_data = verify_sense_swapped_files(
-        density_files, processed_density_files, gene_data_list, logger
-    )
+    processed_dd_data = []
+    for raw_hdf5_data_file in supply_density_data_files(args.density_data_folder):
+        current_hdf5_file_chromosome = re.search(
+            "Vacc_Cory_(.*?).h5", raw_hdf5_data_file
+        ).group(1)
+        # MAGIC
+        for gene_data_obj in gene_data_list:
+            if gene_data_obj.chromosome_unique_id == current_hdf5_file_chromosome:
+                dd_data_obj = DensityData.verify_h5_cache(
+                    raw_hdf5_data_file, gene_data_obj, logger
+                )
+                processed_dd_data.append(dd_data_obj)
 
     # NOTE at this point I have a list of initialized DensityData (chromosome
     # level) and one large expression matrix (all chromosomes). But the

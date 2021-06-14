@@ -205,6 +205,7 @@ class DensityData:
     @classmethod
     def verify_h5_cache(cls, h5_file, gene_data_instance, logger):
         """
+        Constructor
         Verify that previously value swapped H5 values are saved to disk and import
         those instead of swapping the values once more
 
