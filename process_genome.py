@@ -238,7 +238,7 @@ if __name__ == "__main__":
         default=os.path.join(output_default, "tmp", "overlap"),
         help="temporary directory for overlap files",
     )
-     
+
     parser.add_argument(
         "--single_process",
         action="store_true",

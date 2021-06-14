@@ -14,7 +14,6 @@ from io import StringIO
 
 from transposon.gene_data import GeneData
 from transposon.gene_datum import GeneDatum
-from transposon.import_genes import import_genes
 
 # pytestmark = pytest.mark.skip  # skip all tests in this file
 

@@ -89,13 +89,8 @@ class PreProcessor:
         self.revised_dir = revised_dir
 
         self.gene_in = str(gene_file)
-        self.gene_out = self._processed_filename(
-            self.gene_in, self.filtered_dir, self.CLEAN_PREFIX
-        )
+
         self.te_in = str(transposon_file)
-        self.te_out = self._processed_filename(
-            self.te_in, self.filtered_dir, self.CLEAN_PREFIX
-        )
         self.te_revised = self._processed_filename(
             self.te_in, self.revised_dir, self.REVISED_PREFIX
         )
@@ -172,7 +167,7 @@ class PreProcessor:
 
         # NB this does not create any GeneData
         gene_data_unwrapped = verify_gene_cache(
-            self.gene_in, self.gene_out, self.contiguous_delete, self._logger
+            self.gene_in, self._logger
         )
         return gene_data_unwrapped
 
@@ -186,9 +181,6 @@ class PreProcessor:
         # NB this does not create any TransposonData
         te_data_unwrapped = verify_TE_cache(
             self.te_in,
-            self.te_out,
-            te_annot_renamer,
-            self.contiguous_delete,
             self._logger,
         )
         return te_data_unwrapped

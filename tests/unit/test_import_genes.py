@@ -12,8 +12,6 @@ import numpy as np
 import pandas as pd
 from io import StringIO
 
-from import_scripts.import_strawberry_gene_anno import import_genes
-
 
 col_names = [
     "Chromosome",

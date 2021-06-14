@@ -82,3 +82,19 @@ def read_vlen_str_h5py(h5file, dataset_key):
     """
 
     return h5file[dataset_key][:].tolist()
+
+
+def check_nulls(my_df, logger):
+    """
+    Check for rows with an null values in the supplied Pandas DataFrame
+
+    Args:
+        my_df (Pandas DataFrame):
+
+        logger ():
+
+    """
+    # NB check for NAN and report to user
+    nas = my_df[my_df.isna().any(axis=1)]
+    if not nas.empty:
+        logger.warning("Rows where null exist: %s" % nas)

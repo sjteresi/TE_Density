@@ -1,0 +1,201 @@
+
+########################################################
+##### Extensive de-novo TE Annotator (EDTA) v1.9.7  ####
+##### Shujun Ou (shujun.ou.1@gmail.com)             ####
+########################################################
+
+
+
+Fri Apr 16 18:42:15 EDT 2021	Dependency checking:
+				All passed!
+
+	A CDS file /mnt/research/edgerpat_lab/Scotty/TE_Density_Example_Data/Rice/Oryza_Sativa/Sequences/Oryza_Sativa_CDS_NewNames.fasta is provided via --cds. Please make sure this is the DNA sequence of coding regions only.
+
+Fri Apr 16 18:42:39 EDT 2021	Obtain raw TE libraries using various structure-based programs: 
+Fri Apr 16 18:42:39 EDT 2021	EDTA_raw: Check dependencies, prepare working directories.
+
+Fri Apr 16 18:42:46 EDT 2021	Start to find LTR candidates.
+
+Fri Apr 16 18:42:46 EDT 2021	Identify LTR retrotransposon candidates from scratch.
+
+Fri Apr 16 19:24:34 EDT 2021	Finish finding LTR candidates.
+
+Fri Apr 16 19:24:34 EDT 2021	Start to find TIR candidates.
+
+Fri Apr 16 19:24:34 EDT 2021	Identify TIR candidates from scratch.
+
+Species: others
+Fri Apr 16 22:44:38 EDT 2021	Finish finding TIR candidates.
+
+Fri Apr 16 22:44:38 EDT 2021	Start to find Helitron candidates.
+
+Fri Apr 16 22:44:38 EDT 2021	Identify Helitron candidates from scratch.
+
+Sat Apr 17 02:10:32 EDT 2021	Finish finding Helitron candidates.
+
+Sat Apr 17 02:10:32 EDT 2021	Execution of EDTA_raw.pl is finished!
+
+Sat Apr 17 02:10:33 EDT 2021	Obtain raw TE libraries finished.
+				All intact TEs found by EDTA: 
+					Oryza_Sativa_NewNames.fasta.mod.EDTA.intact.fa
+					Oryza_Sativa_NewNames.fasta.mod.EDTA.intact.gff3
+
+Sat Apr 17 02:10:33 EDT 2021	Perform EDTA advance filtering for raw TE candidates and generate the stage 1 library: 
+
+Sat Apr 17 04:07:51 EDT 2021	EDTA advance filtering finished.
+
+Sat Apr 17 04:07:51 EDT 2021	Perform EDTA final steps to generate a non-redundant comprehensive TE library:
+
+				Use RepeatModeler to identify any remaining TEs that are missed by structure-based methods.
+
+2021-04-17 17:25:25,070 -WARNING- Grid computing is not available because DRMAA not configured properly: Could not find drmaa library.  Please specify its full path using the environment variable DRMAA_LIBRARY_PATH
+2021-04-17 17:25:25,177 -INFO- VARS: {'sequence': 'Oryza_Sativa_NewNames.fasta.mod.RM.consensi.fa', 'hmm_database': 'rexdb', 'seq_type': 'nucl', 'prefix': 'Oryza_Sativa_NewNames.fasta.mod.RM.consensi.fa.rexdb', 'force_write_hmmscan': False, 'processors': 25, 'tmp_dir': './tmp', 'min_coverage': 20, 'max_evalue': 0.001, 'disable_pass2': False, 'pass2_rule': '80-80-80', 'no_library': False, 'no_reverse': False, 'no_cleanup': False, 'p2_identity': 80.0, 'p2_coverage': 80.0, 'p2_length': 80.0}
+2021-04-17 17:25:25,178 -INFO- checking dependencies:
+2021-04-17 17:25:25,291 -INFO- hmmer	3.3.1	OK
+2021-04-17 17:25:25,485 -INFO- blastn	2.10.0+	OK
+2021-04-17 17:25:25,491 -INFO- check database rexdb
+2021-04-17 17:25:25,491 -INFO- db path: /mnt/ufs18/home-115/teresisc/anaconda3/envs/EDTA/lib/python3.6/site-packages/TEsorter/database
+2021-04-17 17:25:25,492 -INFO- db file: REXdb_protein_database_viridiplantae_v3.0_plus_metazoa_v3.hmm
+2021-04-17 17:25:25,494 -INFO- REXdb_protein_database_viridiplantae_v3.0_plus_metazoa_v3.hmm	OK
+2021-04-17 17:25:25,495 -INFO- Start classifying pipeline
+2021-04-17 17:25:25,744 -INFO- total 346 sequences
+2021-04-17 17:25:25,745 -INFO- translating `Oryza_Sativa_NewNames.fasta.mod.RM.consensi.fa` in six frames
+/mnt/home/teresisc/anaconda3/envs/EDTA/lib/python3.6/site-packages/Bio/Seq.py:2338: BiopythonWarning: Partial codon, len(sequence) not a multiple of three. Explicitly trim the sequence or add trailing N before translation. This may become an error in future.
+  BiopythonWarning,
+2021-04-17 17:25:26,462 -INFO- HMM scanning against `/mnt/ufs18/home-115/teresisc/anaconda3/envs/EDTA/lib/python3.6/site-packages/TEsorter/database/REXdb_protein_database_viridiplantae_v3.0_plus_metazoa_v3.hmm`
+2021-04-17 17:25:26,532 -INFO- Creating server instance (pp-1.6.4.4)
+2021-04-17 17:25:26,532 -INFO- Running on Python 3.6.12 linux
+2021-04-17 17:25:29,896 -INFO- pp local server started with 25 workers
+2021-04-17 17:25:30,002 -INFO- Task 0 started
+2021-04-17 17:25:30,003 -INFO- Task 1 started
+2021-04-17 17:25:30,004 -INFO- Task 2 started
+2021-04-17 17:25:30,005 -INFO- Task 3 started
+2021-04-17 17:25:30,005 -INFO- Task 4 started
+2021-04-17 17:25:30,006 -INFO- Task 5 started
+2021-04-17 17:25:30,006 -INFO- Task 6 started
+2021-04-17 17:25:30,007 -INFO- Task 7 started
+2021-04-17 17:25:30,007 -INFO- Task 8 started
+2021-04-17 17:25:30,008 -INFO- Task 9 started
+2021-04-17 17:25:30,008 -INFO- Task 10 started
+2021-04-17 17:25:30,009 -INFO- Task 11 started
+2021-04-17 17:25:30,009 -INFO- Task 12 started
+2021-04-17 17:25:30,010 -INFO- Task 13 started
+2021-04-17 17:25:30,011 -INFO- Task 14 started
+2021-04-17 17:25:30,012 -INFO- Task 15 started
+2021-04-17 17:25:30,012 -INFO- Task 16 started
+2021-04-17 17:25:30,013 -INFO- Task 17 started
+2021-04-17 17:25:30,013 -INFO- Task 18 started
+2021-04-17 17:25:30,014 -INFO- Task 19 started
+2021-04-17 17:25:30,014 -INFO- Task 20 started
+2021-04-17 17:25:30,015 -INFO- Task 21 started
+2021-04-17 17:25:30,015 -INFO- Task 22 started
+2021-04-17 17:25:30,016 -INFO- Task 23 started
+2021-04-17 17:25:30,017 -INFO- Task 24 started
+2021-04-17 17:25:42,884 -INFO- generating gene anntations
+2021-04-17 17:25:42,926 -INFO- 19 sequences classified by HMM
+2021-04-17 17:25:42,926 -INFO- see protein domain sequences in `Oryza_Sativa_NewNames.fasta.mod.RM.consensi.fa.rexdb.dom.faa` and annotation gff3 file in `Oryza_Sativa_NewNames.fasta.mod.RM.consensi.fa.rexdb.dom.gff3`
+2021-04-17 17:25:42,927 -INFO- classifying the unclassified sequences by searching against the classified ones
+2021-04-17 17:25:42,950 -INFO- using the 80-80-80 rule
+2021-04-17 17:25:42,951 -INFO- run CMD: `makeblastdb -in ./tmp/pass1_classified.fa -dbtype nucl`
+2021-04-17 17:25:43,271 -INFO- run CMD: `blastn -query ./tmp/pass1_unclassified.fa -db ./tmp/pass1_classified.fa -out ./tmp/pass1_unclassified.fa.blastout -outfmt '6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen qcovs qcovhsp sstrand' -num_threads 25`
+2021-04-17 17:25:43,630 -INFO- 0 sequences classified in pass 2
+2021-04-17 17:25:43,631 -INFO- total 19 sequences classified.
+2021-04-17 17:25:43,631 -INFO- see classified sequences in `Oryza_Sativa_NewNames.fasta.mod.RM.consensi.fa.rexdb.cls.tsv`
+2021-04-17 17:25:43,632 -INFO- writing library for RepeatMasker in `Oryza_Sativa_NewNames.fasta.mod.RM.consensi.fa.rexdb.cls.lib`
+2021-04-17 17:25:43,660 -INFO- writing classified protein domains in `Oryza_Sativa_NewNames.fasta.mod.RM.consensi.fa.rexdb.cls.pep`
+2021-04-17 17:25:43,666 -INFO- Summary of classifications:
+Order           Superfamily      # of Sequences# of Clade Sequences    # of Clades# of full Domains
+LTR             Gypsy                         1              1              1              0
+LINE            unknown                      15              0              0              0
+TIR             MuDR_Mutator                  2              0              0              0
+TIR             PIF_Harbinger                 1              0              0              0
+2021-04-17 17:25:43,667 -INFO- Pipeline done.
+2021-04-17 17:25:43,667 -INFO- cleaning the temporary directory ./tmp
+Sat Apr 17 17:49:43 EDT 2021	Clean up TE-related sequences in the CDS file with TEsorter:
+
+2021-04-17 17:49:46,288 -WARNING- Grid computing is not available because DRMAA not configured properly: Could not find drmaa library.  Please specify its full path using the environment variable DRMAA_LIBRARY_PATH
+2021-04-17 17:49:46,302 -INFO- VARS: {'sequence': 'Oryza_Sativa_CDS_NewNames.fasta.code', 'hmm_database': 'rexdb', 'seq_type': 'nucl', 'prefix': 'Oryza_Sativa_CDS_NewNames.fasta.code.rexdb', 'force_write_hmmscan': False, 'processors': 25, 'tmp_dir': './tmp', 'min_coverage': 20, 'max_evalue': 0.001, 'disable_pass2': False, 'pass2_rule': '80-80-80', 'no_library': False, 'no_reverse': False, 'no_cleanup': False, 'p2_identity': 80.0, 'p2_coverage': 80.0, 'p2_length': 80.0}
+2021-04-17 17:49:46,303 -INFO- checking dependencies:
+2021-04-17 17:49:46,326 -INFO- hmmer	3.3.1	OK
+2021-04-17 17:49:46,433 -INFO- blastn	2.10.0+	OK
+2021-04-17 17:49:46,440 -INFO- check database rexdb
+2021-04-17 17:49:46,441 -INFO- db path: /mnt/ufs18/home-115/teresisc/anaconda3/envs/EDTA/lib/python3.6/site-packages/TEsorter/database
+2021-04-17 17:49:46,441 -INFO- db file: REXdb_protein_database_viridiplantae_v3.0_plus_metazoa_v3.hmm
+2021-04-17 17:49:46,442 -INFO- REXdb_protein_database_viridiplantae_v3.0_plus_metazoa_v3.hmm	OK
+2021-04-17 17:49:46,443 -INFO- Start classifying pipeline
+2021-04-17 17:49:46,892 -INFO- total 42355 sequences
+2021-04-17 17:49:46,893 -INFO- translating `Oryza_Sativa_CDS_NewNames.fasta.code` in six frames
+/mnt/home/teresisc/anaconda3/envs/EDTA/lib/python3.6/site-packages/Bio/Seq.py:2338: BiopythonWarning: Partial codon, len(sequence) not a multiple of three. Explicitly trim the sequence or add trailing N before translation. This may become an error in future.
+  BiopythonWarning,
+2021-04-17 17:50:52,788 -INFO- HMM scanning against `/mnt/ufs18/home-115/teresisc/anaconda3/envs/EDTA/lib/python3.6/site-packages/TEsorter/database/REXdb_protein_database_viridiplantae_v3.0_plus_metazoa_v3.hmm`
+2021-04-17 17:50:56,920 -INFO- Creating server instance (pp-1.6.4.4)
+2021-04-17 17:50:56,921 -INFO- Running on Python 3.6.12 linux
+2021-04-17 17:51:00,734 -INFO- pp local server started with 25 workers
+2021-04-17 17:51:00,809 -INFO- Task 0 started
+2021-04-17 17:51:00,811 -INFO- Task 1 started
+2021-04-17 17:51:00,812 -INFO- Task 2 started
+2021-04-17 17:51:00,812 -INFO- Task 3 started
+2021-04-17 17:51:00,813 -INFO- Task 4 started
+2021-04-17 17:51:00,813 -INFO- Task 5 started
+2021-04-17 17:51:00,814 -INFO- Task 6 started
+2021-04-17 17:51:00,815 -INFO- Task 7 started
+2021-04-17 17:51:00,816 -INFO- Task 8 started
+2021-04-17 17:51:00,816 -INFO- Task 9 started
+2021-04-17 17:51:00,817 -INFO- Task 10 started
+2021-04-17 17:51:00,818 -INFO- Task 11 started
+2021-04-17 17:51:00,818 -INFO- Task 12 started
+2021-04-17 17:51:00,818 -INFO- Task 13 started
+2021-04-17 17:51:00,819 -INFO- Task 14 started
+2021-04-17 17:51:00,819 -INFO- Task 15 started
+2021-04-17 17:51:00,820 -INFO- Task 16 started
+2021-04-17 17:51:00,821 -INFO- Task 17 started
+2021-04-17 17:51:00,821 -INFO- Task 18 started
+2021-04-17 17:51:00,822 -INFO- Task 19 started
+2021-04-17 17:51:00,823 -INFO- Task 20 started
+2021-04-17 17:51:00,823 -INFO- Task 21 started
+2021-04-17 17:51:00,823 -INFO- Task 22 started
+2021-04-17 17:51:00,824 -INFO- Task 23 started
+2021-04-17 17:51:00,825 -INFO- Task 24 started
+2021-04-17 18:16:24,171 -INFO- generating gene anntations
+2021-04-17 18:16:28,189 -INFO- 466 sequences classified by HMM
+2021-04-17 18:16:28,189 -INFO- see protein domain sequences in `Oryza_Sativa_CDS_NewNames.fasta.code.rexdb.dom.faa` and annotation gff3 file in `Oryza_Sativa_CDS_NewNames.fasta.code.rexdb.dom.gff3`
+2021-04-17 18:16:28,190 -INFO- classifying the unclassified sequences by searching against the classified ones
+2021-04-17 18:16:29,921 -INFO- using the 80-80-80 rule
+2021-04-17 18:16:29,922 -INFO- run CMD: `makeblastdb -in ./tmp/pass1_classified.fa -dbtype nucl`
+2021-04-17 18:16:31,022 -INFO- run CMD: `blastn -query ./tmp/pass1_unclassified.fa -db ./tmp/pass1_classified.fa -out ./tmp/pass1_unclassified.fa.blastout -outfmt '6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen qcovs qcovhsp sstrand' -num_threads 25`
+2021-04-17 18:16:43,919 -INFO- 99 sequences classified in pass 2
+2021-04-17 18:16:43,925 -INFO- total 565 sequences classified.
+2021-04-17 18:16:43,925 -INFO- see classified sequences in `Oryza_Sativa_CDS_NewNames.fasta.code.rexdb.cls.tsv`
+2021-04-17 18:16:43,926 -INFO- writing library for RepeatMasker in `Oryza_Sativa_CDS_NewNames.fasta.code.rexdb.cls.lib`
+2021-04-17 18:16:45,346 -INFO- writing classified protein domains in `Oryza_Sativa_CDS_NewNames.fasta.code.rexdb.cls.pep`
+2021-04-17 18:16:45,374 -INFO- Summary of classifications:
+Order           Superfamily      # of Sequences# of Clade Sequences    # of Clades# of full Domains
+LTR             Bel-Pao                       4              0              0              0
+LTR             Copia                        68             54             10              2
+LTR             Gypsy                        95             84             16              1
+LTR             Retrovirus                    8              0              0              0
+DIRS            unknown                       1              0              0              0
+LINE            unknown                      43              0              0              0
+TIR             EnSpm_CACTA                  11              0              0              0
+TIR             MuDR_Mutator                 75              0              0              0
+TIR             PIF_Harbinger                47              0              0              0
+TIR             Tc1_Mariner                   1              0              0              0
+TIR             hAT                          72              0              0              0
+Helitron        unknown                      10              0              0              0
+Maverick        unknown                     128              0              0              0
+mixture         mixture                       2              0              0              0
+2021-04-17 18:16:45,375 -INFO- Pipeline done.
+2021-04-17 18:16:45,376 -INFO- cleaning the temporary directory ./tmp
+				Remove CDS-related sequences in the EDTA library:
+
+Sat Apr 17 19:50:55 EDT 2021	EDTA final stage finished! You may check out:
+				The final EDTA TE library: Oryza_Sativa_NewNames.fasta.mod.EDTA.TElib.fa
+Sat Apr 17 19:50:55 EDT 2021	Perform post-EDTA analysis for whole-genome annotation:
+
+Sat Apr 17 19:50:55 EDT 2021	Homology-based annotation of TEs using Oryza_Sativa_NewNames.fasta.mod.EDTA.TElib.fa from scratch.
+
+Sat Apr 17 22:01:39 EDT 2021	TE annotation using the EDTA library has finished! Check out:
+				Whole-genome TE annotation (total TE: 49.46%): Oryza_Sativa_NewNames.fasta.mod.EDTA.TEanno.gff3
+				Whole-genome TE annotation summary: Oryza_Sativa_NewNames.fasta.mod.EDTA.TEanno.sum
+				Low-threshold TE masking for MAKER gene annotation (masked: 23.84%): Oryza_Sativa_NewNames.fasta.mod.MAKER.masked
+

@@ -9,9 +9,9 @@ __author__ = "Scott Teresi"
 import os
 import sys
 import pandas as pd
-from transposon.import_genes import import_genes
-from transposon.import_transposons import import_transposons
 from transposon.revise_annotation import Revise_Anno
+from transposon.import_filtered_genes import import_filtered_genes
+from transposon.import_filtered_TEs import import_filtered_TEs
 
 
 def verify_chromosome_h5_cache(
@@ -92,109 +92,41 @@ def verify_chromosome_h5_cache(
         )
 
 
-def verify_TE_cache(
-    tes_input_file, cleaned_transposons, te_annot_renamer, contig_del, logger
-):
-    """Determine whether or not previously filtered TE data exists, if it
-    does, read it from disk. If it does not, read the raw annotation file and
-    make a filtered dataset for future import.
+def verify_TE_cache(tes_input_file, logger):
+
+    """Read a preprocessed/filtered TE annotation file from disk; return a
+    pandaframe of the file, no modifications are made to the data.
 
     Args:
         tes_input_file (str): A command line argument, this is the location
-            of the TE annotation file.
-
-        cleaned_tranposons (str): A string representing the path of a previously
-            filtered TE file via import_transposons().
-
-        te_annot_renamer (function containing a dictionary and other methods):
-            imported from separate file within the repository. This file
-            performs the more specific filtering steps on the TEs such as
-            changing the annotation details for specific TE types.
-
-        contig_del (bool): A boolean of whether to remove contigs on import
+            of the processed TE annotation file.
 
     Returns:
-        te_data (pandaframe): A pandas dataframe of the TE data
+        te_data (pandas.DataFrame): A pandas dataframe of the TE data
     """
-
-    logger.info("TransposonData cache: %s" % cleaned_transposons)
-
-    if os.path.exists(cleaned_transposons):
-        te_annot_time = os.path.getmtime(tes_input_file)
-        cleaned_te_time = os.path.getmtime(cleaned_transposons)
-        if te_annot_time > cleaned_te_time:
-            logger.info("filtered TEs are old: %s" % cleaned_transposons)
-            logger.info("reload annotation:    %s" % tes_input_file)
-            te_data = import_transposons(
-                tes_input_file, te_annot_renamer, contig_del, logger
-            )
-            te_data.sort_values(by=["Chromosome", "Start"], inplace=True)
-            te_data.to_csv(cleaned_transposons, sep="\t", header=True, index=False)
-        else:
-            logger.info("load filtered TE: %s" % cleaned_transposons)
-            te_data = pd.read_csv(
-                cleaned_transposons,
-                header="infer",
-                dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
-                sep="\t",
-            )
-    else:
-        logger.info("filtered TEs DNE...")
-        logger.info("load unfiltered TEs: %s" % tes_input_file)
-        te_data = import_transposons(
-            tes_input_file, te_annot_renamer, contig_del, logger
-        )
-        te_data.sort_values(by=["Chromosome", "Start"], inplace=True)
-        te_data.to_csv(cleaned_transposons, sep="\t", header=True, index=False)
+    logger.info("Reading pre-filtered TE annotation file %s" % tes_input_file)
+    te_data = import_filtered_TEs(tes_input_file, logger)
     return te_data
 
 
-def verify_gene_cache(genes_input_file, cleaned_genes, contig_del, logger):
-    """Determine whether or not previously filtered gene data exists, if it
-    does, read it from disk. If it does not, read the raw annotation file and
-    make a filtered dataset for future import.
+def verify_gene_cache(genes_input_file, logger):
+    """Read a preprocessed/filtered gene annotation file from disk; return a
+    pandaframe of the file, no modifications are made to the data.
 
     Args:
         genes_input_file (str): A command line argument, this is the location
-            of the gene annotation file.
-
-        cleaned_genes (str): A string representing the path of a previously
-            filtered gene file via import_genes().
-
-        contig_del (bool): A boolean of whether to remove contigs on import
+            of the processed gene annotation file.
 
     Returns:
         gene_data (pandas.DataFrame): the gene data container
     """
-    logger.debug("Reading input gene %s" % genes_input_file)
-    if os.path.exists(cleaned_genes):
-        gene_annot_time = os.path.getmtime(genes_input_file)
-        cleaned_gene_time = os.path.getmtime(cleaned_genes)
-        if gene_annot_time > cleaned_gene_time:
-            logger.info("updating gene cache: %s" % cleaned_genes)
-            gene_data = import_genes(genes_input_file, contig_del)
-            gene_data.sort_values(by=["Chromosome", "Start"], inplace=True)
-            gene_data.to_csv(cleaned_genes, sep="\t", header=True, index=True)
-
-        else:
-            logger.info("load filtered genes: %s" % cleaned_genes)
-            gene_data = pd.read_csv(
-                cleaned_genes,
-                header="infer",
-                sep="\t",
-                dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
-                index_col="Gene_Name",
-            )
-    else:
-        logger.info("no cache, read gene dataset: %s" % genes_input_file)
-        gene_data = import_genes(genes_input_file, contig_del)
-        gene_data.sort_values(by=["Chromosome", "Start"], inplace=True)
-        gene_data.to_csv(cleaned_genes, sep="\t", header=True, index=True)
+    logger.info("Reading pre-filtered gene annotation file %s" % genes_input_file)
+    gene_data = import_filtered_genes(genes_input_file, logger)
     return gene_data
 
 
 def revise_annotation(
-    TE_Data, revise_anno, revised_transposons_loc, revised_cache_loc, logger, genome_id
+    te_data, revise_anno, revised_transposons_loc, revised_cache_loc, logger, genome_id
 ):
     """Remove overlapping elements of the same type.
 
@@ -207,7 +139,7 @@ def revise_annotation(
     accurately assessing density and obfuscate the density results.
 
     Args:
-        TE_Data (pandas.core.DataFrame): A PandaFrame of the TE data,
+        te_data (pandas.core.DataFrame): A PandaFrame of the TE data,
         previously imported from raw and filtered or imported from a previously
         filtered data file that was saved to disk.
 
@@ -224,27 +156,22 @@ def revise_annotation(
         genome_id (str): String of the genome ID
 
     Returns:
-        TE_Data (pandaframe): A pandas dataframe of the TE data
+        te_data (pandaframe): A pandas dataframe of the TE data
     """
 
     if os.path.exists(revised_transposons_loc) and not revise_anno:
         logger.info("load revised TE: %s" % revised_transposons_loc)
-        TE_Data = pd.read_csv(
-            revised_transposons_loc,
-            header="infer",
-            dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
-            sep="\t",
-        )
+        te_data = import_filtered_TEs(revised_transposons_loc, logger)
     else:
         logger.info("creating revised TE dataset...")
         logger.info("revising the TE dataset will take a long time!")
         # N.B we want higher recursion limit for the code
         sys.setrecursionlimit(11 ** 6)
-        revised_TE_Data = Revise_Anno(TE_Data, revised_cache_loc, genome_id)
-        revised_TE_Data.create_superfam()
-        revised_TE_Data.create_order()
-        revised_TE_Data.create_nameless()
+        revised_te_data = Revise_Anno(te_data, revised_cache_loc, genome_id)
+        revised_te_data.create_superfam()
+        revised_te_data.create_order()
+        revised_te_data.create_nameless()
         logger.info("write revised TE: %s" % revised_transposons_loc)
-        revised_TE_Data.save_updated_te_annotation(revised_transposons_loc)
-        TE_Data = revised_TE_Data.whole_te_annotation
-    return TE_Data
+        revised_te_data.save_updated_te_annotation(revised_transposons_loc)
+        te_data = revised_te_data.whole_te_annotation
+    return te_data
