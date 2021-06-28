@@ -41,4 +41,4 @@ run_TE_Density_HPCC:
 generate_dotplots:
 	@echo Generating TE density dotplot for Arabidopsis
 	mkdir -p $(DEV_RESULTS)/graphs
-	python $(ROOT_DIR)/src/graph.py $(DEV_HDF5)/Arabidopsis_Chr1.h5 $(DEV_FILTERED)/Cleaned_TAIR10_GFF3_genes_main_chromosomes.tsv 1 -o $(DEV_RESULTS)/graphs
+	python $(ROOT_DIR)/src/generate_dotplots.py $(DEV_HDF5)/Arabidopsis_Chr1.h5 $(DEV_FILTERED)/Cleaned_TAIR10_GFF3_genes_main_chromosomes.tsv 1 -o $(DEV_RESULTS)/graphs

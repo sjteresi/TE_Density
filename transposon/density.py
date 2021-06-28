@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# TODO candidate for deletion
+
 """
 Calculate transposable element density.
 """
@@ -224,7 +226,7 @@ def rho_right_window(gene_data, gene_name, transposon_data, window):
 
 
 def init_empty_densities(my_genes, my_tes, window):
-    """Initializes all of the empty columns we need in the gene file. """
+    """Initializes all of the empty columns we need in the gene file."""
 
     # NOTE This function is a candidate for deletion
     order_list = my_tes.Order.unique()

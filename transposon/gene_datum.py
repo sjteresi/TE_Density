@@ -164,22 +164,22 @@ class GeneDatum(object):
     def divisor_intra(self, window):
         """Intronic density divisor for a gene for a window
 
-        Intronic calculations: Gene length, here we are considering intronic
+        Intronic calculations: Gene length, here we are considering intragenic
         TEs, so the relevant area is the gene length.
 
         Args:
             window (None): normally the # of base pairs given by the windowing
-            operation, here for intronic calculations it is None
+            operation, here for intragenic calculations it is None
 
         Returns:
             self.length (int): the relevant area for normalization required for
             density. This is the denominator for the density calculation. Gene
-            length for intronic calculations
+            length for intragenic calculations
         """
         if window is None:
             return self.length
         else:
-            msg = "window must be None for intronic calculations"
+            msg = "window must be None for intragenic calculations"
             self._logger.critical(msg)
             raise ValueError(msg)
 

@@ -206,6 +206,7 @@ def plot_expression_v_density_violin(
             x="Density_Bins",
             y=blueberry_ex_column,
             data=complete_df,
+            inner="box",
             color="skyblue",
         )
 

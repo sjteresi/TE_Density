@@ -286,7 +286,9 @@ class DensityData:
         sorted_order_left_indices = np.argsort(
             self.left_orders[:, window_idx, gene_index]
         )
-        sorted_order_intronic_indices = np.argsort(self.intra_orders[:, 0, gene_index])
+        sorted_order_intragenic_indices = np.argsort(
+            self.intra_orders[:, 0, gene_index]
+        )
         sorted_order_right_indices = np.argsort(
             self.right_orders[:, window_idx, gene_index]
         )
@@ -295,7 +297,9 @@ class DensityData:
         sorted_super_left_indices = np.argsort(
             self.left_supers[:, window_idx, gene_index]
         )
-        sorted_super_intronic_indices = np.argsort(self.intra_supers[:, 0, gene_index])
+        sorted_super_intragenic_indices = np.argsort(
+            self.intra_supers[:, 0, gene_index]
+        )
         sorted_super_right_indices = np.argsort(
             self.right_supers[:, window_idx, gene_index]
         )
@@ -306,7 +310,7 @@ class DensityData:
             sorted_order_left_indices
         ]
         sorted_order_intra = self.intra_orders[:, 0, gene_index][
-            sorted_order_intronic_indices
+            sorted_order_intragenic_indices
         ]
         sorted_order_right = self.right_orders[:, window_idx, gene_index][
             sorted_order_right_indices
@@ -316,7 +320,7 @@ class DensityData:
             sorted_super_left_indices
         ]
         sorted_super_intra = self.intra_supers[:, 0, gene_index][
-            sorted_super_intronic_indices
+            sorted_super_intragenic_indices
         ]
         sorted_super_right = self.right_supers[:, window_idx, gene_index][
             sorted_super_right_indices
@@ -337,8 +341,8 @@ class DensityData:
             Upstream:
                 {np.array(self.order_list)[sorted_order_left_indices[-n_te_types:]]}
                 {sorted_order_left[-n_te_types:]}
-            Intronic:
-                {np.array(self.order_list)[sorted_order_intronic_indices[-n_te_types:]]}
+            Intragenic:
+                {np.array(self.order_list)[sorted_order_intragenic_indices[-n_te_types:]]}
                 {sorted_order_intra[-n_te_types:]}
             Downstream:
                 {np.array(self.order_list)[sorted_order_right_indices[-n_te_types:]]}
@@ -348,8 +352,8 @@ class DensityData:
             Upstream:
                 {np.array(self.order_list)[sorted_order_left_indices[:n_te_types]]}
                 {sorted_order_left[:n_te_types]}
-            Intronic:
-                {np.array(self.order_list)[sorted_order_intronic_indices[:n_te_types]]}
+            Intragenic:
+                {np.array(self.order_list)[sorted_order_intragenic_indices[:n_te_types]]}
                 {sorted_order_intra[:n_te_types]}
             Downstream:
                 {np.array(self.order_list)[sorted_order_right_indices[:n_te_types]]}
@@ -361,8 +365,8 @@ class DensityData:
             Upstream:
                 {np.array(self.super_list)[sorted_super_left_indices[-n_te_types:]]}
                 {sorted_super_left[-n_te_types:]}
-            Intronic:
-                {np.array(self.super_list)[sorted_super_intronic_indices[-n_te_types:]]}
+            Intragenic:
+                {np.array(self.super_list)[sorted_super_intragenic_indices[-n_te_types:]]}
                 {sorted_super_intra[-n_te_types:]}
             Downstream:
                 {np.array(self.super_list)[sorted_super_right_indices[-n_te_types:]]}
@@ -372,8 +376,8 @@ class DensityData:
             Upstream:
                 {np.array(self.super_list)[sorted_super_left_indices[:n_te_types]]}
                 {sorted_super_left[:n_te_types]}
-            Intronic:
-                {np.array(self.super_list)[sorted_super_intronic_indices[:n_te_types]]}
+            Intragenic:
+                {np.array(self.super_list)[sorted_super_intragenic_indices[:n_te_types]]}
                 {sorted_super_intra[:n_te_types]}
             Downstream:
                 {np.array(self.super_list)[sorted_super_right_indices[:n_te_types]]}

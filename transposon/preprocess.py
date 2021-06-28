@@ -16,7 +16,6 @@ from transposon import raise_if_no_file, raise_if_no_dir
 from transposon.gene_data import GeneData
 from transposon.transposon_data import TransposonData
 
-from transposon.replace_names import te_annot_renamer
 from transposon.verify_cache import (
     verify_chromosome_h5_cache,
     verify_TE_cache,
@@ -166,9 +165,7 @@ class PreProcessor:
         """
 
         # NB this does not create any GeneData
-        gene_data_unwrapped = verify_gene_cache(
-            self.gene_in, self._logger
-        )
+        gene_data_unwrapped = verify_gene_cache(self.gene_in, self._logger)
         return gene_data_unwrapped
 
     def _filter_transposons(self):
