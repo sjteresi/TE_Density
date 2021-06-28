@@ -41,9 +41,7 @@ run_EDTA_HPCC:
 
 ################################
 # NOTE all of the above is used for generating an EDTA annotation for Human
-# I have tried to not use that for my analyses, and instead rely on the community
-# annotations, however if I continue to have trouble with formatting the community
-# annotations I will utilize the EDTA version
+# I have not used the above code to generate an EDTA annotation, but am preserving it in the file for reference.
 ################################
 
 

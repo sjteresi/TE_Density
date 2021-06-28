@@ -63,7 +63,7 @@ def plot_intra_density(dd_obj, order_or_super, output_dir, display=False):
     # multiplots
     plt.xticks([0])
     plt.xlabel("Window Position in BP")
-    plt.ylabel("Intronic TE Density")
+    plt.ylabel("Intragenic TE Density")
 
     if order_or_super == "Order":
         plt.title("TE Orders")
@@ -119,6 +119,9 @@ def plot_density_all(dd_obj, order_or_super, output_dir, logger, display=False):
     data_intra_dict = defaultdict(list)
     data_right_dict = defaultdict(list)
     for te_type, index_val in te_index_dict.items():
+
+        # TODO NOTE I think this can be removed because I edited out the
+        # revision sets in the DensityData class
         if "Revision" in te_type:
             continue  # NB I don't want to graph the revision data, see
         # revision documentation as to why
@@ -166,9 +169,9 @@ def plot_density_all(dd_obj, order_or_super, output_dir, logger, display=False):
             label=key,
         )
 
-    ax2.set(xlabel="Intronic TEs", xticks=[])
+    ax2.set(xlabel="Intragenic TEs", xticks=[])
     ax2.legend(loc="upper right", bbox_to_anchor=(0.76, 0.8))  # MAGIC
-    # Heavily tailored location of legend in the intronic plot, could just use
+    # Heavily tailored location of legend in the intragenic plot, could just use
     # loc='center' but this occasionally obscured a point
 
     for key, val in data_right_dict.items():
