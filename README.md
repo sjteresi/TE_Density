@@ -36,3 +36,13 @@ SEE `requirements/dev.txt for development requirements.
 $ # for example
 $ python3.8 -m pip install -r requirements.txt
 ```
+
+# Tests
+Tests are written using `pytest`.
+
+SEE [./tests](./tests) for unit / system / tests and etc.
+
+```
+$ # for example
+$ python3.8 -m pytest
+```
