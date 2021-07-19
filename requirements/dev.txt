@@ -1,4 +1,9 @@
-# Specifies only dev-specific requirements
-# But imports the common ones too
--r common.txt
+# for development / testing
+-r ../requirements2.txt
 pylint==2.3.1
+black==20.8b1
+pytest==6.2.4
+flake8==3.9.2
+mccabe==0.6.1
+pycodestyle==2.7.0
+pyflakes==2.3.1
