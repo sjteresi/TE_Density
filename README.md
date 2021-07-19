@@ -27,6 +27,12 @@ A configuration file is required by the density algorithm to set the beginning w
 Gene and TE overlap values are an intermediate calculation in this pipeline. However the overlap values can become quite large, so they must be stored in a temporary location. The script defaults to storing the compressed overlap files at `/tmp` however with the `-s` option the user can specify a different directory to output the overlap files.
 
 # Requirements
-Please install Pip so that you may easily install Python packages.
-Then use Pip to go over our **requirements.txt** and install the needed Python packages: `pip install -r requirements.txt`.
+This module was tested on a CPython implementation of Python 3.8.0.
 
+SEE `requirements.txt` for runtime requirements.
+SEE `requirements/dev.txt for development requirements.
+
+```
+$ # for example
+$ python3.8 -m pip install -r requirements.txt
+```
