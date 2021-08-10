@@ -211,7 +211,9 @@ def plot_expression_v_density_violin(
         )
 
         plt.legend(title=("Total Genes: " + str(total_genes)), loc="upper right")
-        plt.ylabel(str(blueberry_ex_column + " log(TPM)"))
+        plt.ylabel("Gene Expression in Blueberry Stem log(TPM)")  # MAGIC we
+        # are using a specific 'library' from the RNA-seq data that represents
+        # the stem
         bin_count_series = complete_df["Density_Bins"].value_counts()
         bin_count_frame = (
             bin_count_series.to_frame().reset_index()
@@ -241,25 +243,74 @@ def plot_expression_v_density_violin(
         plt.xticks(normal_locs, new_labels)
         plt.tight_layout()
 
+        # MAGIC
         title_info = data_column.split("_")
+        direction = data_column.split("_")[-1]
+        bp_val = data_column.split("_")[-2]
+        te_type = data_column.split("_")[0:-2]
+        te_type = " ".join(te_type)
+
         # NB type, window, direction
-        title_string = str(
-            title_info[0] + " " + str(title_info[1]) + " BP " + title_info[2]
-        )
+        title_string = str(te_type + " " + bp_val + " BP " + direction)
         plt.title(title_string)
 
         figure = plt.gcf()
         figure.set_size_inches(10.5, 8)  # MAGIC get figure size to fit
         # everything nicely
         plt.xlabel("Density Bins")
-        logger.info("Graph created for %s" % data_column)
+        logger.info("Violin plot created for %s" % data_column)
         plt.savefig(
-            os.path.join(args.output_dir, str(data_column + ".png")),
+            os.path.join(output_dir, str(data_column + "_ViolinPlot.png")),
             bbox_inches="tight",
         )
         if show:
             plt.show()
+
         plt.clf()
+
+        # Call the code to plot the line plot of gene counts
+        plot_expression_v_density_gene_counts(
+            bin_count_frame, title_string, data_column, output_dir, logger
+        )
+
+
+def plot_expression_v_density_gene_counts(
+    bin_count_frame, title_string, data_column, output_dir, logger
+):
+    """
+    Create a line plot with the density bins on the x-axis and the number of
+    genes in that given bin on the y-axis.
+
+    Args:
+        bin_count_frame ():
+        title_string ():
+        data_column ():
+        output_dir ():
+        logger ():
+
+    Returns:
+        None, generates a graph and saves it to disk
+    """
+    # MAGIC code below for graphing and getting correct columns
+    # NOTE the bin counts here still represent genes that were pre-filtered
+    # (i.e having expression greater than "lowly expressed")
+    bin_count_frame["Bin_Counts"] = np.log10(bin_count_frame["Bin_Counts"] + 1)
+
+    sns.barplot(x="Bin_IDs", y="Bin_Counts", color="tab:blue", data=bin_count_frame)
+
+    # sns.lineplot(x="Bin_IDs", y="Bin_Counts", marker="o", data=bin_count_frame)
+    plt.title(title_string)
+    plt.ylabel("Log(x+1) Number of Genes in Density Bin")
+    plt.xlabel("Density Bins")
+    plt.yticks(np.arange(0.0, 4.75, 0.25))  # MAGIC set of values for y axis
+    plt.ylim(0, 4.5)  # MAGIC set ylim
+    plt.tight_layout()
+    logger.info("Bar plot created for %s" % data_column)
+    plt.savefig(
+        os.path.join(output_dir, str(data_column + "_GeneCounts.png")),
+        bbox_inches="tight",
+    )
+    plt.clf()
 
 
 if __name__ == "__main__":

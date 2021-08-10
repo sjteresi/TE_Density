@@ -126,6 +126,12 @@ def plot_density_all(dd_obj, order_or_super, output_dir, logger, display=False):
             continue  # NB I don't want to graph the revision data, see
         # revision documentation as to why
         for window_idx in range(len(dd_obj.window_list)):
+            if window_idx == 19:
+                print(te_type)
+                print(np.mean(left_h5_frame[te_index_dict[te_type], window_idx, :]))
+                print(np.mean(right_h5_frame[te_index_dict[te_type], window_idx, :]))
+                print()
+
             data_left_dict[te_type].append(
                 np.mean(left_h5_frame[te_index_dict[te_type], window_idx, :])
             )
@@ -161,6 +167,17 @@ def plot_density_all(dd_obj, order_or_super, output_dir, logger, display=False):
         xticks=range(min(dd_obj.window_list), (max(dd_obj.window_list) + 1), 1000),
         ylim=[0.0, 0.08],  # MAGIC
     )
+    # MAGIC, add panel 'A' label to the left side graph
+    ax1.text(
+        -0.01,
+        1.05,
+        "A",
+        transform=ax1.transAxes,
+        fontsize=16,
+        fontweight="bold",
+        va="top",
+        ha="right",
+    )
 
     for key, val in data_intra_dict.items():
         ax2.scatter(
@@ -173,6 +190,18 @@ def plot_density_all(dd_obj, order_or_super, output_dir, logger, display=False):
     ax2.legend(loc="upper right", bbox_to_anchor=(0.76, 0.8))  # MAGIC
     # Heavily tailored location of legend in the intragenic plot, could just use
     # loc='center' but this occasionally obscured a point
+
+    # MAGIC, add panel 'B' label to the center graph
+    ax2.text(
+        -0.01,
+        1.05,
+        "B",
+        transform=ax2.transAxes,
+        fontsize=16,
+        fontweight="bold",
+        va="top",
+        ha="right",
+    )
 
     for key, val in data_right_dict.items():
         ax3.plot(
@@ -190,6 +219,18 @@ def plot_density_all(dd_obj, order_or_super, output_dir, logger, display=False):
         ylim=[0.0, 0.08],  # MAGIC
     )
     ax3.yaxis.tick_right()
+
+    # MAGIC, add panel 'C' label to the right side graph
+    ax3.text(
+        -0.01,
+        1.05,
+        "C",
+        transform=ax3.transAxes,
+        fontsize=16,
+        fontweight="bold",
+        va="top",
+        ha="right",
+    )
 
     filename_to_save = os.path.join(
         output_dir,
@@ -290,7 +331,7 @@ if __name__ == "__main__":
         "Order",
         args.output_dir,
         logger,
-        display=True,
+        display=False,
     )
 
     plot_density_all(
@@ -298,5 +339,5 @@ if __name__ == "__main__":
         "Superfamily",
         args.output_dir,
         logger,
-        display=True,
+        display=False,
     )
