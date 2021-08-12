@@ -26,7 +26,7 @@ def check_nulls(my_df, logger):
         logger.critical("You have null values in your dataframe!")
         logger.critical("Here are the null values in the output:")
         null_columns = my_df.columns[my_df.isnull().any()]
-        print((my_df[my_df.isnull().any(axis=1)][null_columns].head()))
+        logger.info(my_df[my_df.isnull().any(axis=1)][null_columns].head())
 
 
 def write_cleaned_transposons(te_pandaframe, output_dir, old_filename, logger):
@@ -59,7 +59,7 @@ def import_transposons(tes_input_path, te_annot_renamer, logger):
         "Attribute",
     ]
 
-    te_data = pd.read_csv(
+    te_pandaframe = pd.read_csv(
         tes_input_path,
         sep="\t+",
         header=None,
@@ -70,34 +70,40 @@ def import_transposons(tes_input_path, te_annot_renamer, logger):
     )
 
     # Drop extraneous columns
-    te_data.drop(columns=["Score", "Software", "Phase", "Feature"], inplace=True)
+    te_pandaframe.drop(columns=["Score", "Software", "Phase", "Feature"], inplace=True)
 
     # Create Order and SuperFamily column from Attribute column
     # Because that column contains the detailed TE information
     # Then remove old Attribute column
-    te_data["Attribute"] = te_data["Attribute"].str.extract(r"Classification=(.*?);")
-    te_data[["Order", "SuperFamily"]] = te_data.Attribute.str.split("/", expand=True)
-    te_data.drop(columns=["Attribute"], inplace=True)
-    te_data.Order = te_data.Order.astype(str)
-    te_data.SuperFamily = te_data.SuperFamily.astype(str)
-    te_data.Strand = te_data.Strand.astype(str)
+    te_pandaframe["Attribute"] = te_pandaframe["Attribute"].str.extract(
+        r"Classification=(.*?);"
+    )
+    te_pandaframe[["Order", "SuperFamily"]] = te_pandaframe.Attribute.str.split(
+        "/", expand=True
+    )
+    te_pandaframe.drop(columns=["Attribute"], inplace=True)
+    te_pandaframe.Order = te_pandaframe.Order.astype(str)
+    te_pandaframe.SuperFamily = te_pandaframe.SuperFamily.astype(str)
+    te_pandaframe.Strand = te_pandaframe.Strand.astype(str)
 
     # Call renamer
-    te_data = te_annot_renamer(te_data)
+    te_pandaframe = te_annot_renamer(te_pandaframe)
 
     # Declare data types
-    te_data["Length"] = te_data.Stop - te_data.Start + 1
-    check_nulls(te_data, logger)
+    te_pandaframe["Length"] = te_pandaframe.Stop - te_pandaframe.Start + 1
+    check_nulls(te_pandaframe, logger)
 
-    te_data.sort_values(by=["Chromosome", "Start"], inplace=True)
+    te_pandaframe.sort_values(by=["Chromosome", "Start"], inplace=True)
 
     # MAGIC I only want the first 12 chromosomes
     chromosomes_i_want = [str(i) for i in range(1, 12 + 1)]  # MAGIC plus 1 bc range
     # NB, chromosomes_i_want must be string
-    te_data = te_data.loc[te_data["Chromosome"].isin(chromosomes_i_want)]
-    te_data.sort_values(by=["Chromosome", "Start"], inplace=True)
+    te_pandaframe = te_pandaframe.loc[
+        te_pandaframe["Chromosome"].isin(chromosomes_i_want)
+    ]
+    te_pandaframe.sort_values(by=["Chromosome", "Start"], inplace=True)
 
-    return te_data
+    return te_pandaframe
 
 
 if __name__ == "__main__":

@@ -356,7 +356,7 @@ if __name__ == "__main__":
     coloredlogs.install(level=log_level)
 
     tpm_matrix = read_TPM_matrix(args.TPM_matrix)
-    cleaned_genes = import_genes(args.gene_input_file, logger)
+    cleaned_genes = import_genes(args.gene_input_file)
     gene_dataframe_list = [
         dataframe for k, dataframe in cleaned_genes.groupby("Chromosome")
     ]

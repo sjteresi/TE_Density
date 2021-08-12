@@ -68,14 +68,14 @@ def dummy_gene_data():
 @pytest.fixture
 def order_names():
     """Return a list of order types"""
-    order_names = ["LTR", "DNA"]
+    order_names = ["LTR", "S_Revision"]
     return order_names
 
 
 @pytest.fixture
 def super_names():
     """Return a list of super names"""
-    super_names = ["Copia", "Gypsy", "HAT"]
+    super_names = ["Copia", "Gypsy", "O_Revision"]
     return super_names
 
 
@@ -127,13 +127,14 @@ def rho_o_right(total_orders, total_windows, total_genes):
     """Return an array of order left values"""
     # NOTE currently it will perform np.arange(48) *2 starting from 48
     # so that we may differentiate from rho o left, and reshape to (2,3,8)
+    # All this does is make the values different, not the shape
     matrix_num = total_orders * total_windows * total_genes * 2
     arr = np.arange(48, matrix_num).reshape((total_orders, total_windows, total_genes))
     return arr
 
 
 @pytest.fixture
-def density_data_test_obj(
+def density_data_test_obj_swap_vals(
     chromosomes,
     dummy_gene_data,
     order_names,
@@ -147,7 +148,48 @@ def density_data_test_obj(
     # TODO set path to be a variable not hard-coded, plus it repeats further
     # down
     f = h5py.File(
-        "/home/scott/Documents/Uni/Research/Projects/TE_Density/tests/input_data/testfile.hdf5",
+        "/home/scott/Documents/Uni/Research/Projects/TE_Density/tests/input_data/test_swap_file.h5",
+        "w",
+    )
+    gene_names = list(dummy_gene_data.names)
+    write_vlen_str_h5py(f, chromosomes, "CHROMOSOME_ID")
+    write_vlen_str_h5py(f, gene_names, "GENE_NAMES")
+    write_vlen_str_h5py(f, order_names, "ORDER_NAMES")
+    write_vlen_str_h5py(f, super_names, "SUPERFAMILY_NAMES")
+    write_vlen_str_h5py(f, windows, "WINDOWS")
+
+    dset = f.create_dataset("RHO_ORDERS_LEFT", data=rho_o_left)
+    dset = f.create_dataset("RHO_ORDERS_INTRA", data=rho_o_intra)
+    dset = f.create_dataset("RHO_ORDERS_RIGHT", data=rho_o_right)
+
+    # NB just re-doing the values for the supers because not testing supers
+    dset = f.create_dataset("RHO_SUPERFAMILIES_LEFT", data=rho_o_left)
+    dset = f.create_dataset("RHO_SUPERFAMILIES_INTRA", data=rho_o_intra)
+    f.create_dataset("RHO_SUPERFAMILIES_RIGHT", data=rho_o_right)
+    f.close()
+    return DensityData(
+        "/home/scott/Documents/Uni/Research/Projects/TE_Density/tests/input_data/test_swap_file.h5",
+        dummy_gene_data,
+        LOGGER,
+        remove_revision_sets=False,
+        sense_swap=False,
+    )
+
+
+@pytest.fixture
+def density_data_test_obj_remove_revision(
+    chromosomes,
+    dummy_gene_data,
+    order_names,
+    super_names,
+    windows,
+    rho_o_left,
+    rho_o_intra,
+    rho_o_right,
+):
+    """Create a test object for DensityData, reads from file"""
+    f = h5py.File(
+        "/home/scott/Documents/Uni/Research/Projects/TE_Density/tests/input_data/test_remove_revise_file.h5",
         "w",
     )
     gene_names = list(dummy_gene_data.names)
@@ -167,31 +209,41 @@ def density_data_test_obj(
     dset = f.create_dataset("RHO_SUPERFAMILIES_RIGHT", data=rho_o_right)
     f.close()
     return DensityData(
-        "/home/scott/Documents/Uni/Research/Projects/TE_Density/tests/input_data/testfile.hdf5",
+        "/home/scott/Documents/Uni/Research/Projects/TE_Density/tests/input_data/test_remove_revise_file.h5",
         dummy_gene_data,
         LOGGER,
     )
 
 
-def test_swap_density_vals(density_data_test_obj):
+def test_swap_density_vals(density_data_test_obj_swap_vals):
     """Test whether or not left and right density values are swapped
     correctly"""
     # Set values for easy testing and checking
     # Shape of left/right orders is (no. of TE types, window, no. genes).
     # Here we do index 1, which corresponds to Gene2
-    density_data_test_obj.left_orders[:, :, 1] = 100
-    density_data_test_obj.right_orders[:, :, 1] = 200
 
-    # Call the value swapper
-    density_data_test_obj._swap_strand_vals(["dummy2"])
+    density_data_test_obj_swap_vals.left_orders[:, :, 1] = 100
+    density_data_test_obj_swap_vals.right_orders[:, :, 1] = 200
+
+    # Call the value swapper, manually, because it was set to NOT do it upon
+    # initialization
+    density_data_test_obj_swap_vals._swap_strand_vals(["dummy2"])
 
     # Check the values
     assert np.array_equal(
-        density_data_test_obj.left_orders[:, :, 1], np.full((2, 3), 200)
+        density_data_test_obj_swap_vals.left_orders[:, :, 1], np.full((2, 3), 200)
     )
     assert np.array_equal(
-        density_data_test_obj.right_orders[:, :, 1], np.full((2, 3), 100)
+        density_data_test_obj_swap_vals.right_orders[:, :, 1], np.full((2, 3), 100)
     )
+
+
+# TODO figure out a way to automatically remove the O_Revision and S_Revision
+# groupings from the HDF5
+# def test_remove_revision_sets(density_data_test_obj_remove_revision):
+# """Test whether or not we can correctly remove an index (a TE grouping)
+# from the HDF5."""
+# print(density_data_test_obj_remove_revision)
 
 
 if __name__ == "__main__":

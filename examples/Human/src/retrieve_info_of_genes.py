@@ -70,7 +70,7 @@ if __name__ == "__main__":
         default=1,
         help="""Index of the window that you want to access information from,
         windows go from lowest to highest, default TE density settings yield 20
-        windows (500, 10000, 500) (start, stop, step).""",
+        windows (500, 10000, 500) (start, stop, step). Stop is inclusive""",
     )
 
     parser.add_argument(

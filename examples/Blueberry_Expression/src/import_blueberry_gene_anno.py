@@ -18,15 +18,12 @@ def write_cleaned_genes(gene_pandaframe, output_dir, genome_name, logger):
     gene_pandaframe.to_csv(file_name, sep="\t", header=True, index=True)
 
 
-def import_genes(genes_input_path, contig_del=False):
+def import_genes(genes_input_path):
     """Import genes file.
 
     Args:
         input_dir (command line argument) Specify the input directory of the gene
         annotation data, this is the same as the TE annotation directory
-
-        contig_drop (bool): logical whether to drop rows with a contig as the
-        chromosome id
     """
 
     col_names = [
@@ -75,9 +72,6 @@ def import_genes(genes_input_path, contig_del=False):
     Gene_Data.Strand = Gene_Data.Strand.astype(str)
 
     Gene_Data["Length"] = Gene_Data.Stop - Gene_Data.Start + 1
-
-    if contig_del:
-        Gene_Data = Gene_Data[~Gene_Data.Chromosome.str.contains("contig", case=False)]
 
     Gene_Data.sort_values(by=["Chromosome", "Start"], inplace=True)
     # MAGIC I only want the first 48 chromosomes

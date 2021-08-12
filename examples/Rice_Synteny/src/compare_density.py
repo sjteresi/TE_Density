@@ -14,8 +14,6 @@ import pandas as pd
 import numpy as np
 from collections import namedtuple
 
-import time
-
 from transposon.gene_data import GeneData
 from transposon.density_data import DensityData
 from transposon.import_filtered_genes import import_filtered_genes
@@ -66,7 +64,7 @@ def save_ortholog_table(ortholog_table, filename, output_dir, logger):
         logger (logging.Logger): Object to pass logging commands through
 
     Returns:
-        None
+        None, writes the ortholog table to disk
     """
     logger.info("Saving data to: %s" % (os.path.join(output_dir, filename)))
     ortholog_table.to_csv(
@@ -105,9 +103,9 @@ def identify_indices_of_syntelogs(
     # NB MAGIC the genome names / column names are hard-coded
     glaberrima_orth_genes = orthologs["Glaberrima"].tolist()
     sativa_orth_genes = orthologs["Sativa"].tolist()
-
     Index_and_Chromosome = namedtuple("Index_and_Chromosome", "Index Chromosome")
 
+    # NB Get the
     super_dict = {}
     sativa_indices_and_genes = {
         dd_gene: Index_and_Chromosome(dd_index, sativa_dd_obj.unique_chromosome_id)
@@ -279,6 +277,8 @@ def graph_histogram_syntelog_differences(
 
     # Iterate over the TEs for the given major grouping
     for given_te_type in te_type_iterable:
+        if "Revision" in given_te_type:
+            continue
 
         for given_window_idx, given_window_val in enumerate(
             glaberrima_dd_obj.window_list  # pick one window because they both
@@ -393,24 +393,31 @@ if __name__ == "__main__":
         "Reading gene datas %s & %s"
         % (args.sativa_gene_data, args.glaberrima_gene_data)
     )
+
+    # Create gene pandaframe objects from the pandaframes we used to run TE
+    # Density
     all_genes_sativa = import_filtered_genes(args.sativa_gene_data, logger)
     all_genes_glaberrima = import_filtered_genes(args.glaberrima_gene_data, logger)
 
     # MAGIC filter the gene pandaframes to only have one chromosome because we
-    # are working with only one chromosome of HDF5
+    # are working with only one chromosome of HDF5 for the sake of this example
     chrom1_sativa = all_genes_sativa.loc[all_genes_sativa["Chromosome"] == "1"]
     chrom1_glaberrima = all_genes_glaberrima.loc[
         all_genes_glaberrima["Chromosome"] == "1"
     ]
 
-    # Wrap the pandafames as GeneData
+    # Wrap the pandafames as GeneData so we can initialize the DensityData
+    # object
     sativa_gene_data = GeneData(chrom1_sativa, "Sativa")
     glaberrima_gene_data = GeneData(chrom1_glaberrima, "Glaberrima")
 
     # NB rename for clarity
+    # We are working with one HDF5 file per genome, corresponding to the first
+    # chromosome of each genome which is syntologous
     sativa_hdf5 = args.sativa_chromosome_1
     glaberrima_hdf5 = args.glaberrima_chromosome_1
 
+    # Initialize the DensityData for each genome's chromosome 1
     processed_sativa_density_data = DensityData.verify_h5_cache(
         sativa_hdf5, sativa_gene_data, logger
     )
@@ -418,6 +425,9 @@ if __name__ == "__main__":
         glaberrima_hdf5, glaberrima_gene_data, logger
     )
 
+    # Construct an ortholog table that contains 2 additional columns that
+    # describe the index and chromosome ID of each syntelog in the table to
+    # their HDF5 data.
     syntelog_table_w_indices = identify_indices_of_syntelogs(
         orthologs,
         processed_sativa_density_data,
@@ -426,6 +436,13 @@ if __name__ == "__main__":
         logger,
     )
 
+    # NB
+    # Call the graphing code, it creates the graphs for all of the windows, but
+    # the user must specify the TE grouping and the direction.
+    # Here it is RHO ORDERS LEFT, which must correspond to UPSTREAM, similarly
+    # the user must provide the order_list and order_index dict as arguments,
+    # make sure it matches the fact that we are using ORDERS and not
+    # superfamily.
     graph_histogram_syntelog_differences(
         syntelog_table_w_indices,
         processed_sativa_density_data,

@@ -19,20 +19,23 @@ DensitySlice = namedtuple(
 
 
 class DensityData:
-    def __init__(self, input_h5, gene_data, logger, sense_swap=True):
+    def __init__(
+        self, input_h5, gene_data, logger, sense_swap=True, remove_revision_sets=True
+    ):
         """
         input_h5 (str): Path to h5 file of TE Density output.
         gene_data (GeneData):
         """
+        # MAGIC must have '.h5' as extension
         new_filename = input_h5.replace(".h5", "_SenseSwapped.HDF5")
-        # if not os.path.isfile(new_filename):
         shutil.copyfile(input_h5, new_filename)  # copy because we
         # need to swap values later
         self.data_frame = h5py.File(new_filename, "r+")
 
         # Remove the revision groupings from the dataset as they are an
         # artifact from accurately merging TEs
-        self.data_frame = self.remove_revision_sets()
+        if remove_revision_sets:
+            self.data_frame = self.remove_revision_sets()
 
         self.key_list = list(self.data_frame.keys())
         self.gene_list = self.data_frame["GENE_NAMES"][:]
@@ -62,18 +65,14 @@ class DensityData:
         self.right_supers = self.data_frame["RHO_SUPERFAMILIES_RIGHT"]
 
         self.genome_id = gene_data.genome_id
-
         gene_data.data_frame.Strand.replace({"+": 1, "-": 0}, inplace=True)
         strands_as_numpy = gene_data.data_frame.Strand.to_numpy(copy=False)
-        zero_gene_list = np.where(strands_as_numpy == 0)[0]  # gets indices of 0s
         # NB the 0s are the antisense
-        genes_to_swap = gene_data.data_frame.iloc[zero_gene_list, :].index.tolist()
 
         if sense_swap:
+            zero_gene_list = np.where(strands_as_numpy == 0)[0]  # gets indices of 0s
+            genes_to_swap = gene_data.data_frame.iloc[zero_gene_list, :].index.tolist()
             self._swap_strand_vals(genes_to_swap)
-
-        # TODO
-        # Do i need to call self.data_frame.close() here?
 
     def remove_revision_sets(self):
         for te_order_idx, te_order_name in enumerate(self.data_frame["ORDER_NAMES"][:]):
@@ -107,7 +106,6 @@ class DensityData:
             "RHO_SUPERFAMILIES_INTRA",
             "RHO_SUPERFAMILIES_RIGHT",
         ]
-
         for order_dataset in order_datasets:
             data_less_revision = np.delete(
                 self.data_frame[order_dataset], order_idx_to_del, 0
@@ -171,6 +169,9 @@ class DensityData:
         for direction in directions:
             for window_idx, window_val in enumerate(self.window_list):
                 for te_type, te_order_idx in self.order_index_dict.items():
+                    if "Revision" in te_type:  # MAGIC dont use the revision
+                        # set, which is an artifact of calculating TE density
+                        continue
                     if direction == "Upstream":
                         yield DensitySlice(
                             self.left_orders[te_order_idx, window_idx, :],
@@ -188,6 +189,9 @@ class DensityData:
 
                 # Iterate over SuperFamilies now
                 for te_type, te_super_idx in self.super_index_dict.items():
+                    if "Revision" in te_type:  # MAGIC dont use the revision
+                        # set, which is an artifact of calculating TE density
+                        continue
                     if direction == "Upstream":
                         yield DensitySlice(
                             self.left_supers[te_super_idx, window_idx, :],
@@ -240,29 +244,23 @@ class DensityData:
         for name in gene_names:
             index_to_switch = self._index_of_gene(name)
 
-            # SUPERFAMILIES
-            left_val_super = self.data_frame["RHO_SUPERFAMILIES_LEFT"][
-                :, :, index_to_switch
-            ]
-            right_val_super = self.data_frame["RHO_SUPERFAMILIES_RIGHT"][
-                :, :, index_to_switch
-            ]
-            # ORDERS
-            left_val_order = self.data_frame["RHO_ORDERS_LEFT"][:, :, index_to_switch]
+            # SWAP left and right superfamily values for antisense genes
+            (
+                self.data_frame["RHO_SUPERFAMILIES_LEFT"][:, :, index_to_switch],
+                self.data_frame["RHO_SUPERFAMILIES_RIGHT"][:, :, index_to_switch],
+            ) = (
+                self.data_frame["RHO_SUPERFAMILIES_RIGHT"][:, :, index_to_switch],
+                self.data_frame["RHO_SUPERFAMILIES_LEFT"][:, :, index_to_switch],
+            )
 
-            right_val_order = self.data_frame["RHO_ORDERS_RIGHT"][:, :, index_to_switch]
-
-            # Reassign
-            self.data_frame["RHO_SUPERFAMILIES_RIGHT"][
-                :, :, index_to_switch
-            ] = left_val_super
-
-            self.data_frame["RHO_SUPERFAMILIES_LEFT"][
-                :, :, index_to_switch
-            ] = right_val_super
-            self.data_frame["RHO_ORDERS_RIGHT"][:, :, index_to_switch] = left_val_order
-
-            self.data_frame["RHO_ORDERS_LEFT"][:, :, index_to_switch] = right_val_order
+            # SWAP left and right order values for antisense genes
+            (
+                self.data_frame["RHO_ORDERS_LEFT"][:, :, index_to_switch],
+                self.data_frame["RHO_ORDERS_RIGHT"][:, :, index_to_switch],
+            ) = (
+                self.data_frame["RHO_ORDERS_RIGHT"][:, :, index_to_switch],
+                self.data_frame["RHO_ORDERS_LEFT"][:, :, index_to_switch],
+            )
 
     @staticmethod
     def supply_density_data_files(path_to_folder):

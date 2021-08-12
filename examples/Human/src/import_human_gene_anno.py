@@ -22,15 +22,12 @@ def write_cleaned_genes(gene_pandaframe, output_dir, genome_name, logger):
     gene_pandaframe.to_csv(file_name, sep="\t", header=True, index=True)
 
 
-def import_genes(genes_input_path, contig_del=False):
+def import_genes(genes_input_path):
     """Import genes file.
 
     Args:
         input_dir (command line argument) Specify the input directory of the gene
         annotation data, this is the same as the TE annotation directory
-
-        contig_drop (bool): logical whether to drop rows with a contig as the
-        chromosome id
     """
 
     col_names = [
@@ -91,9 +88,6 @@ def import_genes(genes_input_path, contig_del=False):
     gene_data.Strand = gene_data.Strand.astype(str)
 
     gene_data["Length"] = gene_data.Stop - gene_data.Start + 1
-
-    if contig_del:
-        gene_data = gene_data[~gene_data.Chromosome.str.contains("contig", case=False)]
 
     # MAGIC I only want the 7th and 13th chromosome
     chromosomes_i_want = ["chr7", "chr13"]

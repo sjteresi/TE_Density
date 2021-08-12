@@ -40,13 +40,13 @@ def reformat_seq_iq(input_fasta, genome_name, output_dir, logger):
     if os.path.exists(name_key):
         os.remove(name_key)
     pair_dict = {}  # NB this is used to write the conversion key later for
-    # clarity
+    # clarity and note-taking
+
     # MAGIC we only want specific chromosomes
     chromosomes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, "Mt", "Pt"]
     chromosomes = [str(x) for x in chromosomes]  # redefine as string
 
     count = 0
-
     with open(input_fasta, "r") as input_fasta:
         for s_record in SeqIO.parse(input_fasta, "fasta"):
             if s_record.id in chromosomes:

@@ -56,7 +56,6 @@ class PreProcessor:
         reset_h5,
         genome_id,
         revise_transposons,
-        contig_del,
         logger=None,
     ):
         """Initialize.
@@ -71,8 +70,6 @@ class PreProcessor:
             genome_id(str): user-defined string for the genome.
             revise_transposons(bool): whether or not to force creation of
                 revised TE annotation (no overlapping TEs).
-            contig_del(bool): whether or not to force deletion of genes or TEs
-                that are located on contigs according to the original annotation.
             logger(logging.Logger): logger instance
         """
 
@@ -93,7 +90,6 @@ class PreProcessor:
         self.te_revised = self._processed_filename(
             self.te_in, self.revised_dir, self.REVISED_PREFIX
         )
-        self.contiguous_delete = bool(contig_del)
         self.do_transposon_revisions = bool(revise_transposons)
         self.do_h5_cache_recreation = bool(reset_h5)
 

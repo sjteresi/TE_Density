@@ -23,15 +23,12 @@ def write_cleaned_genes(gene_pandaframe, output_dir, old_filename, logger):
     gene_pandaframe.to_csv(file_name, sep="\t", header=True, index=True)
 
 
-def import_genes(genes_input_path, contig_del=False):
+def import_genes(genes_input_path):
     """Import genes file.
 
     Args:
         input_dir (command line argument) Specify the input directory of the gene
         annotation data, this is the same as the TE annotation directory
-
-        contig_drop (bool): logical whether to drop rows with a contig as the
-        chromosome id
     """
 
     col_names = [
@@ -83,14 +80,9 @@ def import_genes(genes_input_path, contig_del=False):
     gene_data = gene_data.drop(columns=["FullName", "Software"])
     gene_data["Length"] = gene_data.Stop - gene_data.Start + 1
 
-    if contig_del:
-        gene_data = gene_data[~gene_data.Chromosome.str.contains("contig", case=False)]
-
     gene_data.sort_values(by=["Chromosome", "Start"], inplace=True)
     check_nulls(gene_data, logger)
     gene_data = drop_nulls(gene_data, logger)
-
-
 
     # Set the gene name as the index
     gene_data.set_index("Gene_Name", inplace=True)

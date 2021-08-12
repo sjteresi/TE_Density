@@ -23,15 +23,16 @@ def write_cleaned_genes(gene_pandaframe, output_dir, old_filename, logger):
     gene_pandaframe.to_csv(file_name, sep="\t", header=True, index=True)
 
 
-def import_genes(genes_input_path, contig_del=False):
+def import_genes(genes_input_path):
     """Import genes file.
 
     Args:
         input_dir (command line argument) Specify the input directory of the gene
         annotation data, this is the same as the TE annotation directory
 
-        contig_drop (bool): logical whether to drop rows with a contig as the
-        chromosome id
+    Returns:
+        gene_pandaframe (Pandas.Data.Frame): A pandas dataframe of a filtered
+        GFF file containing hte information needed for the TE Density pipeline.
     """
 
     col_names = [
@@ -56,7 +57,7 @@ def import_genes(genes_input_path, contig_del=False):
         "FullName",
     ]
 
-    gene_data = pd.read_csv(
+    gene_pandaframe = pd.read_csv(
         genes_input_path,
         sep="\t+",
         header=None,
@@ -76,25 +77,28 @@ def import_genes(genes_input_path, contig_del=False):
     )
 
     # rows in annotation
-    gene_data = gene_data[gene_data.Feature == "gene"]  # drop non-gene rows
-    # gene_data.reset_index(inplace=True)  # reset index so we can have proper
+    gene_pandaframe = gene_pandaframe[
+        gene_pandaframe.Feature == "gene"
+    ]  # drop non-gene rows
+    # gene_pandaframe.reset_index(inplace=True)  # reset index so we can have proper
 
-    gene_data["Gene_Name"] = gene_data["FullName"].str.extract(r"gene_id=(.*?);")
-    gene_data = gene_data.drop(columns=["FullName", "Software"])
-    gene_data["Length"] = gene_data.Stop - gene_data.Start + 1
+    gene_pandaframe["Gene_Name"] = gene_pandaframe["FullName"].str.extract(
+        r"gene_id=(.*?);"
+    )
+    gene_pandaframe = gene_pandaframe.drop(columns=["FullName", "Software"])
+    gene_pandaframe["Length"] = gene_pandaframe.Stop - gene_pandaframe.Start + 1
 
-    if contig_del:
-        gene_data = gene_data[~gene_data.Chromosome.str.contains("contig", case=False)]
-
-    gene_data.sort_values(by=["Chromosome", "Start"], inplace=True)
+    gene_pandaframe.sort_values(by=["Chromosome", "Start"], inplace=True)
     # MAGIC I only want the first 12 chromosomes
     chromosomes_i_want = [str(i) for i in range(1, 12 + 1)]  # MAGIC plus 1 bc range
     # NB, chromosomes_i_want must be string
-    gene_data = gene_data.loc[gene_data["Chromosome"].isin(chromosomes_i_want)]
-    gene_data.sort_values(by=["Chromosome", "Start"], inplace=True)
+    gene_pandaframe = gene_pandaframe.loc[
+        gene_pandaframe["Chromosome"].isin(chromosomes_i_want)
+    ]
+    gene_pandaframe.sort_values(by=["Chromosome", "Start"], inplace=True)
 
-    check_nulls(gene_data, logger)
-    gene_data = drop_nulls(gene_data, logger)
+    check_nulls(gene_pandaframe, logger)
+    gene_pandaframe = drop_nulls(gene_pandaframe, logger)
     # NB
     # Throwing away 1 gene because its name is ridiculous and difficult to
     # import because of extraneous strings in the entry
@@ -106,8 +110,8 @@ def import_genes(genes_input_path, contig_del=False):
     # genes because they aren't central to the example.
 
     # Set the gene name as the index
-    gene_data.set_index("Gene_Name", inplace=True)
-    return gene_data
+    gene_pandaframe.set_index("Gene_Name", inplace=True)
+    return gene_pandaframe
 
 
 def get_nulls(my_df, logger):

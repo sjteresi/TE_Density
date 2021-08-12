@@ -7,25 +7,30 @@ Unit test Overlap.
 __author__ = "Scott Teresi, Michael Teresi"
 
 import pytest
-
 import numpy as np
 
 from transposon.gene_data import GeneData
 from transposon.transposon_data import TransposonData
 from transposon.overlap import Overlap
 
-# NOTE these should be similar to the density tests, you are refactoring them sto that
-# the scope is smaller so that we can do the pseudo split merge pattern more easily
-
 
 class MockData:
-
-    def __init__(self, g_start, g_stop, t_start, t_stop, window, expected_overlap_left,
-                 expected_overlap_right, expected_overlap_intra, description='Test'):
+    def __init__(
+        self,
+        g_start,
+        g_stop,
+        t_start,
+        t_stop,
+        window,
+        expected_overlap_left,
+        expected_overlap_right,
+        expected_overlap_intra,
+        description="Test",
+    ):
 
         self.Gene = GeneData.mock(np.array([[g_start, g_stop]]))
         self.Transposon = TransposonData.mock(np.array([[t_start, t_stop]]))
-        self.gene_name = 'gene_0'  # TODO scott, add str
+        self.gene_name = "gene_0"
 
         self.window = window
         self.expected_overlap_left = expected_overlap_left
@@ -33,22 +38,9 @@ class MockData:
         self.expected_overlap_right = expected_overlap_right
         self.description = description
 
-    @property
-    def gene_start(self):
-        return self.gene.start(self.gene_name)
 
-    @property
-    def gene_stop(self):
-        return self.gene.stop(self.gene_name)
-
-    @property
-    def transposon_start(self):
-        return self.Transposon.starts[0]
-
-    @property
-    def transposon_stop(self):
-        return self.Transposon.stops[0]
-
+# FLOAT needed for large values as the int computations create error for some
+# reason
 Left_Win_Only_FLOAT = MockData(
     g_start=float(1000),
     g_stop=float(2000),
@@ -58,7 +50,8 @@ Left_Win_Only_FLOAT = MockData(
     expected_overlap_left=float(101),
     expected_overlap_intra=float(0),
     expected_overlap_right=float(0),
-    description='In left window only')
+    description="In left window only",
+)
 
 Left_Win_Only_INT = MockData(
     g_start=int(1000),
@@ -69,7 +62,8 @@ Left_Win_Only_INT = MockData(
     expected_overlap_left=int(101),
     expected_overlap_intra=int(0),
     expected_overlap_right=int(0),
-    description='In left window only')
+    description="In left window only",
+)
 
 Left_Win_Only_heterogenous_INT_FLOAT = MockData(
     g_start=int(1000),
@@ -80,7 +74,8 @@ Left_Win_Only_heterogenous_INT_FLOAT = MockData(
     expected_overlap_left=float(101),
     expected_overlap_intra=float(0),
     expected_overlap_right=float(0),
-    description='In left window only')
+    description="In left window only",
+)
 
 Left_Win_Only_heterogenous_FLOAT_INT = MockData(
     g_start=float(1000),
@@ -91,10 +86,8 @@ Left_Win_Only_heterogenous_FLOAT_INT = MockData(
     expected_overlap_left=int(101),
     expected_overlap_intra=int(0),
     expected_overlap_right=int(0),
-    description='In left window only')
-
-
-
+    description="In left window only",
+)
 
 Left_Win_Only = MockData(
     g_start=1000,
@@ -105,7 +98,8 @@ Left_Win_Only = MockData(
     expected_overlap_left=101,
     expected_overlap_intra=0,
     expected_overlap_right=0,
-    description='In left window only')
+    description="In left window only",
+)
 
 Right_Win_Only = MockData(
     g_start=1000,
@@ -116,7 +110,8 @@ Right_Win_Only = MockData(
     expected_overlap_left=0,
     expected_overlap_intra=0,
     expected_overlap_right=101,
-    description='In right window only')
+    description="In right window only",
+)
 
 Left_Outside_Win_End_Inside_Win = MockData(
     g_start=1000,
@@ -127,8 +122,9 @@ Left_Outside_Win_End_Inside_Win = MockData(
     expected_overlap_left=302,
     expected_overlap_intra=0,
     expected_overlap_right=0,
-    description='''Left: Start outside window & end
-        inside window''')
+    description="""Left: Start outside window & end
+        inside window""",
+)
 
 Right_Inside_Win_End_Outside_Win = MockData(
     g_start=1000,
@@ -139,8 +135,9 @@ Right_Inside_Win_End_Outside_Win = MockData(
     expected_overlap_left=0,
     expected_overlap_intra=0,
     expected_overlap_right=102,
-    description='''Right: Begin inside window & end
-        outside window''')
+    description="""Right: Begin inside window & end
+        outside window""",
+)
 # 4
 Left_Inside_Win_End_Inside_Gene = MockData(
     g_start=1000,
@@ -151,7 +148,8 @@ Left_Inside_Win_End_Inside_Gene = MockData(
     expected_overlap_left=200,
     expected_overlap_intra=501,
     expected_overlap_right=0,
-    description='Left: Start in window, end in gene')
+    description="Left: Start in window, end in gene",
+)
 
 Right_Inside_Gene_End_Inside_Win = MockData(
     g_start=1000,
@@ -162,7 +160,8 @@ Right_Inside_Gene_End_Inside_Win = MockData(
     expected_overlap_left=0,
     expected_overlap_intra=501,
     expected_overlap_right=200,
-    description='Right: Start in gene, end in window')
+    description="Right: Start in gene, end in window",
+)
 
 Inside_Gene_Only = MockData(
     g_start=1000,
@@ -173,7 +172,8 @@ Inside_Gene_Only = MockData(
     expected_overlap_left=0,
     expected_overlap_intra=201,
     expected_overlap_right=0,
-    description='In gene only')
+    description="In gene only",
+)
 
 # 7
 Overlap_Gene_Full = MockData(
@@ -185,7 +185,8 @@ Overlap_Gene_Full = MockData(
     expected_overlap_left=0,
     expected_overlap_intra=1001,
     expected_overlap_right=0,
-    description='In gene full overlap')
+    description="In gene full overlap",
+)
 
 # Exceptional Cases
 Left_Outside_Win_End_Inside_Gene = MockData(
@@ -197,8 +198,9 @@ Left_Outside_Win_End_Inside_Gene = MockData(
     expected_overlap_left=501,
     expected_overlap_intra=201,
     expected_overlap_right=0,
-    description='''Left: Start outside window, end
-        inside gene''')
+    description="""Left: Start outside window, end
+        inside gene""",
+)
 # 9
 Right_Inside_Gene_End_Outside_Win = MockData(
     g_start=1000,
@@ -209,8 +211,9 @@ Right_Inside_Gene_End_Outside_Win = MockData(
     expected_overlap_left=0,
     expected_overlap_intra=751,
     expected_overlap_right=501,
-    description='''Right: Start inside gene, end
-        outside window''')
+    description="""Right: Start inside gene, end
+        outside window""",
+)
 
 Left_Win_To_Right_Win = MockData(
     g_start=1000,
@@ -221,7 +224,8 @@ Left_Win_To_Right_Win = MockData(
     expected_overlap_left=200,
     expected_overlap_intra=1001,
     expected_overlap_right=200,
-    description='Cover gene, start and end in windows')
+    description="Cover gene, start and end in windows",
+)
 
 Left_Outside_Win_Right_Outside_Win = MockData(
     g_start=1000,
@@ -232,7 +236,8 @@ Left_Outside_Win_Right_Outside_Win = MockData(
     expected_overlap_left=501,
     expected_overlap_intra=1001,
     expected_overlap_right=501,
-    description='Cover gene, start and end outside both windows')
+    description="Cover gene, start and end outside both windows",
+)
 
 # 12
 Left_Inside_Win_Right_Inside_Win = MockData(
@@ -244,7 +249,8 @@ Left_Inside_Win_Right_Inside_Win = MockData(
     expected_overlap_left=300,
     expected_overlap_intra=1001,
     expected_overlap_right=372,
-    description='Start inside left window, end inside right window')
+    description="Start inside left window, end inside right window",
+)
 
 Left_Inside_Win_Right_Inside_Win_V2 = MockData(
     g_start=1000,
@@ -255,7 +261,8 @@ Left_Inside_Win_Right_Inside_Win_V2 = MockData(
     expected_overlap_left=299,
     expected_overlap_intra=1001,
     expected_overlap_right=372,
-    description='Start inside left window, end inside right window')
+    description="Start inside left window, end inside right window",
+)
 
 Left_Outside_Win_Right_Inside_Win = MockData(
     g_start=1000,
@@ -266,7 +273,8 @@ Left_Outside_Win_Right_Inside_Win = MockData(
     expected_overlap_left=501,
     expected_overlap_intra=1001,
     expected_overlap_right=248,
-    description='Start outside left window, end inside right window')
+    description="Start outside left window, end inside right window",
+)
 
 Left_Inside_Win_Right_Outside_Win = MockData(
     g_start=1000,
@@ -277,7 +285,8 @@ Left_Inside_Win_Right_Outside_Win = MockData(
     expected_overlap_left=121,
     expected_overlap_intra=1001,
     expected_overlap_right=501,
-    description='Start inside left window, end outside right window')
+    description="Start inside left window, end outside right window",
+)
 
 # Edge Cases
 # 16
@@ -290,7 +299,8 @@ Left_On_WinStart_End_On_GeneLeft = MockData(
     expected_overlap_left=500,
     expected_overlap_intra=1,
     expected_overlap_right=0,
-    description='Start inside left window, end outside right window')
+    description="Start inside left window, end outside right window",
+)
 
 Intra_Edge_V1 = MockData(
     g_start=1000,
@@ -301,7 +311,8 @@ Intra_Edge_V1 = MockData(
     expected_overlap_left=400,
     expected_overlap_intra=1,
     expected_overlap_right=0,
-    description='Test')
+    description="Test",
+)
 
 Intra_Edge_V2 = MockData(
     g_start=1000,
@@ -312,7 +323,8 @@ Intra_Edge_V2 = MockData(
     expected_overlap_left=0,
     expected_overlap_intra=1,
     expected_overlap_right=200,
-    description='Test')
+    description="Test",
+)
 
 Intra_Edge_V3 = MockData(
     g_start=1000,
@@ -323,125 +335,124 @@ Intra_Edge_V3 = MockData(
     expected_overlap_left=0,
     expected_overlap_intra=999,
     expected_overlap_right=0,
-    description='Test')
+    description="Test",
+)
 
 
-@pytest.mark.parametrize("MockData_Obj",
-                         [
-                            Left_Win_Only,
-                            Right_Win_Only,
-                            Left_Outside_Win_End_Inside_Win,
-                            Right_Inside_Win_End_Outside_Win,
-                            Left_Inside_Win_End_Inside_Gene,
-                            Right_Inside_Gene_End_Inside_Win,
-                            Inside_Gene_Only,
-                            Overlap_Gene_Full,
-                            Left_Outside_Win_End_Inside_Gene,
-                            Right_Inside_Gene_End_Outside_Win,
-                            Left_Win_To_Right_Win,
-                            Left_Outside_Win_Right_Outside_Win,
-                            Left_Inside_Win_Right_Inside_Win,
-                            Left_Inside_Win_Right_Inside_Win_V2,
-                            Left_Outside_Win_Right_Inside_Win,
-                            Left_Inside_Win_Right_Outside_Win,
-                            Left_On_WinStart_End_On_GeneLeft,
-                            Intra_Edge_V1,
-                            Intra_Edge_V2,
-                            Intra_Edge_V3
-                         ]
-                         )
+@pytest.mark.parametrize(
+    "MockData_Obj",
+    [
+        Left_Win_Only,
+        Right_Win_Only,
+        Left_Outside_Win_End_Inside_Win,
+        Right_Inside_Win_End_Outside_Win,
+        Left_Inside_Win_End_Inside_Gene,
+        Right_Inside_Gene_End_Inside_Win,
+        Inside_Gene_Only,
+        Overlap_Gene_Full,
+        Left_Outside_Win_End_Inside_Gene,
+        Right_Inside_Gene_End_Outside_Win,
+        Left_Win_To_Right_Win,
+        Left_Outside_Win_Right_Outside_Win,
+        Left_Inside_Win_Right_Inside_Win,
+        Left_Inside_Win_Right_Inside_Win_V2,
+        Left_Outside_Win_Right_Inside_Win,
+        Left_Inside_Win_Right_Outside_Win,
+        Left_On_WinStart_End_On_GeneLeft,
+        Intra_Edge_V1,
+        Intra_Edge_V2,
+        Intra_Edge_V3,
+    ],
+)
 def test_overlap_left_window(MockData_Obj):
     """
     Test the left window
     """
-    gene_datum = MockData_Obj.Gene.get_gene('gene_0')
-    overlaps = Overlap.left(gene_datum,
-                            MockData_Obj.Transposon,
-                            MockData_Obj.window)
+    gene_datum = MockData_Obj.Gene.get_gene("gene_0")
+    overlaps = Overlap.left(gene_datum, MockData_Obj.Transposon, MockData_Obj.window)
     expected_overlap_lefts = np.array([MockData_Obj.expected_overlap_left])
     assert np.all(overlaps == expected_overlap_lefts)
 
 
-@pytest.mark.parametrize("MockData_Obj",
-                         [
-                            Left_Win_Only,
-                            Right_Win_Only,
-                            Left_Outside_Win_End_Inside_Win,
-                            Right_Inside_Win_End_Outside_Win,
-                            Left_Inside_Win_End_Inside_Gene,
-                            Right_Inside_Gene_End_Inside_Win,
-                            Inside_Gene_Only,
-                            Overlap_Gene_Full,
-                            Left_Outside_Win_End_Inside_Gene,
-                            Right_Inside_Gene_End_Outside_Win,
-                            Left_Win_To_Right_Win,
-                            Left_Outside_Win_Right_Outside_Win,
-                            Left_Inside_Win_Right_Inside_Win,
-                            Left_Inside_Win_Right_Inside_Win_V2,
-                            Left_Outside_Win_Right_Inside_Win,
-                            Left_Inside_Win_Right_Outside_Win,
-                            Left_On_WinStart_End_On_GeneLeft,
-                            Intra_Edge_V1,
-                            Intra_Edge_V2,
-                            Intra_Edge_V3
-                         ]
-                         )
+@pytest.mark.parametrize(
+    "MockData_Obj",
+    [
+        Left_Win_Only,
+        Right_Win_Only,
+        Left_Outside_Win_End_Inside_Win,
+        Right_Inside_Win_End_Outside_Win,
+        Left_Inside_Win_End_Inside_Gene,
+        Right_Inside_Gene_End_Inside_Win,
+        Inside_Gene_Only,
+        Overlap_Gene_Full,
+        Left_Outside_Win_End_Inside_Gene,
+        Right_Inside_Gene_End_Outside_Win,
+        Left_Win_To_Right_Win,
+        Left_Outside_Win_Right_Outside_Win,
+        Left_Inside_Win_Right_Inside_Win,
+        Left_Inside_Win_Right_Inside_Win_V2,
+        Left_Outside_Win_Right_Inside_Win,
+        Left_Inside_Win_Right_Outside_Win,
+        Left_On_WinStart_End_On_GeneLeft,
+        Intra_Edge_V1,
+        Intra_Edge_V2,
+        Intra_Edge_V3,
+    ],
+)
 def test_overlap_right_window(MockData_Obj):
     """
     Test the right window
     """
-    gene_datum = MockData_Obj.Gene.get_gene('gene_0')
-    overlaps = Overlap.right(gene_datum,
-                             MockData_Obj.Transposon,
-                             MockData_Obj.window)
+    gene_datum = MockData_Obj.Gene.get_gene("gene_0")
+    overlaps = Overlap.right(gene_datum, MockData_Obj.Transposon, MockData_Obj.window)
     expected_overlap_rights = np.array([MockData_Obj.expected_overlap_right])
     assert np.all(overlaps == expected_overlap_rights)
 
 
-@pytest.mark.parametrize("MockData_Obj",
-                         [
-                            Left_Win_Only,
-                            Right_Win_Only,
-                            Left_Outside_Win_End_Inside_Win,
-                            Right_Inside_Win_End_Outside_Win,
-                            Left_Inside_Win_End_Inside_Gene,
-                            Right_Inside_Gene_End_Inside_Win,
-                            Inside_Gene_Only,
-                            Overlap_Gene_Full,
-                            Left_Outside_Win_End_Inside_Gene,
-                            Right_Inside_Gene_End_Outside_Win,
-                            Left_Win_To_Right_Win,
-                            Left_Outside_Win_Right_Outside_Win,
-                            Left_Inside_Win_Right_Inside_Win,
-                            Left_Outside_Win_Right_Inside_Win,
-                            Left_Inside_Win_Right_Inside_Win_V2,
-                            Left_Inside_Win_Right_Outside_Win,
-                            Left_On_WinStart_End_On_GeneLeft,
-                            Intra_Edge_V1,
-                            Intra_Edge_V2,
-                            Intra_Edge_V3
-                         ]
-                         )
+@pytest.mark.parametrize(
+    "MockData_Obj",
+    [
+        Left_Win_Only,
+        Right_Win_Only,
+        Left_Outside_Win_End_Inside_Win,
+        Right_Inside_Win_End_Outside_Win,
+        Left_Inside_Win_End_Inside_Gene,
+        Right_Inside_Gene_End_Inside_Win,
+        Inside_Gene_Only,
+        Overlap_Gene_Full,
+        Left_Outside_Win_End_Inside_Gene,
+        Right_Inside_Gene_End_Outside_Win,
+        Left_Win_To_Right_Win,
+        Left_Outside_Win_Right_Outside_Win,
+        Left_Inside_Win_Right_Inside_Win,
+        Left_Outside_Win_Right_Inside_Win,
+        Left_Inside_Win_Right_Inside_Win_V2,
+        Left_Inside_Win_Right_Outside_Win,
+        Left_On_WinStart_End_On_GeneLeft,
+        Intra_Edge_V1,
+        Intra_Edge_V2,
+        Intra_Edge_V3,
+    ],
+)
 def test_overlap_intra_window(MockData_Obj):
     """
     Test the right window
     """
-    gene_datum = MockData_Obj.Gene.get_gene('gene_0')
-    overlaps = Overlap.intra(gene_datum,
-                             MockData_Obj.Transposon)
+    gene_datum = MockData_Obj.Gene.get_gene("gene_0")
+    overlaps = Overlap.intra(gene_datum, MockData_Obj.Transposon)
     expected_overlap_intra = np.array([MockData_Obj.expected_overlap_intra])
     assert np.all(overlaps == expected_overlap_intra)
 
 
-
-@pytest.mark.parametrize("MockData_Obj",
-                         [
-                            Left_Win_Only_FLOAT,
-                            Left_Win_Only_INT,
-                            Left_Win_Only_heterogenous_INT_FLOAT,
-                            Left_Win_Only_heterogenous_FLOAT_INT
-                         ]
-                         )
+@pytest.mark.parametrize(
+    "MockData_Obj",
+    [
+        Left_Win_Only_FLOAT,
+        Left_Win_Only_INT,
+        Left_Win_Only_heterogenous_INT_FLOAT,
+        Left_Win_Only_heterogenous_FLOAT_INT,
+    ],
+)
 def test_overlap_left_window_data_types(MockData_Obj):
     """
     LEFT
@@ -450,22 +461,21 @@ def test_overlap_left_window_data_types(MockData_Obj):
     I have a hunch that numbers that are supposed to be 0 get returned
     incorrectly.
     """
-    gene_datum = MockData_Obj.Gene.get_gene('gene_0')
-    overlaps = Overlap.left(gene_datum,
-                            MockData_Obj.Transposon,
-                            MockData_Obj.window)
+    gene_datum = MockData_Obj.Gene.get_gene("gene_0")
+    overlaps = Overlap.left(gene_datum, MockData_Obj.Transposon, MockData_Obj.window)
     expected_overlap_lefts = np.array([MockData_Obj.expected_overlap_left])
     assert np.all(overlaps == expected_overlap_lefts)
 
 
-@pytest.mark.parametrize("MockData_Obj",
-                         [
-                            Left_Win_Only_FLOAT,
-                            Left_Win_Only_INT,
-                            Left_Win_Only_heterogenous_INT_FLOAT,
-                            Left_Win_Only_heterogenous_FLOAT_INT
-                         ]
-                         )
+@pytest.mark.parametrize(
+    "MockData_Obj",
+    [
+        Left_Win_Only_FLOAT,
+        Left_Win_Only_INT,
+        Left_Win_Only_heterogenous_INT_FLOAT,
+        Left_Win_Only_heterogenous_FLOAT_INT,
+    ],
+)
 def test_overlap_intra_window_data_types(MockData_Obj):
     """
     INTRA
@@ -474,21 +484,21 @@ def test_overlap_intra_window_data_types(MockData_Obj):
     I have a hunch that numbers that are supposed to be 0 get returned
     incorrectly.
     """
-    gene_datum = MockData_Obj.Gene.get_gene('gene_0')
-    overlaps = Overlap.intra(gene_datum,
-                            MockData_Obj.Transposon)
+    gene_datum = MockData_Obj.Gene.get_gene("gene_0")
+    overlaps = Overlap.intra(gene_datum, MockData_Obj.Transposon)
     expected_overlap_intra = np.array([MockData_Obj.expected_overlap_intra])
     assert np.all(overlaps == expected_overlap_intra)
 
 
-@pytest.mark.parametrize("MockData_Obj",
-                         [
-                            Left_Win_Only_FLOAT,
-                            Left_Win_Only_INT,
-                            Left_Win_Only_heterogenous_INT_FLOAT,
-                            Left_Win_Only_heterogenous_FLOAT_INT
-                         ]
-                         )
+@pytest.mark.parametrize(
+    "MockData_Obj",
+    [
+        Left_Win_Only_FLOAT,
+        Left_Win_Only_INT,
+        Left_Win_Only_heterogenous_INT_FLOAT,
+        Left_Win_Only_heterogenous_FLOAT_INT,
+    ],
+)
 def test_overlap_right_window_data_types(MockData_Obj):
     """
     RIGHT
@@ -497,12 +507,11 @@ def test_overlap_right_window_data_types(MockData_Obj):
     I have a hunch that numbers that are supposed to be 0 get returned
     incorrectly.
     """
-    gene_datum = MockData_Obj.Gene.get_gene('gene_0')
-    overlaps = Overlap.right(gene_datum,
-                            MockData_Obj.Transposon,
-                            MockData_Obj.window)
+    gene_datum = MockData_Obj.Gene.get_gene("gene_0")
+    overlaps = Overlap.right(gene_datum, MockData_Obj.Transposon, MockData_Obj.window)
     expected_overlap_rights = np.array([MockData_Obj.expected_overlap_right])
     assert np.all(overlaps == expected_overlap_rights)
 
+
 if __name__ == "__main__":
-    pytest.main(['-s', __file__])  # for convenience
+    pytest.main(["-s", __file__])  # for convenience

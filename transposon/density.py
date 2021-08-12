@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 
 # TODO candidate for deletion
+# The RHO functions have been broken up into the overlap functions, the
+# genedatum window defining functions, and the merge data sum.
+# How do we rewrite the tests?
+# Rewrite tests and delete replace_names.py once the merge data tests are
+# finished
 
 """
 Calculate transposable element density.
