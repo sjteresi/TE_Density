@@ -263,6 +263,32 @@ class DensityData:
 
             self.data_frame["RHO_ORDERS_LEFT"][:, :, index_to_switch] = right_val_order
 
+    def percentiles(self, order_or_super, percentile_cutoff):
+        """
+        Gives you the percentile value for all genes, for one window and te
+        type at a time.
+        Returns an array of shape(# of TE Orders, and # of windows)
+        """
+        Percentiles = namedtuple(
+            "Percentiles",
+            ["Upstream_P", "Intra_P", "Downstream_P", "supplied_percentile_val"],
+        )
+        # TODO could be refactored?
+        if order_or_super == "Order":
+            left = np.percentile(self.left_orders[:, :, :], percentile_cutoff, axis=2)
+            intra = np.percentile(self.intra_orders[:, :, :], percentile_cutoff, axis=2)
+            right = np.percentile(self.right_orders[:, :, :], percentile_cutoff, axis=2)
+        elif order_or_super == "Super":
+            left = np.percentile(self.left_supers[:, :, :], percentile_cutoff, axis=2)
+            intra = np.percentile(self.intra_supers[:, :, :], percentile_cutoff, axis=2)
+            right = np.percentile(self.right_supers[:, :, :], percentile_cutoff, axis=2)
+        else:
+            raise IndexError(
+                """Please provide the correct TE grouping, Order or
+                             Super to index with"""
+            )
+        return Percentiles(left, intra, right, percentile_cutoff)
+
     def info_of_gene(self, gene_id, window_idx, n_te_types=5):
         """
         gene_id (str): String representing the name of the gene to report
