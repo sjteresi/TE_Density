@@ -87,7 +87,6 @@ def import_genes(genes_input_path):
     # Set the gene name as the index
     gene_data.set_index("Gene_Name", inplace=True)
 
-    print(gene_data)
     return gene_data
 
 
@@ -150,5 +149,5 @@ if __name__ == "__main__":
     coloredlogs.install(level=log_level)
 
     # Execute
-    cleaned_genes = import_genes(args.gene_input_file, logger)
+    cleaned_genes = import_genes(args.gene_input_file)
     write_cleaned_genes(cleaned_genes, args.output_dir, args.gene_input_file, logger)
