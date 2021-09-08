@@ -84,3 +84,9 @@ compare_syntelog_TE_differences:
 	@echo This is for chromosome 1
 	mkdir -p $(ROOT_DIR)/results/graphs
 	python $(ROOT_DIR)/src/compare_density.py $(DEV_RESULTS)/set_syntelogs.tsv $(DEV_HDF5)/Sativa/Sativa_1.h5 $(DEV_HDF5)/Glaberrima/Glaberrima_1.h5 $(DEV_FILTERED)/Cleaned_Oryza_sativa.IRGSP-1.0.50.tsv $(DEV_FILTERED)/Cleaned_Oryza_glaberrima.Oryza_glaberrima_V1.50.tsv -o $(ROOT_DIR)/results
+
+# TODO Rename inputs for Rice
+identify_interesing_genes:
+	@echo Reporting genes with interesting levels of TE density
+	mkdir -p $(DEV_RESULTS)/tables
+	python $(ROOT_DIR)/src/find_abnormal_genes.py $(DEV_FILTERED)/Cleaned_Oryza_sativa.IRGSP-1.0.50.tsv $(DEV_HDF5)/Sativa -o $(DEV_RESULTS)/tables
