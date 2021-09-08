@@ -22,30 +22,6 @@ from transposon.density_data import DensityData
 from transposon.gene_data import GeneData
 
 
-def supply_density_data_files(path_to_folder):
-    """
-    Iterate over a folder containing the H5 files of TE Density output and
-    return a list of absolute file paths.
-
-    Args:
-        path_to_folder (str): path to the folder containing multiple h5 files
-        of density data
-
-    Returns:
-        raw_file_list (list of str): A list containing the absolute paths to
-        each relevant H5 file of density data
-    """
-    raw_file_list = []  # init empty list to store filenames
-    for root, dirs, files in os.walk(path_to_folder):
-        for a_file_object in files:
-            # N.B very particular usage of abspath and join.
-            a_file_object = os.path.abspath(os.path.join(root, a_file_object))
-            if a_file_object.endswith(".h5"):  # MAGIC
-                raw_file_list.append(a_file_object)
-
-    return raw_file_list
-
-
 def read_TPM_matrix(tpm_matrix_file):
     """
     Read a tpm matrix into a pandas object
@@ -364,18 +340,10 @@ if __name__ == "__main__":
         GeneData(dataframe, dataframe["Chromosome"].unique()[0])
         for dataframe in gene_dataframe_list
     ]
-    processed_dd_data = []
-    for raw_hdf5_data_file in supply_density_data_files(args.density_data_folder):
-        current_hdf5_file_chromosome = re.search(
-            "Vacc_Cory_(.*?).h5", raw_hdf5_data_file
-        ).group(1)
-        # MAGIC
-        for gene_data_obj in gene_data_list:
-            if gene_data_obj.chromosome_unique_id == current_hdf5_file_chromosome:
-                dd_data_obj = DensityData.verify_h5_cache(
-                    raw_hdf5_data_file, gene_data_obj, logger
-                )
-                processed_dd_data.append(dd_data_obj)
+
+    processed_dd_data = DensityData.from_list_gene_data_and_hdf5_dir(
+        gene_data_list, args.density_data_folder, "Vacc_Cory_(.*?).h5", logger
+    )
 
     # NOTE at this point I have a list of initialized DensityData (chromosome
     # level) and one large expression matrix (all chromosomes). But the
