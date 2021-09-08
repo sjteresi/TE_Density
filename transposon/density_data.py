@@ -10,6 +10,7 @@ import h5py
 import numpy as np
 import os
 import shutil
+import re
 from collections import namedtuple
 
 DensitySlice = namedtuple(
@@ -263,31 +264,79 @@ class DensityData:
 
             self.data_frame["RHO_ORDERS_LEFT"][:, :, index_to_switch] = right_val_order
 
-    def percentiles(self, order_or_super, percentile_cutoff):
+    @staticmethod
+    def supply_density_data_files(path_to_folder):
         """
-        Gives you the percentile value for all genes, for one window and te
-        type at a time.
-        Returns an array of shape(# of TE Orders, and # of windows)
+        Iterate over a folder containing the H5 files of TE Density output and
+        return a list of absolute file paths.
+        These may be used later to instantiate DensityData
+
+        Args:
+            path_to_folder (str): path to the folder containing multiple h5 files
+            of density data, which are the outputs following the successful
+            completion of the pipeline.
+
+        Returns:
+            raw_file_list (list of str): A list containing the absolute paths to
+            each relevant H5 file of density data
         """
-        Percentiles = namedtuple(
-            "Percentiles",
-            ["Upstream_P", "Intra_P", "Downstream_P", "supplied_percentile_val"],
-        )
-        # TODO could be refactored?
-        if order_or_super == "Order":
-            left = np.percentile(self.left_orders[:, :, :], percentile_cutoff, axis=2)
-            intra = np.percentile(self.intra_orders[:, :, :], percentile_cutoff, axis=2)
-            right = np.percentile(self.right_orders[:, :, :], percentile_cutoff, axis=2)
-        elif order_or_super == "Super":
-            left = np.percentile(self.left_supers[:, :, :], percentile_cutoff, axis=2)
-            intra = np.percentile(self.intra_supers[:, :, :], percentile_cutoff, axis=2)
-            right = np.percentile(self.right_supers[:, :, :], percentile_cutoff, axis=2)
-        else:
-            raise IndexError(
-                """Please provide the correct TE grouping, Order or
-                             Super to index with"""
-            )
-        return Percentiles(left, intra, right, percentile_cutoff)
+        raw_file_list = []  # init empty list to store filenames
+        for root, dirs, files in os.walk(path_to_folder):
+            for a_file_object in files:
+                # N.B very particular usage of abspath and join.
+                a_file_object = os.path.abspath(os.path.join(root, a_file_object))
+                if a_file_object.endswith(".h5"):  # MAGIC file ext
+                    raw_file_list.append(a_file_object)
+        return raw_file_list
+
+    @classmethod
+    def from_list_gene_data_and_hdf5_dir(
+        cls, list_of_gene_data, HDF5_folder, file_substring, logger
+    ):
+        """
+        Returns a list of DensityData instances when given a list of GeneData
+        and a directory of H5 files
+
+        Args:
+            list_of_gene_data (list): List of GeneData instances, each GeneData
+                represents the information of a single chromosome, the
+                chromosome ID must match with the string ID of the chromosome
+                which is given by the .h5 file.
+
+            HDF5_folder (str): Path to directory containing results (.h5) files
+            following the successful computation of TE Density
+
+            file_substring (str): MAGIC substring with which to identify the
+                genome and chromosome IDs. Generally, substring should
+                be "GenomeName_(.*?).h5" so that it can correctly grab the
+                chromosome ID from the filename
+
+            logger (logging.logger): Obj to log information to
+
+        Returns: processed_density_data (list of DensityData instances).
+        """
+        processed_density_data = []
+        for raw_hdf5_data_file in DensityData.supply_density_data_files(HDF5_folder):
+            current_hdf5_file_chromosome = re.search(file_substring, raw_hdf5_data_file)
+            if current_hdf5_file_chromosome is None:
+                logger.warning(
+                    """Using your regex pattern: %s, unable to identify
+                    chromosome IDs from directory: %s. Please refer to the
+                    documentation of the classmethod
+                    'from_list_gene_data_and_hdf5_dir' for more information"""
+                    % (file_substring, HDF5_folder)
+                )
+            current_hdf5_file_chromosome = current_hdf5_file_chromosome.group(
+                1
+            )  # MAGIC to extract info from
+            # regex search obj
+            for gene_data_obj in list_of_gene_data:
+                if gene_data_obj.chromosome_unique_id == current_hdf5_file_chromosome:
+                    dd_data_obj = cls.verify_h5_cache(
+                        raw_hdf5_data_file, gene_data_obj, logger
+                    )
+                    processed_density_data.append(dd_data_obj)
+        return processed_density_data
 
     def info_of_gene(self, gene_id, window_idx, n_te_types=5):
         """
