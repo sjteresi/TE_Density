@@ -95,7 +95,7 @@ if __name__ == "__main__":
             ]
 
             major_concat = np.concatenate(all_upstream_1KB, axis=0)
-            all_chromosomes_cutoff_val = np.percentile(major_concat, 99)
+            all_chromosomes_cutoff_val = np.percentile(major_concat, 98)
             # MAGIC 99th percentle cutoff
 
             list_of_genes_with_cutoff = []
