@@ -19,9 +19,7 @@ DensitySlice = namedtuple(
 
 
 class DensityData:
-    def __init__(
-        self, input_h5, gene_data, logger, sense_swap=True, remove_revision_sets=True
-    ):
+    def __init__(self, input_h5, gene_data, logger, sense_swap=True):
         """
         input_h5 (str): Path to h5 file of TE Density output.
         gene_data (GeneData):
@@ -31,11 +29,6 @@ class DensityData:
         shutil.copyfile(input_h5, new_filename)  # copy because we
         # need to swap values later
         self.data_frame = h5py.File(new_filename, "r+")
-
-        # Remove the revision groupings from the dataset as they are an
-        # artifact from accurately merging TEs
-        if remove_revision_sets:
-            self.data_frame = self.remove_revision_sets()
 
         self.key_list = list(self.data_frame.keys())
         self.gene_list = self.data_frame["GENE_NAMES"][:]
@@ -73,54 +66,6 @@ class DensityData:
             zero_gene_list = np.where(strands_as_numpy == 0)[0]  # gets indices of 0s
             genes_to_swap = gene_data.data_frame.iloc[zero_gene_list, :].index.tolist()
             self._swap_strand_vals(genes_to_swap)
-
-    def remove_revision_sets(self):
-        for te_order_idx, te_order_name in enumerate(self.data_frame["ORDER_NAMES"][:]):
-            if te_order_name == "S_Revision":
-                order_idx_to_del = te_order_idx
-                order_names_less_revision = np.delete(
-                    self.data_frame["ORDER_NAMES"], [order_idx_to_del]
-                )
-                del self.data_frame["ORDER_NAMES"]
-                self.data_frame.create_dataset(
-                    "ORDER_NAMES", data=order_names_less_revision
-                )
-
-        for te_super_idx, te_super_name in enumerate(
-            self.data_frame["SUPERFAMILY_NAMES"][:]
-        ):
-            if te_super_name == "O_Revision":
-                super_idx_to_del = te_super_idx
-                super_names_less_revision = np.delete(
-                    self.data_frame["SUPERFAMILY_NAMES"], [super_idx_to_del]
-                )
-                del self.data_frame["SUPERFAMILY_NAMES"]
-                self.data_frame.create_dataset(
-                    "SUPERFAMILY_NAMES", data=super_names_less_revision
-                )
-
-        #
-        order_datasets = ["RHO_ORDERS_LEFT", "RHO_ORDERS_INTRA", "RHO_ORDERS_RIGHT"]
-        super_datasets = [
-            "RHO_SUPERFAMILIES_LEFT",
-            "RHO_SUPERFAMILIES_INTRA",
-            "RHO_SUPERFAMILIES_RIGHT",
-        ]
-        for order_dataset in order_datasets:
-            data_less_revision = np.delete(
-                self.data_frame[order_dataset], order_idx_to_del, 0
-            )
-            del self.data_frame[order_dataset]
-            self.data_frame.create_dataset(order_dataset, data=data_less_revision)
-
-        for super_dataset in super_datasets:
-            data_less_revision = np.delete(
-                self.data_frame[super_dataset], super_idx_to_del, 0
-            )
-            del self.data_frame[super_dataset]
-            self.data_frame.create_dataset(super_dataset, data=data_less_revision)
-
-        return self.data_frame
 
     def _index_of_gene(self, gene_string):
         """Return the index of a gene given the name of the gene
@@ -352,6 +297,10 @@ class DensityData:
 
         # TODO candidate to clean up below, utility function for those not
         # well-versed in indexing HDF5
+
+        # TODO this does not avoid the O_Revision and S_Revision datasets,
+        # future release will handle these artifacts more elegantly. Unable to
+        # avoid at the moment.
 
         # NB sort in reverse order, the last items in this array contains
         # the greatest density value

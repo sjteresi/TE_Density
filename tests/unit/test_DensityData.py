@@ -68,14 +68,14 @@ def dummy_gene_data():
 @pytest.fixture
 def order_names():
     """Return a list of order types"""
-    order_names = ["LTR", "S_Revision"]
+    order_names = ["LTR", "TIR"]
     return order_names
 
 
 @pytest.fixture
 def super_names():
     """Return a list of super names"""
-    super_names = ["Copia", "Gypsy", "O_Revision"]
+    super_names = ["Copia", "Gypsy", "HAT"]
     return super_names
 
 
@@ -171,47 +171,7 @@ def density_data_test_obj_swap_vals(
         "/home/scott/Documents/Uni/Research/Projects/TE_Density/tests/input_data/test_swap_file.h5",
         dummy_gene_data,
         LOGGER,
-        remove_revision_sets=False,
         sense_swap=False,
-    )
-
-
-@pytest.fixture
-def density_data_test_obj_remove_revision(
-    chromosomes,
-    dummy_gene_data,
-    order_names,
-    super_names,
-    windows,
-    rho_o_left,
-    rho_o_intra,
-    rho_o_right,
-):
-    """Create a test object for DensityData, reads from file"""
-    f = h5py.File(
-        "/home/scott/Documents/Uni/Research/Projects/TE_Density/tests/input_data/test_remove_revise_file.h5",
-        "w",
-    )
-    gene_names = list(dummy_gene_data.names)
-    write_vlen_str_h5py(f, chromosomes, "CHROMOSOME_ID")
-    write_vlen_str_h5py(f, gene_names, "GENE_NAMES")
-    write_vlen_str_h5py(f, order_names, "ORDER_NAMES")
-    write_vlen_str_h5py(f, super_names, "SUPERFAMILY_NAMES")
-    write_vlen_str_h5py(f, windows, "WINDOWS")
-
-    dset = f.create_dataset("RHO_ORDERS_LEFT", data=rho_o_left)
-    dset = f.create_dataset("RHO_ORDERS_INTRA", data=rho_o_intra)
-    dset = f.create_dataset("RHO_ORDERS_RIGHT", data=rho_o_right)
-
-    # NB just re-doing the values for the supers because not testing supers
-    dset = f.create_dataset("RHO_SUPERFAMILIES_LEFT", data=rho_o_left)
-    dset = f.create_dataset("RHO_SUPERFAMILIES_INTRA", data=rho_o_intra)
-    dset = f.create_dataset("RHO_SUPERFAMILIES_RIGHT", data=rho_o_right)
-    f.close()
-    return DensityData(
-        "/home/scott/Documents/Uni/Research/Projects/TE_Density/tests/input_data/test_remove_revise_file.h5",
-        dummy_gene_data,
-        LOGGER,
     )
 
 
@@ -236,14 +196,6 @@ def test_swap_density_vals(density_data_test_obj_swap_vals):
     assert np.array_equal(
         density_data_test_obj_swap_vals.right_orders[:, :, 1], np.full((2, 3), 100)
     )
-
-
-# TODO figure out a way to automatically remove the O_Revision and S_Revision
-# groupings from the HDF5
-# def test_remove_revision_sets(density_data_test_obj_remove_revision):
-# """Test whether or not we can correctly remove an index (a TE grouping)
-# from the HDF5."""
-# print(density_data_test_obj_remove_revision)
 
 
 if __name__ == "__main__":

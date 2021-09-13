@@ -127,6 +127,10 @@ def plot_expression_v_density_violin(
         for density_slice in dd_chromosome.yield_all_slices():
             # Here we are still on a single chromosome, beginning to loop over
             # all of the windows, TEs, and directions
+
+            # NOTE yield all slices is a function that skips the Revision
+            # datasets. TODO this will likely be accomplished through other
+            # means in future releases.
             window_direction_type = str(
                 density_slice.te_type
                 + "_"

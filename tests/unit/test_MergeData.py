@@ -10,8 +10,10 @@ import logging
 import os
 import pytest
 import tempfile
+import shutil
 
 import coloredlogs
+import h5py
 import numpy as np
 import pandas as pd
 from io import StringIO
@@ -169,27 +171,37 @@ def list_sum_args_real(active_merge_sink_real, active_overlap_data_real):
     return sums
 
 
-# @pytest.mark.skip(reason="TODO")
-# NOTE this returns a None obj
 def test_merge_summed_real(
     active_merge_sink_real, active_overlap_data_real, genedata_test_obj
 ):
-    """Can MergeData calculate the sum of overlaps"""
-    merge_real_summed = active_merge_sink_real.sum(
-        active_overlap_data_real, genedata_test_obj
-    )
+    """
+    Can MergeData calculate the sum of overlaps
+    System test for the final output of MergeData because difficult to unit
+    test the many pieces of MergeData at the moment.
+    """
+    print(active_overlap_data_real.left[:])
+    active_merge_sink_real.sum(active_overlap_data_real, genedata_test_obj)
     # sum calls process_sum and puts it in the H5 file which eventually gets
     # written to disk.
-    print(merge_real_summed)
-    print(type(merge_real_summed))
-    print(active_merge_sink_real.gene_names)
+    print()
     print(active_merge_sink_real.filepath)
+    print(active_merge_sink_real.gene_names)
+    print(active_merge_sink_real.windows)
+    print()
 
     # Good idea to call sum and then look at the member variables.....
     # mergedata.windows, .genenames
 
     # Just call this .sum function and then look at the output, and check the
     # math then.
+
+    f = h5py.File(active_merge_sink_real.filepath, "r")
+    print(f["WINDOWS"][:])
+    print(f["ORDER_NAMES"][:])
+    print(f["RHO_ORDERS_RIGHT"][4, 3, 1])
+    print(f["RHO_ORDERS_LEFT"][4, 3, 4])
+
+    # f.close()
 
 
 def test_slice_left_right_real(active_merge_sink_real):
