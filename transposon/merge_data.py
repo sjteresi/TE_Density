@@ -196,6 +196,9 @@ class MergeData:
         Returns:
             tuple(int|Slice): integers and/or Slice instances for numpy basic indexing
         """
+        # NOTE this is confusing because input arguments are group_idx,
+        # gene_idx, window_idx, and it returns (group_idx, window_idx,
+        # gene_idx). Potential refactor?
 
         # SEE numpy basic indexing
         # TODO SCOTT test this pls
@@ -232,7 +235,10 @@ class MergeData:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_traceback):
-        """Context manager end."""
+        """Context manager end.
+
+        Writes all the data to the disk.
+        """
 
         self._h5_file.flush()
         self._h5_file.close()
