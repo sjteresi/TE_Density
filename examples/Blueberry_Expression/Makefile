@@ -7,7 +7,7 @@ DEV_DATA := $(realpath $(ROOT_DIR)/../../../TE_Density_Example_Data/Blueberry)
 DEV_GENES := $(DEV_DATA)/Genes/Blueberry_Genes.gff
 DEV_TES := $(DEV_DATA)/TEs/Blueberry_EDTA_TEs.gff
 DEV_GENE_EXPRESSION := $(DEV_DATA)/Genes/Blueberry_TPM_All.tsv
-DEV_DENSITY_FILES := $(DEV_DATA)/../../TE_Density_Example_Data/Blueberry/TEs/Density_Data/Draper
+DEV_DENSITY_FILES := $(DEV_DATA)/../../TE_Data/finalized_data/10KB/Draper
 DEV_GENOME := "BlueberryExample"
 
 filter_genes:

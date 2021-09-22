@@ -238,6 +238,7 @@ def plot_expression_v_density_violin(
         figure.set_size_inches(10.5, 8)  # MAGIC get figure size to fit
         # everything nicely
         plt.xlabel("Density Bins")
+        plt.ylim(-2.0, 5.5)
         logger.info("Violin plot created for %s" % data_column)
         plt.savefig(
             os.path.join(output_dir, str(data_column + "_ViolinPlot.png")),
@@ -249,9 +250,13 @@ def plot_expression_v_density_violin(
         plt.clf()
 
         # Call the code to plot the line plot of gene counts
-        plot_expression_v_density_gene_counts(
-            bin_count_frame, title_string, data_column, output_dir, logger
-        )
+        # NOTE
+        # This is kinda crappy because I am calling another function to graph
+        # another graph here. Ideally it would be refactored in a later
+        # release.
+        # plot_expression_v_density_gene_counts(
+        # bin_count_frame, title_string, data_column, output_dir, logger
+        # )
 
 
 def plot_expression_v_density_gene_counts(
@@ -336,7 +341,7 @@ if __name__ == "__main__":
     coloredlogs.install(level=log_level)
 
     tpm_matrix = read_TPM_matrix(args.TPM_matrix)
-    cleaned_genes = import_genes(args.gene_input_file)
+    cleaned_genes = import_genes(args.gene_input_file, logger)
     gene_dataframe_list = [
         dataframe for k, dataframe in cleaned_genes.groupby("Chromosome")
     ]
