@@ -40,7 +40,7 @@ _SummationArgs = namedtuple(
 )
 
 
-#class MergeCommand:  # TODO refactor the list density args into a command
+# class MergeCommand:  # TODO refactor the list density args into a command
 #
 #    DIV_LEFT = GeneDatum.divisor_left
 #    DIV_INTRA = GeneDatum.divisor_intra
@@ -73,6 +73,7 @@ class MergeData:
     """
 
     DTYPE = np.float32  # MAGIC NUMBER experimental, depends on your data
+    # NOTE should this be float64?
     _GENE_NAMES = "GENE_NAMES"
     _WINDOWS = "WINDOWS"
     _CHROME_ID = "CHROMOSOME_ID"
@@ -151,7 +152,7 @@ class MergeData:
             gene_names (iterable(str)): gene names to process.
             windows (iterable(int)): window inputs to process (not the same as windows).
             output_dir (str): directory to output merge data files.
-            rame (int): gigabytes RAM to cache during processing.
+            ram (int): gigabytes RAM to cache during processing.
             logger (logging.Logger): logging instance for messages.
         """
 
@@ -161,6 +162,7 @@ class MergeData:
         transposon.check_ram(ram_bytes, logger)
         chrome = str(transposon_data.chromosome_unique_id)
         genome = str(transposon_data.genome_id)
+        # MAGIC, filename creation
         filename = genome + "_" + chrome + ".h5"
         filepath = os.path.join(output_dir, filename)
         config = _MergeConfigSink(
@@ -194,6 +196,9 @@ class MergeData:
         Returns:
             tuple(int|Slice): integers and/or Slice instances for numpy basic indexing
         """
+        # NOTE this is confusing because input arguments are group_idx,
+        # gene_idx, window_idx, and it returns (group_idx, window_idx,
+        # gene_idx). Potential refactor?
 
         # SEE numpy basic indexing
         # TODO SCOTT test this pls
@@ -230,7 +235,10 @@ class MergeData:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_traceback):
-        """Context manager end."""
+        """Context manager end.
+
+        Writes all the data to the disk.
+        """
 
         self._h5_file.flush()
         self._h5_file.close()
@@ -287,15 +295,21 @@ class MergeData:
         transposon.write_vlen_str_h5py(
             self._h5_file, self.chromosome_id, self._CHROME_ID
         )
-        transposon.write_vlen_str_h5py(self._h5_file, self.order_names, self._ORDER_NAMES)
-        transposon.write_vlen_str_h5py(self._h5_file, self.superfamily_names, self._SUPERFAMILY_NAMES)
+        transposon.write_vlen_str_h5py(
+            self._h5_file, self.order_names, self._ORDER_NAMES
+        )
+        transposon.write_vlen_str_h5py(
+            self._h5_file, self.superfamily_names, self._SUPERFAMILY_NAMES
+        )
         self._window_2_idx = {w: i for i, w in enumerate(self.windows)}
         self._gene_2_idx = {g: i for i, g in enumerate(self.gene_names)}
 
     def _open_existing_file(self, cfg):
 
         self._h5_file = h5py.File(cfg.filepath, "r")
-        transposon.read_vlen_str_h5py(self._h5_file,)
+        transposon.read_vlen_str_h5py(
+            self._h5_file,
+        )
         # TODO
         # read windows
         # read chromosome id
@@ -347,7 +361,7 @@ class MergeData:
         Args:
             overlap(OverlapData): container for the intermediate overlap values
             gene_data (GeneData): container for the gene data for one
-            chromosome
+            pseudomolecule
             progress_bar(?):
         """
 
@@ -402,10 +416,16 @@ class MergeData:
                     # for one gene, one window, and all the TEs, we have overlap values
                     # select only the overlaps for the TEs that match the TE type
                     g_slice_in, w_slice_in, te_slice_in = slice_in
-                    filtered_slice_in = (g_slice_in, w_slice_in, superfam_or_order_match)
+                    filtered_slice_in = (
+                        g_slice_in,
+                        w_slice_in,
+                        superfam_or_order_match,
+                    )
                     # sum all the entries for the gene/window at that TE type
-                    overlap_sum = np.sum(overlaps[g_slice_in, w_slice_in, slice(None)],
-                                         where=superfam_or_order_match)
+                    overlap_sum = np.sum(
+                        overlaps[g_slice_in, w_slice_in, slice(None)],
+                        where=superfam_or_order_match,
+                    )
                     slice_out = sum_args.slice_out(
                         window_idx=w_idx, gene_idx=g_idx, group_idx=te_idx
                     )
@@ -547,7 +567,12 @@ class MergeData:
             raise ValueError(
                 f"""The windows for MergeData, {self.windows},
                              do not match with the windows of overlap:
-                             {overlap.windows}"""
+                             {overlap.windows}.
+                             Please delete the old overlap files, they
+                             may have been calculated using a different
+                             set of windows than the ones
+                             provided for the current execution
+                             of TE Density."""
             )
 
     def _validate_gene_names(self, overlap):

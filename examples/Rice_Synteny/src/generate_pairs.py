@@ -9,19 +9,16 @@ __author__ = "Scott Teresi"
 
 import argparse
 import os
-
 import logging
 import coloredlogs
 
-
 from import_syntelogs import import_syntelogs
-from import_syntelogs import Syntelog_Data
-
 from transposon import check_nulls
 
 
 def process(
-    syntelog_input_file, data_output_path,
+    syntelog_input_file,
+    data_output_path,
 ):
     # Import the synteny data from raw file
     logger.info("Importing syntelogs: %s" % syntelog_input_file)
@@ -29,11 +26,9 @@ def process(
     check_nulls(syntelogs, logger)
 
     # Wrap the data
-    logger.debug("Wrapping Syntelog_Data...")
-    instance_Syntelog_Data = Syntelog_Data(syntelogs)
     file_to_save = os.path.join(data_output_path, "set_syntelogs.tsv")
     logger.info("Writing syntelog data to disk: %s" % file_to_save)
-    instance_Syntelog_Data.save_to_disk(file_to_save)
+    syntelogs.to_csv(file_to_save, sep="\t", header=True, index=False)
 
 
 if __name__ == "__main__":
@@ -66,5 +61,6 @@ if __name__ == "__main__":
     # Process
     logger.info("Starting filtration...")
     process(
-        args.syntelog_input_file, args.output_directory,
+        args.syntelog_input_file,
+        args.output_directory,
     )

@@ -6,25 +6,19 @@ Unit test MergeData.
 
 __author__ = "Michael Teresi, Scott Teresi"
 
-import logging
-import os
-import pytest
-import tempfile
-
 import coloredlogs
 import numpy as np
 import pandas as pd
-from io import StringIO
-from collections import namedtuple
+import logging
+import pytest
+import tempfile
+
 
 from transposon.merge_data import MergeData
 from transposon.merge_data import _MergeConfigSink, _MergeConfigSource, _SummationArgs
 from transposon.transposon_data import TransposonData
 from transposon.gene_data import GeneData
 from transposon.overlap import OverlapData, OverlapWorker
-
-# pytestmark = pytest.mark.skip
-
 
 MAX_RAM = 1024 * 4
 N_TRANSPOSONS = 4
@@ -107,22 +101,21 @@ def merge_sink(te_data, gene_data, temp_dir):
 
 
 # -----------------------------------------------------
-# SCOTT
-
-
-windows_real = [500, 1000, 1500, 2000]  # NOTE used for the
-# MergeData.from_param parts
+# SCOTT tests with real data below
+# NOTE window values used in tests
+windows_real = [500, 1000, 1500, 2000]
 
 
 @pytest.fixture
 def genedata_test_obj():
     """Create test object for GeneData information, reads from file"""
+    # NOTE this path is relative to the main directory
     gene_file = "tests/input_data/Test_Genes_MergeData.tsv"
     gene_pandas = pd.read_csv(
         gene_file,
         header="infer",
         sep="\t",
-        dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
+        dtype={"Start": "float64", "Stop": "float64", "Length": "float64"},
         index_col="Gene_Name",
     )
     sample_genome = GeneData(gene_pandas, "Mock_Camarosa")
@@ -132,12 +125,13 @@ def genedata_test_obj():
 @pytest.fixture
 def transposondata_test_obj():
     """Create test object for TransposonData information, reads from file"""
+    # NOTE this path is relative to the main directory
     te_file = "tests/input_data/Test_TEs_MergeData.tsv"
     te_pandas = pd.read_csv(
         te_file,
         header="infer",
         sep="\t",
-        dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
+        dtype={"Start": "float64", "Stop": "float64", "Length": "float64"},
     )
     sample_genome = TransposonData(te_pandas, "Mock_Camarosa")
     return sample_genome
@@ -154,45 +148,129 @@ def active_merge_sink_real(transposondata_test_obj, genedata_test_obj, temp_dir)
 
 
 @pytest.yield_fixture
-def active_real_overlap_data(genedata_test_obj, transposondata_test_obj, temp_file):
+def active_overlap_data_real(genedata_test_obj, transposondata_test_obj, temp_file):
     """Yield an active OverlapData instance from real data"""
-    my_overlap_data = OverlapData.from_param(
+
+    overlap_worker = OverlapWorker(temp_file)
+    overlap_worker.calculate(
         genedata_test_obj,
-        transposondata_test_obj.number_elements,
+        transposondata_test_obj,
         windows_real,
-        temp_file,
+        genedata_test_obj.names,
     )
-    with my_overlap_data as active_overlap:
+
+    with OverlapData.from_file(temp_file) as active_overlap:
         yield active_overlap
 
 
-
 @pytest.fixture
-def list_sum_args_real(active_merge_sink_real, active_real_overlap_data):
-    sums = active_merge_sink_real._list_density_args(active_real_overlap_data)
+def list_sum_args_real(active_merge_sink_real, active_overlap_data_real):
+    sums = active_merge_sink_real._list_density_args(active_overlap_data_real)
     return sums
 
 
-#@pytest.mark.skip(reason="TODO")
-def test_merge_real_summed(
-    active_merge_sink_real, active_real_overlap_data, genedata_test_obj
+def test_merge_summed_real(
+    active_merge_sink_real, active_overlap_data_real, genedata_test_obj
 ):
-    """Can MergeData calculate the sum of overlaps"""
-    merge_real_summed = active_merge_sink_real.sum(
-        active_real_overlap_data, genedata_test_obj
+    """
+    Can MergeData calculate the sum of overlaps?
+    NB, MergeData.sum also does the division step, this will later be
+    refactored but important to have a system test for this.
+
+    System test for the final output of MergeData because difficult to unit
+    test the many pieces of MergeData at the moment.
+    """
+    logging.info("test_merge_summed_real...")
+    active_merge_sink_real.sum(active_overlap_data_real, genedata_test_obj)
+
+    # print(active_merge_sink_real.filepath)
+    # print(active_merge_sink_real.gene_names)
+    # print(active_merge_sink_real.windows)
+    # print(active_merge_sink_real.order_names)
+    # print(active_merge_sink_real.superfamily_names)
+    # print(active_merge_sink_real._order_2_idx)
+
+    order_idx = active_merge_sink_real._order_2_idx["Total_TE_Density"]
+
+    # TEST ONE
+    gene_name = "dummy_gene_1"
+    gene_idx = active_merge_sink_real._gene_2_idx[gene_name]
+    lr_slice = MergeData.left_right_slice(order_idx, gene_idx, 3)
+    gene_datum = genedata_test_obj.get_gene(gene_name)
+    divisor = gene_datum.divisor_right(2000)
+    numpy_val_to_compare = np.asscalar(
+        active_merge_sink_real.order.right[lr_slice].ravel()
     )
+    expected = np.divide((4100 - 3350 + 1), divisor)
+    assert numpy_val_to_compare == pytest.approx(expected, rel=1e-6)
+
+    # TEST TWO
+    gene_name = "dummy_gene_3"
+    gene_idx = active_merge_sink_real._gene_2_idx[gene_name]
+    lr_slice = MergeData.left_right_slice(order_idx, gene_idx, 3)
+    gene_datum = genedata_test_obj.get_gene(gene_name)
+    divisor = gene_datum.divisor_right(2000)
+    numpy_val_to_compare = np.asscalar(
+        active_merge_sink_real.order.right[lr_slice].ravel()
+    )
+    expected = np.divide(
+        ((9370 - 8500 + 1) + (9677 - 9556 + 1) + (10500 - 9678 + 1)), divisor
+    )
+    assert numpy_val_to_compare == pytest.approx(expected, rel=1e-6)
+
+    # TEST THREE
+    gene_name = "dummy_gene_2"
+    gene_idx = active_merge_sink_real._gene_2_idx[gene_name]
+    lr_slice = MergeData.left_right_slice(order_idx, gene_idx, 1)
+    gene_datum = genedata_test_obj.get_gene(gene_name)
+    divisor = gene_datum.divisor_left(1000)
+    numpy_val_to_compare = np.asscalar(
+        active_merge_sink_real.order.left[lr_slice].ravel()
+    )
+    # NOTE confusing because window actually goes from (gene_start - 1 -
+    # window) because the gene start is part of the gene, not the window, so
+    # there is a 1 int offset. Since this TE starts outside of the window, and
+    # ends inside, we have to make sure we subtract the TE stop by the correct
+    # window start, which in this unique case is 4999, not 5000 which would be
+    # (gene start - window value). Here 4999 represents (gene start - window -
+    # 1)
+    expected = np.divide((5229 - 4999 + 1), divisor)
+    assert numpy_val_to_compare == pytest.approx(expected, rel=1e-6)
+
+    # TEST FOUR (INTRA)
+    gene_name = "dummy_gene_3"
+    gene_idx = active_merge_sink_real._gene_2_idx[gene_name]
+    lr_slice = MergeData.intra_slice(order_idx, gene_idx)
+    gene_datum = genedata_test_obj.get_gene(gene_name)
+    divisor = gene_datum.divisor_intra(None)
+    numpy_val_to_compare = np.asscalar(
+        active_merge_sink_real.order.intra[lr_slice].ravel()
+    )
+    expected = np.divide((8500 - 8459 + 1), divisor)
+    assert numpy_val_to_compare == pytest.approx(expected, rel=1e-6)
 
 
-def test_slice_left_right(active_merge_sink_real):
+def test_slice_left_right_real(active_merge_sink_real):
     """Can we get a slice from on active merge sink of real data?"""
 
     active_merge_sink_real.left_right_slice(1, 0, 1)
 
 
-def test_slice_intra(active_merge_sink_real):
+def test_slice_intra_real(active_merge_sink_real):
     """Can we get a slice from on active merge sink of real data?"""
 
     active_merge_sink_real.intra_slice(1, 0, None)
+
+
+def test_list_sum_args_no_throw_real(active_merge_sink_real, active_overlap_data_real):
+    """Show useful information for each calculation, tests to see if can
+    construct the arguments correctly"""
+
+    out = active_merge_sink_real._list_density_args(active_overlap_data_real)
+    for o in out:
+        # print(o)
+        # print()
+        assert isinstance(o, _SummationArgs)
 
 
 # -----------------------------------------------------
@@ -230,6 +308,7 @@ def test_from_param(merge_sink):
 def test_context_mgr_sink(merge_sink):
     """Does the context manager return the merge data?"""
 
+    # NOTE we don't use active_sink here?
     with merge_sink as active_sink:
         assert isinstance(merge_sink, MergeData)
 
@@ -303,10 +382,12 @@ def test_sum_no_throw(active_merge_sink, overlap_source):
     # NOTE FAILS
     pass
     # active_merge_sink.sum(overlap_source, None)
+    # Not the right place to start
 
 
 @pytest.mark.skip(reason="TODO")
 def test_process_sum():
+    # Not the right place to start
     pass
 
 

@@ -4,7 +4,7 @@
 
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 DEV_GFF_READ_EXECUTABLE := /home/scott/Documents/Uni/Research/gffread
-#DEV_GFF_READ_EXECUTABLE := /mnt/research/edgerpat_lab/Scotty/gffread
+#DEV_GFF_READ_EXECUTABLE := /mnt/research/edgerpat_lab/Scotty/gffread  # use if on HPCC
 DEV_DATA := $(realpath $(ROOT_DIR)/../../../TE_Density_Example_Data/Rice)
 DEV_GLABERRIMA_DATA := $(DEV_DATA)/Oryza_Glaberrima
 DEV_GLABERRIMA_FASTA_DATA := $(DEV_GLABERRIMA_DATA)/Sequences
@@ -17,9 +17,6 @@ DEV_SATIVA_TEs := $(DEV_SATIVA_DATA)/TEs/Oryza_Sativa_NewNames.fasta.mod.EDTA.TE
 DEV_FILTERED := $(realpath $(ROOT_DIR)/../../../TE_Data/filtered_input_data)
 DEV_HDF5 := $(realpath $(ROOT_DIR)/../../../TE_Data/finalized_data/10KB)
 DEV_RESULTS:= $(realpath $(ROOT_DIR)/results)
-
-
-
 
 .PHONY: create_CDS fix_fasta_names fix_CDS_names
 

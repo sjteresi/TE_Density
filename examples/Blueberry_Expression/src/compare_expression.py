@@ -22,30 +22,6 @@ from transposon.density_data import DensityData
 from transposon.gene_data import GeneData
 
 
-def supply_density_data_files(path_to_folder):
-    """
-    Iterate over a folder containing the H5 files of TE Density output and
-    return a list of absolute file paths.
-
-    Args:
-        path_to_folder (str): path to the folder containing multiple h5 files
-        of density data
-
-    Returns:
-        raw_file_list (list of str): A list containing the absolute paths to
-        each relevant H5 file of density data
-    """
-    raw_file_list = []  # init empty list to store filenames
-    for root, dirs, files in os.walk(path_to_folder):
-        for a_file_object in files:
-            # N.B very particular usage of abspath and join.
-            a_file_object = os.path.abspath(os.path.join(root, a_file_object))
-            if a_file_object.endswith(".h5"):  # MAGIC
-                raw_file_list.append(a_file_object)
-
-    return raw_file_list
-
-
 def read_TPM_matrix(tpm_matrix_file):
     """
     Read a tpm matrix into a pandas object
@@ -151,6 +127,10 @@ def plot_expression_v_density_violin(
         for density_slice in dd_chromosome.yield_all_slices():
             # Here we are still on a single chromosome, beginning to loop over
             # all of the windows, TEs, and directions
+
+            # NOTE yield all slices is a function that skips the Revision
+            # datasets. TODO this will likely be accomplished through other
+            # means in future releases.
             window_direction_type = str(
                 density_slice.te_type
                 + "_"
@@ -258,6 +238,7 @@ def plot_expression_v_density_violin(
         figure.set_size_inches(10.5, 8)  # MAGIC get figure size to fit
         # everything nicely
         plt.xlabel("Density Bins")
+        plt.ylim(-2.0, 5.5)
         logger.info("Violin plot created for %s" % data_column)
         plt.savefig(
             os.path.join(output_dir, str(data_column + "_ViolinPlot.png")),
@@ -269,9 +250,13 @@ def plot_expression_v_density_violin(
         plt.clf()
 
         # Call the code to plot the line plot of gene counts
-        plot_expression_v_density_gene_counts(
-            bin_count_frame, title_string, data_column, output_dir, logger
-        )
+        # NOTE
+        # This is kinda crappy because I am calling another function to graph
+        # another graph here. Ideally it would be refactored in a later
+        # release.
+        # plot_expression_v_density_gene_counts(
+        # bin_count_frame, title_string, data_column, output_dir, logger
+        # )
 
 
 def plot_expression_v_density_gene_counts(
@@ -364,18 +349,10 @@ if __name__ == "__main__":
         GeneData(dataframe, dataframe["Chromosome"].unique()[0])
         for dataframe in gene_dataframe_list
     ]
-    processed_dd_data = []
-    for raw_hdf5_data_file in supply_density_data_files(args.density_data_folder):
-        current_hdf5_file_chromosome = re.search(
-            "Vacc_Cory_(.*?).h5", raw_hdf5_data_file
-        ).group(1)
-        # MAGIC
-        for gene_data_obj in gene_data_list:
-            if gene_data_obj.chromosome_unique_id == current_hdf5_file_chromosome:
-                dd_data_obj = DensityData.verify_h5_cache(
-                    raw_hdf5_data_file, gene_data_obj, logger
-                )
-                processed_dd_data.append(dd_data_obj)
+
+    processed_dd_data = DensityData.from_list_gene_data_and_hdf5_dir(
+        gene_data_list, args.density_data_folder, "Vacc_Cory_(.*?).h5", logger
+    )
 
     # NOTE at this point I have a list of initialized DensityData (chromosome
     # level) and one large expression matrix (all chromosomes). But the

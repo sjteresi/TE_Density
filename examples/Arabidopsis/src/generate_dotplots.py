@@ -38,6 +38,7 @@ def plot_intra_density(dd_obj, order_or_super, output_dir, display=False):
 
     """
     # NOTE intra code has not been edited for multiple chromosomes yet
+    # NOTE unused, example code
     plotting_dict = {}
 
     if order_or_super == "Order":
@@ -120,17 +121,10 @@ def plot_density_all(dd_obj, order_or_super, output_dir, logger, display=False):
     data_right_dict = defaultdict(list)
     for te_type, index_val in te_index_dict.items():
 
-        # TODO NOTE I think this can be removed because I edited out the
-        # revision sets in the DensityData class
         if "Revision" in te_type:
             continue  # NB I don't want to graph the revision data, see
         # revision documentation as to why
         for window_idx in range(len(dd_obj.window_list)):
-            if window_idx == 19:
-                print(te_type)
-                print(np.mean(left_h5_frame[te_index_dict[te_type], window_idx, :]))
-                print(np.mean(right_h5_frame[te_index_dict[te_type], window_idx, :]))
-                print()
 
             data_left_dict[te_type].append(
                 np.mean(left_h5_frame[te_index_dict[te_type], window_idx, :])
@@ -144,6 +138,7 @@ def plot_density_all(dd_obj, order_or_super, output_dir, logger, display=False):
 
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, sharey="col")
     fig.set_size_inches(16, 9.5)
+
     # define colors
     NUM_COLORS = sum(1 for te_type in te_index_dict.items())
     cm = plt.get_cmap("tab20")
@@ -248,28 +243,6 @@ def plot_density_all(dd_obj, order_or_super, output_dir, logger, display=False):
     )
     if display:
         plt.show()
-
-
-def _split_wrt_chromosome(filtered_genes):
-    """Segment data frames with respect to chromosome.
-
-    Data is split wrt chromosome as each chromosome is processed indepenently.
-
-    Args:
-        filtered_genes(pandas.DataFrame): preprocessed genes
-    Returns:
-        list(pandas.DataFrame): gene frames
-    """
-    # NOTE copied from transposon.preprocess, will need to relocate later
-    # perhaps when DensityData is refactored into the TE density code.
-    # I dropped the TE portion of the code since it was doing it in tuples of
-    # genes and TEs, but for the density data I only need the genes.
-    # I also had to remove the validate split command
-
-    group_key = "Chromosome"  # MAGIC NUMBER our convention
-    gene_groups = filtered_genes.groupby(group_key)
-    gene_list = [gene_groups.get_group(g) for g in gene_groups.groups]
-    return gene_list
 
 
 if __name__ == "__main__":

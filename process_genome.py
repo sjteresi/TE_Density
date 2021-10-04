@@ -58,8 +58,9 @@ def parse_algorithm_config(config_path):
     window_start = parser.getint("density_parameters", "first_window_size")
     window_step = parser.getint("density_parameters", "window_delta")
     window_stop = parser.getint("density_parameters", "last_window_size")
-    alg_param = {"window_range": range(window_start, window_stop + 1,
-                                       window_step)}  # MAGIC we want inclusive
+    alg_param = {
+        "window_range": range(window_start, window_stop + 1, window_step)
+    }  # MAGIC we want inclusive
     # range of windows
     return alg_param
 
@@ -72,13 +73,10 @@ from threading import Thread, Event
 from queue import Empty
 
 
-MergeJob = namedtuple("MergeJob",
-    ["overlap_file",
-     "te_file",
-     "gene_file",
-     "windows",
-     "output_dir",
-     "progress_bar"])
+MergeJob = namedtuple(
+    "MergeJob",
+    ["overlap_file", "te_file", "gene_file", "windows", "output_dir", "progress_bar"],
+)
 
 
 def job_2_merge_and_overlap(job):
@@ -88,9 +86,7 @@ def job_2_merge_and_overlap(job):
     windows = list(job.windows)
     output_dir = str(job.output_dir)
     gene_data = GeneData.read(job.gene_file)
-    merge_data = MergeData.from_param(
-        transposons, gene_data, windows, output_dir
-    )
+    merge_data = MergeData.from_param(transposons, gene_data, windows, output_dir)
     overlap_data = OverlapData.from_file(job.overlap_file)
     return merge_data, overlap_data
 
@@ -156,14 +152,14 @@ class MergeProgress:
 def result_to_job(result, windows, output_dir, pbar_callback):
     """Convert an overlap result to a merge job."""
     job = MergeJob(
-            str(result.overlap_file),
-            str(result.te_file),
-            str(result.gene_file),
-            list(windows),
-            str(output_dir),
-            pbar_callback)
+        str(result.overlap_file),
+        str(result.te_file),
+        str(result.gene_file),
+        list(windows),
+        str(output_dir),
+        pbar_callback,
+    )
     return job
-
 
 
 if __name__ == "__main__":
@@ -204,15 +200,6 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--contig_del",
-        action="store_false",
-        help="""Deletes
-                        entries (rows) in the gene annotation and TE annotation
-                        files that are labelled with any variation of contig*
-                        in the chromosome field (case insensitive).""",
-    )
-
-    parser.add_argument(
         "--revise_anno",
         action="store_true",
         help="""Forces the
@@ -242,7 +229,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--single_process",
         action="store_true",
-        help="""Run without multiprocessing; useful for profiling."""
+        help="""Run without multiprocessing; useful for profiling.""",
     )
 
     parser.add_argument(
@@ -276,7 +263,9 @@ if __name__ == "__main__":
     validate_args(args, logger)
     alg_parameters = parse_algorithm_config(args.config_file)
 
-    set_numexpr_threads(args.num_threads)  # prevents an unenecessary log call from numexpr
+    set_numexpr_threads(
+        args.num_threads
+    )  # prevents an unenecessary log call from numexpr
 
     logger.info("preprocessing...")
     preprocessor = PreProcessor(
@@ -288,7 +277,6 @@ if __name__ == "__main__":
         args.reset_h5,
         args.genome_id,
         args.revise_anno,
-        args.contig_del,
     )
     preprocessor.process()
     n_data_files = sum(1 for _ in preprocessor.data_filepaths())
@@ -311,9 +299,16 @@ if __name__ == "__main__":
     pbar_update_mgr = Manager()
     pbar_update_queue = pbar_update_mgr.Queue()
     pbar_update = partial(pbar_update_queue.put_nowait, None)
-    jobs = [result_to_job(res, win, args.output_dir, pbar_update) for res in overlap_results]
+    jobs = [
+        result_to_job(res, win, args.output_dir, pbar_update) for res in overlap_results
+    ]
     n_subsets = sum(calc_merge_number_operations(job) for job in jobs)
-    pbar_subsets = tqdm(total=n_subsets, desc="subsets", position=0, ncols=80,)
+    pbar_subsets = tqdm(
+        total=n_subsets,
+        desc="subsets",
+        position=0,
+        ncols=80,
+    )
     with MergeProgress(pbar_update_queue, pbar_subsets) as my_progress:
         if not args.single_process:
             with Pool(processes=args.num_threads) as my_pool:
@@ -327,12 +322,10 @@ if __name__ == "__main__":
                 except KeyboardInterrupt as keybr:
                     pr.disable()
                     stream = io.StringIO()
-                    sortby = 'cumulative'
+                    sortby = "cumulative"
                     ps = pstats.Stats(pr, stream=stream).sort_stats(sortby)
                     ps.print_stats(0.1)  # MAGIC percent to print
                     print(stream.getvalue())
                     raise keybr
-
-
 
     logger.info("process density... complete")
