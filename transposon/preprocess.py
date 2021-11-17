@@ -76,9 +76,6 @@ class PreProcessor:
         self._logger = logger or logging.getLogger(self.__class__.__name__)
         raise_if_no_file(gene_file)
         raise_if_no_file(transposon_file)
-        os.makedirs(filtered_dir, exist_ok=True)
-        os.makedirs(h5_cache_dir, exist_ok=True)
-        os.makedirs(revised_dir, exist_ok=True)
 
         self.filtered_dir = filtered_dir
         self.h5_cache_dir = h5_cache_dir
