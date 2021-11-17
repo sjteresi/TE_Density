@@ -35,18 +35,11 @@ def validate_args(args, logger):
         args.genes_input_file,
         logger=logger,
         msg_fmt="arg 'genes_input_file' not a file: %s",
-
     )
     raise_if_no_file(
         args.tes_input_file,
         logger=logger,
         msg_fmt="arg 'tes_input_file' not a file: %s",
-    )
-    raise_if_no_dir(
-        args.output_dir,
-        logger=logger,
-        msg_fmt="""arg 'output_dir' not a dir: %s \n Please make sure this
-        directory exists"""
     )
 
 
@@ -251,6 +244,7 @@ if __name__ == "__main__":
     tmp_overlap_loc = os.path.abspath(os.path.join(args.output_dir, "tmp", "overlap"))
 
     # NOTE make directories for intermediate and final output data
+    os.makedirs(args.output_dir, exist_ok=True)
     os.makedirs(filtered_input_data_loc, exist_ok=True)
     os.makedirs(input_h5_cache_loc, exist_ok=True)
     os.makedirs(revised_input_data_loc, exist_ok=True)
