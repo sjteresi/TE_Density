@@ -16,7 +16,10 @@ This code requires two input files, both a gene and a TE annotation.
 We divide the pipeline into three stages described below, preprocessing, processing, and postprocessing.
 Preprocessing requires the user to reformat their annotation files for the general pipeline, processing requires the user the user to executing the `process_genome.py` script with their chosen input arguments, and postprocessing aids the user in accessing the subarrays of the resulting TE density datafiles.
 
-## Installation Requirements
+## Datasets for Examples:
+The datasets can be accessed on Dryad at the following [link](https://datadryad.org/stash/share/mFjpHlP53Y-BUP4nKI0LQGVmLkXevNatnz8MLlK36zw)
+
+## Installation Requirements:
 Please install *pip* so that you may easily install Python packages.
 To install all required packages for this tool run `pip install -r requirements.txt`.
 We suggest that you use a virtual environment for this tool in order to better keep track of the packages being installed.
