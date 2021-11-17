@@ -34,18 +34,26 @@ def validate_args(args, logger):
     raise_if_no_file(
         args.genes_input_file,
         logger=logger,
-        msg_fmt="arg 'genes_input_file' not a file: %s",
+        msg_fmt="""arg 'genes_input_file' not a file: %s\n Please make sure
+        your path is correct""",
     )
     raise_if_no_file(
         args.tes_input_file,
         logger=logger,
-        msg_fmt="arg 'tes_input_file' not a file: %s",
+        msg_fmt="""arg 'tes_input_file' not a file: %s\n Please make sure your
+        path is correct""",
     )
     raise_if_no_dir(
-        args.output_dir, logger=logger, msg_fmt="arg 'output_dir' not a dir: %s"
+        args.output_dir,
+        logger=logger,
+        msg_fmt="""arg 'output_dir' not a dir:
+        %s\n Please make sure this directory exists""",
     )
     raise_if_no_dir(
-        args.tmp_overlap, logger=logger, msg_fmt="arg 'tmp_overlap' not a dir: %s"
+        args.tmp_overlap,
+        logger=logger,
+        msg_fmt="""arg 'tmp_overlap' not a
+        dir: %s\n Please make sure this directory exists""",
     )
 
 
