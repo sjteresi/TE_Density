@@ -84,10 +84,6 @@ class DensityData:
             )
         return np.where(self.gene_list == gene_string)[0][0]  # MAGIC
 
-    def nonzero_indices(self):
-        pass
-        # print(np.nonzero(data.left_orders[:]))
-
     @property
     def order_index_dict(self):
         """Returns a dictionary of TE order names as keys and indices as values"""
@@ -105,7 +101,98 @@ class DensityData:
             super_dict[self.super_list[i]] = i
         return super_dict
 
+    @property
+    def window_index_dict(self):
+        """Returns a dictionary of window ints as keys and indices as
+        values"""
+        window_dict = {}
+        for i in range(len(self.window_list)):
+            window_dict[self.window_list[i]] = i
+        return window_dict
+
+    def _verify_direction_string(self, direction):
+        # TODO get docstring
+        acceptable_directions = ["Upstream", "Intra", "Downstream"]
+        if direction not in acceptable_directions:
+            raise ValueError(
+                """The supplied direction string: %s, must be found
+                within the following list: %s, in order to subset the
+                             arrays appropriately."""
+                % (direction, acceptable_directions)
+            )
+
+    def _verify_te_category_string(self, te_category):
+        # TODO get docstring
+        acceptable_te_categories = ["Order", "Superfamily"]
+        if te_category not in acceptable_te_categories:
+            raise ValueError(
+                """The supplied te_category string: %s, must be found
+                within the following list: %s, in order to subset the
+                arrays appropriately."""
+                % (te_category, acceptable_te_categories)
+            )
+
+    def _verify_window_val(self, window_val):
+        # TODO get docstring
+        acceptable_window_values = self.window_list
+        if window_val not in acceptable_window_values:
+            raise ValueError(
+                """The supplied window value: %s, must be found
+                within the following list: %s, in order to subset the
+                arrays appropriately."""
+                % (window_val, acceptable_window_values)
+            )
+
+    def _verify_te_name(self, te_category, te_name):
+        # TODO get docstring
+        if te_category == "Order":
+            acceptable_te_name_list = self.order_list
+        if te_category == "Superfamily":
+            acceptable_te_name_list = self.super_list
+        if te_name not in acceptable_te_name_list:
+            raise ValueError(
+                """The supplied TE name string : %s, must be found
+                within the following list: %s, in order to subset the
+                arrays appropriately."""
+                % (direction, acceptable_te_name_list)
+            )
+
+    def get_specific_slice(self, te_category, te_name, window_val, direction):
+        """
+        Yields all genes for that slice
+        """
+        self._verify_te_category_string(te_category)
+        self._verify_direction_string(direction)
+        self._verify_window_val(window_val)
+        self._verify_te_name(te_category, te_name)
+
+        if direction == "Upstream" and te_category == "Order":
+            slice_to_return = self.left_orders[
+                self.order_index_dict[te_name], self.window_index_dict[window_val], :
+            ]
+
+        elif direction == "Downstream" and te_category == "Order":
+            slice_to_return = self.right_orders[
+                self.order_index_dict[te_name], self.window_index_dict[window_val], :
+            ]
+
+        elif direction == "Upstream" and te_category == "Superfamily":
+            slice_to_return = self.left_supers[
+                self.super_index_dict[te_name], self.window_index_dict[window_val], :
+            ]
+
+        elif direction == "Downstream" and te_category == "Superfamily":
+            slice_to_return = self.right_supers[
+                self.super_index_dict[te_name], self.window_index_dict[window_val], :
+            ]
+        else:
+            # TODO make more eloquent
+            raise ValueError("TODO")
+
+        return DensitySlice(slice_to_return, direction, window_val, te_name)
+
     def yield_all_slices(self):
+        # TODO think of refactoring
         """
         Yields a DensitySlice (named tuple) object for each TE
         type/direction/window combination for all genes in the DensityData obj.
