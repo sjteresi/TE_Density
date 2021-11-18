@@ -42,3 +42,8 @@ generate_dotplots:
 	@echo Generating TE density dotplot for Arabidopsis
 	mkdir -p $(DEV_RESULTS)/graphs
 	python $(ROOT_DIR)/src/generate_dotplots.py $(DEV_HDF5)/Arabidopsis_Chr1.h5 $(DEV_FILTERED)/Cleaned_TAIR10_GFF3_genes_main_chromosomes.tsv 1 -o $(DEV_RESULTS)/graphs
+
+compare_density_upstream_downstream:
+	@echo Comparing upstream and downstream density arrays with chi-squared
+	mkdir -p $(DEV_RESULTS)/chi_squared
+	python $(ROOT_DIR)/src/chi_squared_density_comparison.py $(DEV_FILTERED)/Cleaned_TAIR10_GFF3_genes_main_chromosomes.tsv $(DEV_HDF5) -o $(DEV_RESULTS)/chi_squared

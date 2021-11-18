@@ -208,7 +208,7 @@ class DensityData:
             )
 
     @staticmethod
-    def supply_density_data_files(path_to_folder):
+    def _supply_density_data_files(path_to_folder):
         """
         Iterate over a folder containing the H5 files of TE Density output and
         return a list of absolute file paths.
@@ -230,7 +230,7 @@ class DensityData:
                 a_file_object = os.path.abspath(os.path.join(root, a_file_object))
                 if a_file_object.endswith(".h5"):  # MAGIC file ext
                     raw_file_list.append(a_file_object)
-        return raw_file_list
+        return sorted(raw_file_list)
 
     @classmethod
     def from_list_gene_data_and_hdf5_dir(
@@ -256,30 +256,74 @@ class DensityData:
 
             logger (logging.logger): Obj to log information to
 
-        Returns: processed_density_data (list of DensityData instances).
+        Returns: processed_dd_data (list of DensityData instances).
         """
-        processed_density_data = []
-        for raw_hdf5_data_file in DensityData.supply_density_data_files(HDF5_folder):
-            current_hdf5_file_chromosome = re.search(file_substring, raw_hdf5_data_file)
-            if current_hdf5_file_chromosome is None:
-                logger.warning(
-                    """Using your regex pattern: %s, unable to identify
-                    chromosome IDs from directory: %s. Please refer to the
-                    documentation of the classmethod
-                    'from_list_gene_data_and_hdf5_dir' for more information"""
-                    % (file_substring, HDF5_folder)
+
+        # NB get the list of GeneData objs and sort by chromosome ID
+        list_of_gene_data = sorted(
+            list_of_gene_data,
+            key=lambda gene_data: gene_data.chromosome_unique_id,
+            reverse=False,
+        )
+
+        # NB get the list of TE Density output files in a dir and sort
+        # alphabetically
+        all_unprocessed_h5_files = sorted(
+            DensityData._supply_density_data_files(HDF5_folder)
+        )
+
+        # NB get the hits of files that match your regex substring provided
+        chromosome_ids_unprocessed_h5_files = [
+            re.search(file_substring, x) for x in all_unprocessed_h5_files
+        ]
+
+        # NB check if we actually were able to identify any files matching the
+        # user's supplied regex pattern, raise error and message if no hits
+        if not any(chromosome_ids_unprocessed_h5_files):
+            logger.critical(
+                """Unable to identify files matching your provided regex
+                pattern: %s in the directory: %s. \n
+                Please refer to the documentation of the classmethod
+                'from_list_gene_data_and_hdf5_dir' in transposon/density_data.py
+                for more information"""
+                % (file_substring, HDF5_folder)
+            )
+            raise ValueError
+
+        # MAGIC to get substring (chromosome) from regex hit object
+        chromosome_ids_unprocessed_h5_files = sorted(
+            [x.group(1) for x in chromosome_ids_unprocessed_h5_files]
+        )
+
+        # NB get chromosome ID from list of GeneData
+        chromosome_ids_gene_data = [
+            gene_data.chromosome_unique_id for gene_data in list_of_gene_data
+        ]
+
+        # NB check if chromosome ID of h5 files matches with that of the gene
+        # data, fail if they don't. This is needed to initialize DensityData
+        if not chromosome_ids_unprocessed_h5_files == chromosome_ids_gene_data:
+            logger.critical(
+                """The strings of chromosomes in your unprocessed
+                hdf5 files: %s, identified using your supplied
+                regex pattern: '%s', do not match the
+                chromosomes in the GeneData: %s."""
+                % (
+                    chromosome_ids_unprocessed_h5_files,
+                    file_substring,
+                    chromosome_ids_gene_data,
                 )
-            current_hdf5_file_chromosome = current_hdf5_file_chromosome.group(
-                1
-            )  # MAGIC to extract info from
-            # regex search obj
-            for gene_data_obj in list_of_gene_data:
-                if gene_data_obj.chromosome_unique_id == current_hdf5_file_chromosome:
-                    dd_data_obj = cls.verify_h5_cache(
-                        raw_hdf5_data_file, gene_data_obj, logger
-                    )
-                    processed_density_data.append(dd_data_obj)
-        return processed_density_data
+            )
+            raise ValueError
+
+        # Initialize DensityData for each pseudomolecule
+        processed_dd_data = [
+            cls.verify_h5_cache(raw_hdf5_data_file, gene_data_obj, logger)
+            for raw_hdf5_data_file, gene_data_obj, in zip(
+                all_unprocessed_h5_files, list_of_gene_data
+            )
+        ]
+        return processed_dd_data
 
     def info_of_gene(self, gene_id, window_idx, n_te_types=5):
         """
