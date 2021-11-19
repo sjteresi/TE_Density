@@ -26,7 +26,16 @@ from transposon.gene_data import GeneData
 from transposon.import_filtered_genes import import_filtered_genes
 
 
+def test_chi_square(upstream, downstream, midpoint):
+    result = scipy.stats.chisquare([upstream, downstream], f_exp=[midpoint, midpoint])
+    return result
+
+
 def get_means_of_dd(processed_dd_data):
+    # NOTE
+    # This is really dumb and now how you should be doing chi-squared tests
+    # which are observed frequencies of categorical data.
+
     list_mean_ltr_up = [
         single_dd_obj.get_specific_slice("Order", "LTR", 1000, "Upstream").slice.mean()
         for single_dd_obj in processed_dd_data
@@ -38,6 +47,20 @@ def get_means_of_dd(processed_dd_data):
         ).slice.mean()
         for single_dd_obj in processed_dd_data
     ]
+    midpoint_ltr = (np.array(list_mean_ltr_up) + np.array(list_mean_ltr_down)) / 2
+
+    i = 1
+    for upstream, downstream, midpoint in zip(
+        list_mean_ltr_up, list_mean_ltr_down, midpoint_ltr
+    ):
+        print("chromosome #: %s" % i)
+        print("AVG LTR upstream val: %s" % upstream)
+        print("AVG LTR downstream val: %s" % downstream)
+        print("Midpoint LTR val: %s" % midpoint)
+        print(test_chi_square(upstream, downstream, midpoint))
+
+        i += 1
+        print()
 
     list_mean_helitron_up = [
         single_dd_obj.get_specific_slice(
@@ -52,22 +75,21 @@ def get_means_of_dd(processed_dd_data):
         ).slice.mean()
         for single_dd_obj in processed_dd_data
     ]
+    midpoint_helitron = (
+        np.array(list_mean_helitron_up) + np.array(list_mean_helitron_down)
+    ) / 2
 
-    print(list_mean_ltr_up)
-    print(list_mean_ltr_down)
-    mean_both_ltr = (np.array(list_mean_ltr_up) + np.array(list_mean_ltr_down)) / 2
-    print(mean_both_ltr)
-
-    print()
-    print(
-        scipy.stats.chisquare(np.array(list_mean_ltr_up), f_exp=np.array(mean_both_ltr))
-    )
-    print(
-        scipy.stats.chisquare(
-            np.array(list_mean_ltr_down), f_exp=np.array(mean_both_ltr)
-        )
-    )
-    print()
+    i = 1
+    for upstream, downstream, midpoint in zip(
+        list_mean_helitron_up, list_mean_helitron_down, midpoint_helitron
+    ):
+        print("chromosome #: %s" % i)
+        print("AVG Helitron upstream val: %s" % upstream)
+        print("AVG Helitron downstream val: %s" % downstream)
+        print("Midpoint Helitron val: %s" % midpoint)
+        print(test_chi_square(upstream, downstream, midpoint))
+        i += 1
+        print()
 
 
 if __name__ == "__main__":
