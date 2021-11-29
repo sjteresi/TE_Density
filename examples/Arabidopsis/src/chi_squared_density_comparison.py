@@ -31,6 +31,69 @@ def test_chi_square(upstream, downstream, midpoint):
     return result
 
 
+def save_arrays_for_pat(processed_dd_data, output_dir):
+    # TODO rename function and refactor heavily
+    """ """
+    ltr_upstream_array = {
+        str(
+            single_dd_obj.unique_chromosome_id + "_Up"
+        ): single_dd_obj.get_specific_slice("Order", "LTR", 1000, "Upstream").slice
+        for single_dd_obj in processed_dd_data
+    }
+    ltr_downstream_array = {
+        str(
+            single_dd_obj.unique_chromosome_id + "_Down"
+        ): single_dd_obj.get_specific_slice("Order", "LTR", 1000, "Downstream").slice
+        for single_dd_obj in processed_dd_data
+    }
+
+    for (chromosome_up, array_up), (chromosome_down, array_down) in zip(
+        ltr_upstream_array.items(), ltr_downstream_array.items()
+    ):
+        if chromosome_up[:4] == chromosome_down[:4]:
+            to_pd = {chromosome_up: array_up, chromosome_down: array_down}
+            x = pd.DataFrame.from_dict(to_pd)
+            x.to_csv(
+                os.path.join(
+                    output_dir, str(chromosome_up[:4] + "_LTR_1KB_Up_Down.tsv")
+                ),
+                sep="\t",
+                header=True,
+                index=False,
+            )
+
+    # NOTE do Helitron now
+    helitron_upstream_array = {
+        str(
+            single_dd_obj.unique_chromosome_id + "_Up"
+        ): single_dd_obj.get_specific_slice("Order", "Helitron", 1000, "Upstream").slice
+        for single_dd_obj in processed_dd_data
+    }
+    helitron_downstream_array = {
+        str(
+            single_dd_obj.unique_chromosome_id + "_Down"
+        ): single_dd_obj.get_specific_slice(
+            "Order", "Helitron", 1000, "Downstream"
+        ).slice
+        for single_dd_obj in processed_dd_data
+    }
+
+    for (chromosome_up, array_up), (chromosome_down, array_down) in zip(
+        helitron_upstream_array.items(), helitron_downstream_array.items()
+    ):
+        if chromosome_up[:4] == chromosome_down[:4]:
+            to_pd = {chromosome_up: array_up, chromosome_down: array_down}
+            x = pd.DataFrame.from_dict(to_pd)
+            x.to_csv(
+                os.path.join(
+                    output_dir, str(chromosome_up[:4] + "_Helitron_1KB_Up_Down.tsv")
+                ),
+                sep="\t",
+                header=True,
+                index=False,
+            )
+
+
 def get_means_of_dd(processed_dd_data):
     # NOTE
     # This is really dumb and now how you should be doing chi-squared tests
@@ -148,7 +211,8 @@ if __name__ == "__main__":
     # print(processed_dd_data[0].windows)
     # print(processed_dd_data[0].window_list)
     # print(processed_dd_data[0].window_index_dict)
-    get_means_of_dd(processed_dd_data)
+    # get_means_of_dd(processed_dd_data)
+    save_arrays_for_pat(processed_dd_data, args.output_dir)
 
     # NOTE at this point I have a list of initialized DensityData (chromosome
     # level) and one large expression matrix (all chromosomes).
