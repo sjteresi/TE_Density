@@ -16,6 +16,7 @@ import re
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import statsmodels
 
 from examples.Blueberry_Expression.src.import_blueberry_gene_anno import import_genes
 from transposon.density_data import DensityData
@@ -34,7 +35,14 @@ def read_TPM_matrix(tpm_matrix_file):
         matrix (pandas.DataFrame, shape(genes x libraries)): genes are
         technically the first column
     """
-    matrix = pd.read_csv(tpm_matrix_file, header="infer", sep="\t")
+    matrix = pd.read_csv(
+        tpm_matrix_file, header="infer", sep="\t", index_col="Gene_Name"
+    )
+    matrix["Total_Expression_Mean"] = matrix.mean(axis=1)
+    matrix.drop(
+        matrix.columns.difference(["Total_Expression_Mean"]), axis=1, inplace=True
+    )
+    matrix.reset_index(inplace=True)
     return matrix
 
 
@@ -67,37 +75,10 @@ def verify_gene_order(tpm_matrix, density_data):
     return tpm_matrix
 
 
-def plot_expression_v_density_violin(
-    tpm_matrix,
-    processed_dd_data,
-    output_dir,
-    logger,
-    blueberry_ex_column,
-    show=False,
+def add_TE_density_to_expression_matrix(
+    tpm_matrix, processed_dd_data, output_dir, logger, show=False
 ):
-    """
-    Create a violin plot of density values for each gene vs the expression
-    values for each gene
 
-    Args:
-        tpm_matrix (pandas.DataFrame): A pandas dataframe of the gene
-        expression values in TPM format. Shape (genes X 1 column of
-        expression values
-
-        processed_dd_data (list of DensityData): DensityData object containing the TE
-        Density values for ONE chromosome. TODO edit
-
-        output_dir (str): path of folder to output results
-
-        logger (logging.Logger): logger object
-
-        blueberry_ex_column (str):
-
-
-    Returns:
-        None, creates graph, saves it to disk, and shows it if the keyword
-        argument show is provided as True.
-    """
     one_chrom_storage = []
     for dd_chromosome in processed_dd_data:
         # NOTE the regular tpm matrix represents all genes, so we must break it
@@ -149,13 +130,14 @@ def plot_expression_v_density_violin(
         one_chrom_storage.append(subsetted_tpm_matrix_by_genes)
 
     complete_df = pd.concat(one_chrom_storage)
+    return (complete_df, te_columns_to_graph)
 
-    ########################
-    # TODO could probably refactor the above and below sections into their own
-    # places so that it is more coherent. The above portion has to do with
-    # getting a fully complete dataframe and the below portion has to do with
-    # actually plotting it all.
-    ########################
+
+def gen_bins():
+    # TODO
+    """
+    Return
+    """
     step = 0.1
     cut_bins = np.arange(0, 1.1, step)  # MAGIC get bins for plotting
     cut_labels = [
@@ -164,6 +146,57 @@ def plot_expression_v_density_violin(
     cut_labels.pop()
     cut_labels[0] = cut_labels[0].replace("(", "[")  # MAGIC to get the
     # correct label for the first bin
+    return (cut_bins, cut_labels)
+
+
+def plot_expression_v_density_violin(
+    tpm_matrix,
+    processed_dd_data,
+    output_dir,
+    logger,
+    blueberry_ex_column,
+    show=False,
+):
+    """
+    Create a violin plot of density values for each gene vs the expression
+    values for each gene
+
+    Args:
+        tpm_matrix (pandas.DataFrame): A pandas dataframe of the gene
+        expression values in TPM format. Shape (genes X 1 column of
+        expression values
+
+        processed_dd_data (list of DensityData): DensityData object containing the TE
+        Density values for ONE chromosome. TODO edit
+
+        output_dir (str): path of folder to output results
+
+        logger (logging.Logger): logger object
+
+        blueberry_ex_column (str):
+
+
+    Returns:
+        None, creates graph, saves it to disk, and shows it if the keyword
+        argument show is provided as True.
+    """
+    complete_df, te_columns_to_graph = add_TE_density_to_expression_matrix(
+        tpm_matrix,
+        processed_dd_data,
+        output_dir,
+        logger,
+        blueberry_ex_column,
+        show=False,
+    )
+
+    ########################
+    # TODO could probably refactor the above and below sections into their own
+    # places so that it is more coherent. The above portion has to do with
+    # getting a fully complete dataframe and the below portion has to do with
+    # actually plotting it all.
+    ########################
+    cut_bins, cut_labels = gen_bins
+
     complete_df = complete_df[complete_df[blueberry_ex_column] >= 0.1]
     # MAGIC we only want to plot genes with expression values over 0.1
     # TPM
@@ -259,11 +292,127 @@ def plot_expression_v_density_violin(
         # )
 
 
+def plot_new_hist(
+    tpm_matrix,
+    processed_dd_data,
+    output_dir,
+    logger,
+    blueberry_ex_column,
+    show=False,
+):
+    """
+    Generate a multi-panel plot of histograms.
+    Histograms will be the number of genes in a given density bin.
+    Subplot one will be the histogram of all genes.
+    Subplot two will be the histogram of low/non-expressed genes.
+    Subplot three will be the histogram of expressed genes.
+
+
+    """
+    blueberry_ex_column = "Total_Expression_Mean"
+    complete_df, te_columns_to_graph = add_TE_density_to_expression_matrix(
+        tpm_matrix,
+        processed_dd_data,
+        output_dir,
+        logger,
+        show=False,
+    )
+    cut_bins, cut_labels = gen_bins()
+
+    expressed_genes = complete_df.loc[complete_df[blueberry_ex_column] >= 0.1].copy(
+        deep=True
+    )
+    non_expressed_genes = complete_df.loc[complete_df[blueberry_ex_column] <= 0.1].copy(
+        deep=True
+    )
+    all_genes = complete_df.copy(deep=True)
+
+    # Make list object to iterate over to work on
+    panda_dataframes = {
+        "All Genes": all_genes,
+        "Low/Non-Expressed Genes": non_expressed_genes,
+        "Expressed Genes": expressed_genes,
+    }
+
+    fig, axs = plt.subplots(1, 3, figsize=(12, 8), sharey=True)
+    fig.subplots_adjust(hspace=0.5)
+    # axs = axs.ravel()  # NOTE what does this do?
+    i = 0
+    for name, pandaframe in panda_dataframes.items():
+        # Convert to expression values to log 10 for visualization purposes
+        # Perform  np.log10(x+1) on the expression column, and 1 so we can do
+        # log 10 on zero values.
+        pandaframe[blueberry_ex_column] = pandaframe[blueberry_ex_column].map(
+            lambda x: np.log10(x + 1)
+        )
+
+        # Determine the bins and number of genes in each
+        pandaframe["Density_Bins"] = pd.cut(
+            pandaframe["LTR_1000_Upstream"],
+            bins=cut_bins,
+            labels=cut_labels,
+            include_lowest=True,  # this makes the leftmost bin inclusive
+        )
+
+        bin_count_series = pandaframe["Density_Bins"].value_counts()
+        bin_count_frame = (
+            bin_count_series.to_frame().reset_index()
+        )  # Adds the Bin IDs as column, away
+        # from index
+        bin_count_frame.rename(
+            columns={"index": "Bin_IDs", "Density_Bins": "Bin_Counts"},
+            inplace=True,
+        )
+        bin_count_frame.sort_values(
+            by=["Bin_IDs"], inplace=True
+        )  # sorts the Bin IDs from least
+        # to greatest
+
+        # Do I need to log on this?
+        bin_count_frame["Bin_Counts"] = bin_count_frame["Bin_Counts"].map(
+            lambda x: np.log10(x)
+        )
+        my_x_tick_labels = bin_count_frame["Bin_IDs"].to_list()
+        sns.barplot(
+            ax=axs[i],
+            x="Bin_IDs",
+            y="Bin_Counts",
+            color="tab:blue",
+            data=bin_count_frame,
+        )
+
+        # Failed regression plot, didn't look very good
+        # sns.regplot(
+        #    ax=axs[i],
+        #    x=np.arange(0, len(my_x_tick_labels)),
+        #    y="Bin_Counts",
+        #    color="tab:red",
+        # data=bin_count_frame,
+        # )
+
+        # TODO get A B C subplot labels?
+        axs[i].set_xticklabels(my_x_tick_labels, rotation=40, ha="right")
+        axs[i].set_title(name)
+        axs[i].set(xlabel=None, ylabel=None)
+        axs[i].legend(title=("Total Genes: " + str(len(pandaframe))), loc="upper right")
+
+        i += 1
+
+    fig.supylabel("Log10(No. Genes)")
+    fig.supxlabel("Density Bins")
+    fig.suptitle(
+        "No. Genes Binned by LTR TE 1KB Upstream Density According to Expression Profile"
+    )
+    # TODO parametrize the file name or put up a MAGIC notifier
+    plt.savefig(os.path.join(output_dir, "Test.png"))
+    plt.show()
+
+
 def plot_expression_v_density_gene_counts(
     bin_count_frame, title_string, data_column, output_dir, logger
 ):
     """
-    Create a line plot with the density bins on the x-axis and the number of
+    Create a histogram plot with the density bins on the x-axis and the number of
     genes in that given bin on the y-axis.
 
     Args:
@@ -362,7 +511,16 @@ if __name__ == "__main__":
 
     blueberry_ex_column = "Dra_4dpo_c1_S46_L005"  # MAGIC column for a single
 
-    plot_expression_v_density_violin(
+    # plot_expression_v_density_violin(
+    # tpm_matrix,
+    # processed_dd_data,
+    # args.output_dir,
+    # logger,
+    # blueberry_ex_column,
+    # show=False,
+    # )
+
+    plot_new_hist(
         tpm_matrix,
         processed_dd_data,
         args.output_dir,
