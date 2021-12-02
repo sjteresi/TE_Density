@@ -47,3 +47,8 @@ compare_density_upstream_downstream:
 	@echo Comparing upstream and downstream density arrays with chi-squared
 	mkdir -p $(DEV_RESULTS)/chi_squared
 	python $(ROOT_DIR)/src/chi_squared_density_comparison.py $(DEV_FILTERED)/Cleaned_TAIR10_GFF3_genes_main_chromosomes.tsv $(DEV_HDF5) -o $(DEV_RESULTS)/chi_squared
+
+compare_centromeric:
+	@echo Comparing centromeric/pericentromeric and regular density arrays
+	mkdir -p $(DEV_RESULTS)/centromeric
+	python $(ROOT_DIR)/src/compare_centromeric_densities.py $(DEV_FILTERED)/Cleaned_TAIR10_GFF3_genes_main_chromosomes.tsv $(DEV_HDF5) -o $(DEV_RESULTS)/centromeric
