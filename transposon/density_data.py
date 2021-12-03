@@ -157,10 +157,13 @@ class DensityData:
                 % (direction, acceptable_te_name_list)
             )
 
-    def get_specific_slice(self, te_category, te_name, window_val, direction):
+    def get_specific_slice(
+        self, te_category, te_name, window_val, direction, gene_indices=slice(None)
+    ):
         """
         Yields all genes for that slice
         """
+        # TODO gene_indices isn't rifht when I pass in a list
         self._verify_te_category_string(te_category)
         self._verify_direction_string(direction)
         self._verify_window_val(window_val)
@@ -168,22 +171,30 @@ class DensityData:
 
         if direction == "Upstream" and te_category == "Order":
             slice_to_return = self.left_orders[
-                self.order_index_dict[te_name], self.window_index_dict[window_val], :
+                self.order_index_dict[te_name],
+                self.window_index_dict[window_val],
+                gene_indices,
             ]
 
         elif direction == "Downstream" and te_category == "Order":
             slice_to_return = self.right_orders[
-                self.order_index_dict[te_name], self.window_index_dict[window_val], :
+                self.order_index_dict[te_name],
+                self.window_index_dict[window_val],
+                gene_indices,
             ]
 
         elif direction == "Upstream" and te_category == "Superfamily":
             slice_to_return = self.left_supers[
-                self.super_index_dict[te_name], self.window_index_dict[window_val], :
+                self.super_index_dict[te_name],
+                self.window_index_dict[window_val],
+                gene_indices,
             ]
 
         elif direction == "Downstream" and te_category == "Superfamily":
             slice_to_return = self.right_supers[
-                self.super_index_dict[te_name], self.window_index_dict[window_val], :
+                self.super_index_dict[te_name],
+                self.window_index_dict[window_val],
+                gene_indices,
             ]
         else:
             # TODO make more eloquent
