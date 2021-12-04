@@ -8,6 +8,7 @@ __author__ = "Scott Teresi"
 
 import h5py
 import numpy as np
+import pandas as pd
 import os
 import shutil
 import re
@@ -156,6 +157,21 @@ class DensityData:
                 arrays appropriately."""
                 % (direction, acceptable_te_name_list)
             )
+
+    @staticmethod
+    def add_hdf5_indices_to_gene_data(list_of_density_data, gene_data):
+        to_concat = []
+        for chrom, dataframe in gene_data.data_frame.groupby(["Chromosome"]):
+            for density_datum in list_of_density_data:
+                if chrom == density_datum.unique_chromosome_id:
+                    new = dataframe.copy(deep=True)
+                    new.reset_index(inplace=True)
+                    new["Index_Val"] = new.apply(
+                        lambda x: density_datum._index_of_gene(x["Gene_Name"]), axis=1
+                    ).copy(deep=True)
+                    to_concat.append(new)
+
+        return pd.concat(to_concat)
 
     def get_specific_slice(
         self, te_category, te_name, window_val, direction, gene_indices=slice(None)
