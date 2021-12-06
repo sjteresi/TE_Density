@@ -31,29 +31,9 @@ def define_boundaries(cleaned_gene):
     Args:
         cleaned_genes (pandas.Data.Frame):
 
-    Returns:
+    Returns: chromosome_boundary_obj_list (list of Boundary_Tuple)
 
     """
-    # NOTE
-    # Ultimately, I need to compare the density values of certain lists(?) of
-    # genes; there will be two categories of genes. Genes that are
-    # centromeric/pericentromeric, and "regular" genes.
-    # I have the MAGIC numbers that signify the base-pair boundaries of
-    # centromeric genes, so every gene NOT in that boundary will be a "regular"
-    # gene.
-    # The issue will be extracting genes from the HDF5.
-    # Steps:
-    # Extract gene names (in list form?) from GeneData that have the
-    # correct position value.
-
-    # Extract the indices of the genes from the HDF5
-    # This may require a new function in DensityData because I currently
-    # only have a function that does one gene at a time...
-
-    # Unsure:
-    # Make a bar plot similar to the bar plots in the Blueberry example?
-    # Get a gene expression dataset and verify with Pat?
-
     # MAGIC centromeric/pericentromeric boundaries derived from publication
     arabidopsis_chr_1_boundary = Boundary_Tuple(11.5, 17.8, "Chr1")
     arabidopsis_chr_2_boundary = Boundary_Tuple(1.0, 7.1, "Chr2")
@@ -77,82 +57,47 @@ def define_boundaries(cleaned_gene):
     return chromosome_boundary_obj_list
 
 
-def get_genes_within_boundary(chromosome_boundary_obj, cleaned_genes):
+def assign_boundary_ID_to_genes(chromosome_boundary_obj, cleaned_genes):
     """
+    NOTE if anything overlaps with the edges I put it in the
+    non-centromeric/pericentromeric category
 
     Returns:
         (pandaframe)
 
     """
-    cleaned_genes_subsetted = cleaned_genes.loc[
-        cleaned_genes["Chromosome"] == chromosome_boundary_obj.chrom
-    ]
-    genes_within = cleaned_genes_subsetted.loc[
-        (cleaned_genes_subsetted["Start"] >= chromosome_boundary_obj.start)
-        & (cleaned_genes_subsetted["Stop"] <= chromosome_boundary_obj.stop)
-    ].copy(deep=True)
-    return genes_within
+    cleaned_genes["Within_Boundary"] = cleaned_genes.apply(
+        lambda x: "Y"
+        if (x["Start"] >= chromosome_boundary_obj.start)
+        & (x["Stop"] <= chromosome_boundary_obj.stop)
+        else "N",
+        axis=1,
+    )
+    return cleaned_genes
 
 
-def get_genes_outside_boundary(chromosome_boundary_obj, cleaned_genes):
-    """
-
-    Returns:
-        (pandaframe)
-
-    """
-    cleaned_genes_subsetted = cleaned_genes.loc[
-        cleaned_genes["Chromosome"] == chromosome_boundary_obj.chrom
-    ]
-    genes_outside = cleaned_genes_subsetted.loc[
-        (cleaned_genes_subsetted["Stop"] <= chromosome_boundary_obj.start)
-        | (cleaned_genes_subsetted["Start"] >= chromosome_boundary_obj.stop)
-    ].copy(deep=True)
-    return genes_outside
-
-
-def return_density_array_from_indices(
-    dd_data, te_category, te_name, window_val, direction, indices
+def return_1D_array_of_vals_for_indices(
+    gene_frame,
+    list_of_density_data,
+    te_category_str="Order",
+    te_name_str="LTR",
+    window_val=1000,
+    direction_str="Upstream",
 ):
-    density_array = dd_data.get_specific_slice(
-        te_category, te_name, window_val, direction, indices
-    ).slice
-    return density_array
-
-
-def call_new(
-    gene_frames_within_boundary, gene_frames_outside_boundary, processed_dd_data
-):
-    gene_pandas_inside = pd.concat(gene_frames_within_boundary)
-    gene_pandas_outside = pd.concat(gene_frames_outside_boundary)
-    gene_names_within = gene_pandas_inside.index.to_list()
-    gene_names_outside = gene_pandas_outside.index.to_list()
-
-    # gene_pandas_inside.reset_index(inplace=True)
-
-    #############################
-    for chrom, dataframe in gene_pandas_inside.groupby(["Chromosome"]):
-        for processed_dd_datum in processed_dd_data:
-            if chrom == processed_dd_datum.unique_chromosome_id:
-                dataframe["Index_Val"] = dataframe.apply(
-                    lambda x: processed_dd_datum._index_of_gene(x["Gene_Name"]), axis=1
-                )
-
-                # dataframe["Index_Val"] = dataframe.apply(
-                # lambda x: processed_dd_datum._index_of_gene(x["Gene_Name"]), axis=1
-                # )
-                raise ValueError
-
-    #############################
-    raise ValueError
-    gene_indices_within = [
-        [processed_dd_datum._index_of_gene(gene_name) for gene_name in gene_list]
-        for processed_dd_datum, gene_list in zip(processed_dd_data, gene_names_within)
-    ]
-    gene_indices_outside = [
-        [processed_dd_datum._index_of_gene(gene_name) for gene_name in gene_list]
-        for processed_dd_datum, gene_list in zip(processed_dd_data, gene_names_outside)
-    ]
+    to_concat = []
+    for chrom, dataframe in gene_frame.groupby(["Chromosome"]):
+        for dd_obj in processed_dd_data:
+            if chrom == dd_obj.unique_chromosome_id:
+                indices = dataframe["Index_Val"].to_list()
+                te_values = dd_obj.get_specific_slice(
+                    te_category_str,
+                    te_name_str,
+                    window_val,
+                    direction_str,
+                    dataframe["Index_Val"].to_list(),
+                ).slice
+                to_concat.append(te_values)
+    return np.concatenate(to_concat)
 
 
 if __name__ == "__main__":
@@ -190,12 +135,15 @@ if __name__ == "__main__":
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
     coloredlogs.install(level=log_level)
-    # -----------------------------------
+    #####################
+    # NOTE begin analysis
 
     cleaned_genes = import_filtered_genes(args.gene_input_file, logger)
     gene_dataframe_list = [
         dataframe for k, dataframe in cleaned_genes.groupby("Chromosome")
     ]
+
+    # NB MAGIC get unique chromosome ID
     gene_data_list = [
         GeneData(dataframe, dataframe["Chromosome"].unique()[0])
         for dataframe in gene_dataframe_list
@@ -205,88 +153,40 @@ if __name__ == "__main__":
         gene_data_list, args.density_data_folder, "Arabidopsis_(.*?).h5", logger
     )
 
+    # NB add the HDF5 indices to the pandaframe
+    # MAGIC dummy genome name
+    gene_frame_with_indices = DensityData.add_hdf5_indices_to_gene_data(
+        processed_dd_data, GeneData(cleaned_genes, "dummy")
+    )
+
     # NB constructed in ascending chromosome order
     chromosome_boundary_obj_list = define_boundaries(cleaned_genes)
-    gene_frames_within_boundary = [
-        get_genes_within_boundary(chromosome_boundary_obj, cleaned_genes)
-        for chromosome_boundary_obj in chromosome_boundary_obj_list
-    ]
-    gene_frames_outside_boundary = [
-        get_genes_outside_boundary(chromosome_boundary_obj, cleaned_genes)
-        for chromosome_boundary_obj in chromosome_boundary_obj_list
-    ]
-    #########################################
-    big_new = DensityData.add_hdf5_indices_to_gene_data(
-        processed_dd_data, GeneData(cleaned_genes, "Test")
-    )
-    print(big_new)
-    # big_new.to_csv("test.tsv", sep="\t", index=False, header=True)
 
-    # print(
-    # processed_dd_data[0].add_hdf5_indices_to_gene_data(
-    # GeneData(cleaned_genes, "Test")
-    # )
-    # )
-    # TODO proceed from here because I now have a pandaframe with all the
-    # indices of the genes. Perhaps refactor all of the examples at a later
-    # date.
-    raise ValueError
-    #########################################
-    call_new(
-        gene_frames_within_boundary, gene_frames_outside_boundary, processed_dd_data
-    )
-    raise ValueError
-
-    gene_names_within = [
-        gene_frame.index.to_list() for gene_frame in gene_frames_within_boundary
-    ]
-    gene_names_outside = [
-        gene_frame.index.to_list() for gene_frame in gene_frames_outside_boundary
-    ]
-
-    # Get their indices
-    # TODO consider refactoring to function because the gene list is the only
-    # thing changing
-    gene_indices_within = [
-        [processed_dd_datum._index_of_gene(gene_name) for gene_name in gene_list]
-        for processed_dd_datum, gene_list in zip(processed_dd_data, gene_names_within)
-    ]
-    gene_indices_outside = [
-        [processed_dd_datum._index_of_gene(gene_name) for gene_name in gene_list]
-        for processed_dd_datum, gene_list in zip(processed_dd_data, gene_names_outside)
-    ]
-
-    dd_and_gene_indices_within = {
-        dd_data: gene_indices_within
-        for dd_data, gene_indices_within in zip(processed_dd_data, gene_indices_within)
-    }
-    dd_and_gene_indices_outside = {
-        dd_data: gene_indices_outside
-        for dd_data, gene_indices_outside in zip(
-            processed_dd_data, gene_indices_outside
+    to_concat = []
+    for chromosome_boundary_obj in chromosome_boundary_obj_list:
+        to_assign = gene_frame_with_indices.loc[
+            gene_frame_with_indices["Chromosome"] == chromosome_boundary_obj.chrom
+        ].copy(deep=True)
+        to_concat.append(
+            assign_boundary_ID_to_genes(chromosome_boundary_obj, to_assign)
         )
-    }
+    genes_w_ind_and_bndry = pd.concat(to_concat)
+
+    gene_frame_within = genes_w_ind_and_bndry.loc[
+        genes_w_ind_and_bndry["Within_Boundary"] == "Y"
+    ].copy(deep=True)
+    gene_frame_outside = genes_w_ind_and_bndry.loc[
+        genes_w_ind_and_bndry["Within_Boundary"] == "N"
+    ].copy(deep=True)
+
+    inside_values = return_1D_array_of_vals_for_indices(
+        gene_frame_within, processed_dd_data
+    )
+    outside_values = return_1D_array_of_vals_for_indices(
+        gene_frame_outside, processed_dd_data
+    )
 
     cut_bins, cut_labels = gen_bins()
-
-    ##################
-    # NOTE I think this should be refactored...
-    inside_values = np.concatenate(
-        [
-            return_density_array_from_indices(
-                dd_data, "Order", "LTR", 1000, "Upstream", gene_indices_within
-            )
-            for dd_data, gene_indices_within in dd_and_gene_indices_within.items()
-        ]
-    )
-    outside_values = np.concatenate(
-        [
-            return_density_array_from_indices(
-                dd_data, "Order", "LTR", 1000, "Upstream", gene_indices_outside
-            )
-            for dd_data, gene_indices_outside in dd_and_gene_indices_outside.items()
-        ]
-    )
 
     #############
     fig, axs = plt.subplots(1, 2, figsize=(12, 8), sharey=True)
@@ -295,6 +195,15 @@ if __name__ == "__main__":
     inside_val_length = len(inside_values)
     outside_val_length = len(outside_values)
 
+    percent_inside_genes_over_50 = ((inside_values >= 0.5).sum()) / len(inside_values)
+    percent_outside_genes_over_50 = ((outside_values >= 0.5).sum()) / len(
+        outside_values
+    )
+    # NOTE
+    print(percent_inside_genes_over_50)
+    print(percent_outside_genes_over_50)
+
+    # Reformat as pandas for graphing purposes
     inside_values = pd.DataFrame.from_dict({"LTR_1000_Upstream": inside_values})
     outside_values = pd.DataFrame.from_dict({"LTR_1000_Upstream": outside_values})
 
@@ -366,8 +275,10 @@ if __name__ == "__main__":
     axs[0].set(xlabel=None, ylabel=None)
     axs[0].legend(title=("Total Genes: " + str(outside_val_length)), loc="upper right")
     plt.yscale("log")
-    fig.suptitle("Centromeric/Pericentromeric vs 'Regular' Genes")
+    fig.suptitle(
+        """Counts of Genes Inside and Outside the Centromere/Pericentromere by Density Bin"""
+    )
     fig.supylabel("Log10(No. Genes)")
     fig.supxlabel("Density Bins")
-    plt.show()
-    plt.savefig("Test_All.png")
+    # plt.show()
+    plt.savefig("Gene_Counts_by_Bin_Centromeric.png")
