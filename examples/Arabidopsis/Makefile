@@ -8,6 +8,7 @@ DEV_GFF_READ_EXECUTABLE := /home/scott/Documents/Uni/Research/gffread
 DEV_DATA := $(realpath $(ROOT_DIR)/../../../TE_Density_Example_Data/Arabidopsis)
 DEV_ARAB_FASTA_DATA := $(DEV_DATA)/Sequences/TAIR10_chr_main_chromosomes.fas
 DEV_ARAB_GENES := $(DEV_DATA)/Genes/TAIR10_GFF3_genes_main_chromosomes.gff
+DEV_ARAB_EXP := $(DEV_DATA)/Genes/At-Expression_AtBrCv_4Wisecaver.csv
 DEV_ARAB_TEs := $(DEV_DATA)/TEs/TAIR10_chr_main_chromosomes.fas.mod.EDTA.TEanno.gff3
 DEV_FILTERED := $(realpath $(ROOT_DIR)/../../../TE_Data/filtered_input_data)
 DEV_HDF5 := $(realpath $(ROOT_DIR)/../../../TE_Data/finalized_data/10KB/Arabidopsis)
@@ -51,4 +52,4 @@ compare_density_upstream_downstream:
 compare_centromeric:
 	@echo Comparing centromeric/pericentromeric and regular density arrays
 	mkdir -p $(DEV_RESULTS)/centromeric
-	python $(ROOT_DIR)/src/compare_centromeric_densities.py $(DEV_FILTERED)/Cleaned_TAIR10_GFF3_genes_main_chromosomes.tsv $(DEV_HDF5) -o $(DEV_RESULTS)/centromeric
+	python $(ROOT_DIR)/src/compare_centromeric_densities.py $(DEV_FILTERED)/Cleaned_TAIR10_GFF3_genes_main_chromosomes.tsv $(DEV_HDF5) $(DEV_ARAB_EXP) -o $(DEV_RESULTS)/centromeric
