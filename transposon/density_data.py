@@ -176,8 +176,6 @@ class DensityData:
                     object."""
             )
 
-    # TODO edit this to have self and gene info pandas and operate like the
-    # other function
     def add_hdf5_indices_to_gene_data(
         self,
         gene_info_pandas,
@@ -186,23 +184,42 @@ class DensityData:
         index_col="Index_Val",
     ):
         """
-        Take the whole-genome form of GeneData and for each gene in the
-        dataframe, identify its index in the HDF5 (DensityData). This index may
-        be used for subsetting the HDF5 and analysis
+        Take a pandas dataframe of genes (rows) and pseudomolecule identities
+        and add a column that contains each gene's index value in the
+        DensityData (HDF5) dataset.
 
         Args:
+            gene_info_pandas (pandas.core.frame.DataFrame): A pandas dataframe
+                with AT LEAST the three columns defined as the default args:
+                gene_name_col, chrom_col, index_col.
+
+            gene_name_col (str): A string that represents the column that
+                contains the genes in the users pandas dataframe.
+
+            chrom_col (str): A string that represents the column that
+                contains the identities of the pseudomolecules in the users
+                pandas dataframe.
+
+            index_col (str): A string that represents the column that contains
+                the integer values of the index values for each gene in the
+                HDF5. The column name defaults to 'Index_Val'.
 
         Returns:
+            gene_info_pandas (pandas.core.frame.DataFrame): Returns the
+                original dataframe, but with a new column. The column's
+                name is supplied by the argument 'index_col'. The column
+                contains integer values of the index values for each gene in
+                the HDF5.
         """
         DensityData._verify_unique_chromosome_pandaframe(gene_info_pandas, chrom_col)
         self._verify_self_chromosome_match_w_pandaframe(gene_info_pandas, chrom_col)
 
-        gene_info_pandas = gene_info_pandas.copy(deep=True)  # temp fix to
-        # bypass pandas setting with copy warning
+        # NB get around setting with copy warning by creating a deep copy,
+        # not an issue for performance.
+        gene_info_pandas = gene_info_pandas.copy(deep=True)
         gene_info_pandas[index_col] = gene_info_pandas.apply(
             lambda x: self._index_of_gene(x[gene_name_col]), axis=1
         )
-
         return gene_info_pandas
 
     def add_te_vals_to_gene_info_pandas(
@@ -217,15 +234,57 @@ class DensityData:
         index_col="Index_Val",
     ):
         """
-        NOTE Expects the indices are already there
+        Take a pandas dataframe that already has HDF5 index values for each
+        gene (row), and add column to the dataframe that has TE Density values
+        for each gene (row) according to a user-supplied TE, direction, and
+        window value.
+
+        Args:
+            gene_info_pandas (pandas.core.frame.DataFrame): A pandas dataframe
+                with AT LEAST the three columns defined as the default args:
+                gene_name_col, chrom_col, index_col.
+
+            te_category (str): A string of a TE category, must be either
+                'Order' or 'Superfamily'.
+
+            te_name (str): A string representing the valid name of a TE group
+                that is in the HDF5.
+
+            window_val (int): An integer representing a valid window value that
+                the user wants the TE Density data for
+
+            direction (str): A string representing whether the user wants TE
+                Density data for 'Upstream' or 'Downstream'. Must be either
+                'Upstream' or 'Downstream'.
+
+            gene_name_col (str): A string that represents the column that
+                contains the genes in the users pandas dataframe.
+
+            chrom_col (str): A string that represents the column that
+                contains the identities of the pseudomolecules in the users
+                pandas dataframe.
+
+            index_col (str): A string that represents the column that contains
+                the integer values of the index values for each gene in the
+                HDF5. These values can be acquired using the
+                'add_hdf5_indices_to_gene_data' function.
+
+        Returns:
+            gene_info_pandas (pandas.core.frame.DataFrame): Returns the
+                original dataframe, but with a new column. The column's
+                identifer is "te_name + '_' + window_val + '_' + direction".
+                The column contains floats of TE Density values for that gene
+                (row).
         """
         DensityData._verify_unique_chromosome_pandaframe(gene_info_pandas, chrom_col)
         self._verify_self_chromosome_match_w_pandaframe(gene_info_pandas, chrom_col)
 
         te_string_iterable = [te_name, str(window_val), direction]
         te_column_string = "_".join(te_string_iterable)
-        gene_info_pandas = gene_info_pandas.copy(deep=True)  # temp fix to
-        # bypass pandas setting with copy warning
+
+        # NB get around setting with copy warning by creating a deep copy,
+        # not an issue for performance.
+        gene_info_pandas = gene_info_pandas.copy(deep=True)
         gene_info_pandas[te_column_string] = gene_info_pandas.apply(
             lambda x: self.get_specific_slice(
                 te_category, te_name, window_val, direction, x[index_col]
@@ -238,9 +297,37 @@ class DensityData:
         self, te_category, te_name, window_val, direction, gene_indices=slice(None)
     ):
         """
-        Yields all genes for that slice
+        Return a DensitySlice obj for a combination of TE category, TE name,
+            window, direction, and optionally a set of gene indices. This
+            method used in the methods 'add_hdf5_indices_to_gene_data'
+            and 'add_te_vals_to_gene_info_pandas' will likely be the most
+            useful to users in accessing the TE Density data.
+
+        Args:
+
+            te_category (str): A string of a TE category, must be either
+                'Order' or 'Superfamily'.
+
+            te_name (str): A string representing the valid name of a TE group
+                that is in the HDF5.
+
+            window_val (int): An integer representing a valid window value that
+                the user wants the TE Density data for
+
+            direction (str): A string representing whether the user wants TE
+                Density data for 'Upstream' or 'Downstream'. Must be either
+                'Upstream' or 'Downstream'.
+
+            gene_indices (np.array, list of int, or slice): The indices (of
+                genes) that the user wants TE Density values for. Defaults to
+                slice(None) which gives the values for ALL indices (genes).
+
+        Returns:
+            DensitySlice (DensitySlice): A DensitySlice obj that contains the
+                TE Density values for the combination of args that the user
+                supplied. Users can access their desired output data by
+                accessing the '.slice' attribute of the DensitySlice obj.
         """
-        # TODO gene_indices isn't rifht when I pass in a list
         self._verify_te_category_string(te_category)
         self._verify_direction_string(direction)
         self._verify_window_val(window_val)
@@ -274,13 +361,13 @@ class DensityData:
                 gene_indices,
             ]
         else:
-            # TODO make more eloquent
-            raise ValueError("TODO")
+            raise ValueError()
 
         return DensitySlice(slice_to_return, direction, window_val, te_name)
 
     def yield_all_slices(self):
-        # TODO think of refactoring
+        # TODO think of refactoring, refactor other code to use the other
+        # methods.
         """
         Yields a DensitySlice (named tuple) object for each TE
         type/direction/window combination for all genes in the DensityData obj.
