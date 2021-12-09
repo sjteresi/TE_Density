@@ -37,13 +37,13 @@ def save_arrays_for_pat(processed_dd_data, output_dir):
     ltr_upstream_array = {
         str(
             single_dd_obj.unique_chromosome_id + "_Up"
-        ): single_dd_obj.get_specific_slice("Order", "LTR", 1000, "Upstream").slice
+        ): single_dd_obj.get_specific_slice("Order", "LTR", "Upstream", 1000).slice
         for single_dd_obj in processed_dd_data
     }
     ltr_downstream_array = {
         str(
             single_dd_obj.unique_chromosome_id + "_Down"
-        ): single_dd_obj.get_specific_slice("Order", "LTR", 1000, "Downstream").slice
+        ): single_dd_obj.get_specific_slice("Order", "LTR", "Downstream", 1000).slice
         for single_dd_obj in processed_dd_data
     }
 
@@ -66,14 +66,14 @@ def save_arrays_for_pat(processed_dd_data, output_dir):
     helitron_upstream_array = {
         str(
             single_dd_obj.unique_chromosome_id + "_Up"
-        ): single_dd_obj.get_specific_slice("Order", "Helitron", 1000, "Upstream").slice
+        ): single_dd_obj.get_specific_slice("Order", "Helitron", "Upstream", 1000).slice
         for single_dd_obj in processed_dd_data
     }
     helitron_downstream_array = {
         str(
             single_dd_obj.unique_chromosome_id + "_Down"
         ): single_dd_obj.get_specific_slice(
-            "Order", "Helitron", 1000, "Downstream"
+            "Order", "Helitron", "Downstream", 1000
         ).slice
         for single_dd_obj in processed_dd_data
     }
@@ -96,17 +96,17 @@ def save_arrays_for_pat(processed_dd_data, output_dir):
 
 def get_means_of_dd(processed_dd_data):
     # NOTE
-    # This is really dumb and now how you should be doing chi-squared tests
+    # This is really dumb and not how you should be doing chi-squared tests
     # which are observed frequencies of categorical data.
 
     list_mean_ltr_up = [
-        single_dd_obj.get_specific_slice("Order", "LTR", 1000, "Upstream").slice.mean()
+        single_dd_obj.get_specific_slice("Order", "LTR", "Upstream", 1000).slice.mean()
         for single_dd_obj in processed_dd_data
     ]
 
     list_mean_ltr_down = [
         single_dd_obj.get_specific_slice(
-            "Order", "LTR", 1000, "Downstream"
+            "Order", "LTR", "Downstream", 1000
         ).slice.mean()
         for single_dd_obj in processed_dd_data
     ]
@@ -127,14 +127,14 @@ def get_means_of_dd(processed_dd_data):
 
     list_mean_helitron_up = [
         single_dd_obj.get_specific_slice(
-            "Order", "Helitron", 1000, "Upstream"
+            "Order", "Helitron", "Upstream", 1000
         ).slice.mean()
         for single_dd_obj in processed_dd_data
     ]
 
     list_mean_helitron_down = [
         single_dd_obj.get_specific_slice(
-            "Order", "Helitron", 1000, "Downstream"
+            "Order", "Helitron", "Downstream", 1000
         ).slice.mean()
         for single_dd_obj in processed_dd_data
     ]

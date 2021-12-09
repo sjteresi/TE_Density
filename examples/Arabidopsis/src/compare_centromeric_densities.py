@@ -356,7 +356,7 @@ if __name__ == "__main__":
         for processed_dd_datum in processed_dd_data:
             if processed_dd_datum.unique_chromosome_id == chrom:
                 x = processed_dd_datum.add_te_vals_to_gene_info_pandas(
-                    dataframe, "Order", "LTR", 1000, "Upstream"
+                    dataframe, "Order", "LTR", "Upstream", 1000
                 )
                 to_concat.append(x)
     gene_frame_w_ind_te_vals = pd.concat(to_concat)

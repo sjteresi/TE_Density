@@ -112,7 +112,10 @@ class DensityData:
         return window_dict
 
     def _verify_direction_string(self, direction):
-        # TODO get docstring
+        """
+        Verify whether
+
+        """
         acceptable_directions = ["Upstream", "Intra", "Downstream"]
         if direction not in acceptable_directions:
             raise ValueError(
@@ -133,14 +136,27 @@ class DensityData:
                 % (te_category, acceptable_te_categories)
             )
 
-    def _verify_window_val(self, window_val):
+    def _verify_window_val(self, direction, window_val):
         # TODO get docstring
+        if direction == "Intra" and window_val is not None:
+            raise ValueError(
+                """The user requested the corresponding dataset
+                             for 'Intra' values, and supplied '%s' for the
+                             'window_val' argument. The 'window_val' argument
+                             ought to be left to its default arg of 'None', as
+                             there is no window for intra values. Raising an
+                             error to notify user of unintended usage."""
+                % window_val
+            )
+        elif direction == "Intra" and window_val is None:
+            return
+
         acceptable_window_values = self.window_list
         if window_val not in acceptable_window_values:
             raise ValueError(
                 """The supplied window value: %s, must be found
                 within the following list: %s, in order to subset the
-                arrays appropriately."""
+                upstream and downstream arrays appropriately."""
                 % (window_val, acceptable_window_values)
             )
 
@@ -227,8 +243,8 @@ class DensityData:
         gene_info_pandas,
         te_category,
         te_name,
-        window_val,
         direction,
+        window_val,
         gene_name_col="Gene_Name",
         chrom_col="Chromosome",
         index_col="Index_Val",
@@ -250,12 +266,12 @@ class DensityData:
             te_name (str): A string representing the valid name of a TE group
                 that is in the HDF5.
 
-            window_val (int): An integer representing a valid window value that
-                the user wants the TE Density data for
-
             direction (str): A string representing whether the user wants TE
                 Density data for 'Upstream' or 'Downstream'. Must be either
                 'Upstream' or 'Downstream'.
+
+            window_val (int): An integer representing a valid window value that
+                the user wants the TE Density data for
 
             gene_name_col (str): A string that represents the column that
                 contains the genes in the users pandas dataframe.
@@ -287,14 +303,14 @@ class DensityData:
         gene_info_pandas = gene_info_pandas.copy(deep=True)
         gene_info_pandas[te_column_string] = gene_info_pandas.apply(
             lambda x: self.get_specific_slice(
-                te_category, te_name, window_val, direction, x[index_col]
+                te_category, te_name, direction, window_val, x[index_col]
             ).slice,
             axis=1,
         )
         return gene_info_pandas
 
     def get_specific_slice(
-        self, te_category, te_name, window_val, direction, gene_indices=slice(None)
+        self, te_category, te_name, direction, window_val=None, gene_indices=slice(None)
     ):
         """
         Return a DensitySlice obj for a combination of TE category, TE name,
@@ -327,13 +343,30 @@ class DensityData:
                 TE Density values for the combination of args that the user
                 supplied. Users can access their desired output data by
                 accessing the '.slice' attribute of the DensitySlice obj.
+                Will be a 1D array.
         """
         self._verify_te_category_string(te_category)
         self._verify_direction_string(direction)
-        self._verify_window_val(window_val)
+        self._verify_window_val(direction, window_val)
         self._verify_te_name(te_category, te_name)
 
-        if direction == "Upstream" and te_category == "Order":
+        if direction == "Intra" and te_category == "Order":
+            slice_to_return = self.intra_orders[
+                self.order_index_dict[te_name],
+                0,  # MAGIC get first index for 'window' for intra, gives back
+                # 1D array
+                gene_indices,
+            ]
+
+        elif direction == "Intra" and te_category == "Superfamily":
+            slice_to_return = self.intra_supers[
+                self.super_index_dict[te_name],
+                0,  # MAGIC get first index for 'window' for intra, gives back
+                # 1D array
+                gene_indices,
+            ]
+
+        elif direction == "Upstream" and te_category == "Order":
             slice_to_return = self.left_orders[
                 self.order_index_dict[te_name],
                 self.window_index_dict[window_val],

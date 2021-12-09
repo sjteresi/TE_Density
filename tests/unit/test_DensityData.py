@@ -148,7 +148,7 @@ def density_data_test_obj_swap_vals(
     # TODO set path to be a variable not hard-coded, plus it repeats further
     # down
     f = h5py.File(
-        "/home/scott/Documents/Uni/Research/Projects/TE_Density/tests/input_data/test_swap_file.h5",
+        "tests/input_data/test_swap_file.h5",
         "w",
     )
     gene_names = list(dummy_gene_data.names)
@@ -168,7 +168,7 @@ def density_data_test_obj_swap_vals(
     f.create_dataset("RHO_SUPERFAMILIES_RIGHT", data=rho_o_right)
     f.close()
     return DensityData(
-        "/home/scott/Documents/Uni/Research/Projects/TE_Density/tests/input_data/test_swap_file.h5",
+        "tests/input_data/test_swap_file.h5",
         dummy_gene_data,
         LOGGER,
         sense_swap=False,
