@@ -23,7 +23,7 @@ def write_cleaned_genes(gene_pandaframe, output_dir, old_filename, logger):
     gene_pandaframe.to_csv(file_name, sep="\t", header=True, index=True)
 
 
-def import_genes(genes_input_path):
+def import_genes(genes_input_path, logger):
     """Import genes file.
 
     Args:
@@ -149,5 +149,5 @@ if __name__ == "__main__":
     coloredlogs.install(level=log_level)
 
     # Execute
-    cleaned_genes = import_genes(args.gene_input_file)
+    cleaned_genes = import_genes(args.gene_input_file, logger)
     write_cleaned_genes(cleaned_genes, args.output_dir, args.gene_input_file, logger)
