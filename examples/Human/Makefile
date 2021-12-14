@@ -16,35 +16,6 @@ DEV_FILTERED := $(realpath $(ROOT_DIR)/../../../TE_Data/filtered_input_data)
 DEV_HDF5 := $(realpath $(ROOT_DIR)/../../../TE_Data/finalized_data/10KB)
 DEV_RESULTS:= $(realpath $(ROOT_DIR)/results)
 
-create_CDS:
-	@echo
-	@echo Creating CDS from GFF and fasta file for Human 
-	$(DEV_GFF_READ_EXECUTABLE)/gffread -x $(DEV_DATA)/Human_CDS.fasta -g $(DEV_DATA)/Fasta/hg38_chr1_chr7.fasta $(DEV_DATA)/Genes/Human_Gene_Annotation_Chr1_Chr7.gff3
-	@echo
-
-fix_fasta_names:
-	@echo
-	@echo Fixing the fasta names for Human so that they are not too long for EDTA
-	python $(ROOT_DIR)/src/fix_fasta_names.py $(DEV_DATA)/Fasta/hg38_chr1_chr7.fasta Human
-	@echo
-
-fix_CDS_names:
-	@echo
-	@echo Fixing the CDS fasta names for Human so that they are not too long for EDTA
-	python $(ROOT_DIR)/src/fix_cds_names.py $(DEV_DATA)/Human_CDS.fasta Human
-	@echo
-
-run_EDTA_HPCC:
-	@echo Running EDTA for Human
-	sbatch $(ROOT_DIR)/src/Annotate_EDTA_Human.sb
-
-
-################################
-# NOTE all of the above is used for generating an EDTA annotation for Human
-# I have not used the above code to generate an EDTA annotation, but am preserving it in the file for reference.
-################################
-
-
 filter_genes:
 	@echo Filtering human genes into appropriate format for TE Density
 	python $(ROOT_DIR)/src/import_human_gene_anno.py $(DEV_GENES)

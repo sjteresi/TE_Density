@@ -23,7 +23,7 @@ def write_cleaned_genes(gene_pandaframe, output_dir, old_filename, logger):
     gene_pandaframe.to_csv(file_name, sep="\t", header=True, index=True)
 
 
-def import_genes(genes_input_path):
+def import_genes(genes_input_path, logger):
     """Import genes file.
 
     Args:
