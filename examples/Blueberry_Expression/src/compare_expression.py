@@ -302,8 +302,8 @@ def plot_new_hist(
         "Expressed Genes": expressed_genes,
     }
 
-    fig, axs = plt.subplots(1, 3, figsize=(12, 8), sharey=True)
-    fig.subplots_adjust(hspace=0.5)
+    fig, axs = plt.subplots(1, 3, figsize=(13, 8), sharey=True)
+    fig.subplots_adjust(wspace=0.08)
     i = 0
     for name, pandaframe in panda_dataframes.items():
         # Convert to expression values to log 10 for visualization purposes
@@ -357,6 +357,18 @@ def plot_new_hist(
         # )
 
         # TODO get A B C subplot labels?
+        # MAGIC, add panel 'A' label to the left side graph
+        letter_list = ["A", "B", "C"]
+        axs[i].text(
+            -0.01,
+            1.05,
+            letter_list[i],
+            transform=axs[i].transAxes,
+            fontsize=16,
+            fontweight="bold",
+            va="top",
+            ha="right",
+        )
         axs[i].set_xticklabels(my_x_tick_labels, rotation=40, ha="right")
         axs[i].set_title(name)
         axs[i].set(xlabel=None, ylabel=None)
@@ -439,18 +451,18 @@ if __name__ == "__main__":
     # can't easily split by that method. So I need to use the list of genes in
     # the density data to split the 'chromosomes' of the expression matrix.
 
-    plot_expression_v_density_violin(
-        tpm_matrix,
-        processed_dd_data,
-        args.output_dir,
-        logger,
-        show=False,
-    )
-
-    # plot_new_hist(
+    # plot_expression_v_density_violin(
     # tpm_matrix,
     # processed_dd_data,
     # args.output_dir,
     # logger,
     # show=False,
     # )
+
+    plot_new_hist(
+        tpm_matrix,
+        processed_dd_data,
+        args.output_dir,
+        logger,
+        show=False,
+    )
