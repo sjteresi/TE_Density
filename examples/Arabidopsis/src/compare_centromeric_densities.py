@@ -153,6 +153,26 @@ def gen_violin_plot(gene_frame_within, gene_frame_outside, te_string, output_dir
         color="skyblue",
     )
 
+    axs[0].text(
+        -0.01,
+        1.05,
+        "A",
+        transform=axs[0].transAxes,
+        fontsize=16,
+        fontweight="bold",
+        va="top",
+        ha="right",
+    )
+    axs[1].text(
+        -0.01,
+        1.05,
+        "B",
+        transform=axs[1].transAxes,
+        fontsize=16,
+        fontweight="bold",
+        va="top",
+        ha="right",
+    )
     axs[1].set_xticklabels(my_x_tick_labels, rotation=40, ha="right")
     axs[0].set_xticklabels(my_x_tick_labels, rotation=40, ha="right")
     axs[1].set_title("Inside")
@@ -265,6 +285,27 @@ def gen_barplot_counts(gene_frame_within, gene_frame_outside, te_string, output_
     axs[0].set_title("Outside")
     axs[0].set(xlabel=None, ylabel=None)
     axs[0].legend(title=("Total Genes: " + str(outside_val_length)), loc="upper right")
+
+    axs[0].text(
+        -0.01,
+        1.05,
+        "A",
+        transform=axs[0].transAxes,
+        fontsize=16,
+        fontweight="bold",
+        va="top",
+        ha="right",
+    )
+    axs[1].text(
+        -0.01,
+        1.05,
+        "B",
+        transform=axs[1].transAxes,
+        fontsize=16,
+        fontweight="bold",
+        va="top",
+        ha="right",
+    )
     plt.yscale("log")
     fig.suptitle(
         """Counts of Genes Inside and Outside the Centromere/Pericentromere by Density Bin"""
