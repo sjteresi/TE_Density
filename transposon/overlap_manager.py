@@ -327,7 +327,13 @@ class OverlapManager:
         """Filename for the overlap temporary file."""
 
         # NB assuming there is only one worker for this chromosome
-        filename = gene_data.chromosome_unique_id + "_overlap." + OverlapData.EXT
+        filename = (
+            gene_data.genome_id
+            + "_"
+            + gene_data.chromosome_unique_id
+            + "_overlap."
+            + OverlapData.EXT
+        )
         filepath = os.path.join(self.output_dir, filename)
         return filepath
 
@@ -363,7 +369,12 @@ class OverlapManager:
 
         n_genes = sum(len(job.gene_names) for job in jobs)
         n_jobs = sum(1 for j in jobs)
-        prog = _ProgressBars(n_genes, n_jobs, self._result_queue, self._progress_queue,)
+        prog = _ProgressBars(
+            n_genes,
+            n_jobs,
+            self._result_queue,
+            self._progress_queue,
+        )
         return prog
 
     @property

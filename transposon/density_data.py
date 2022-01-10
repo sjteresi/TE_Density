@@ -8,6 +8,7 @@ __author__ = "Scott Teresi"
 
 import h5py
 import numpy as np
+import pandas as pd
 import os
 import shutil
 import re
@@ -84,10 +85,6 @@ class DensityData:
             )
         return np.where(self.gene_list == gene_string)[0][0]  # MAGIC
 
-    def nonzero_indices(self):
-        pass
-        # print(np.nonzero(data.left_orders[:]))
-
     @property
     def order_index_dict(self):
         """Returns a dictionary of TE order names as keys and indices as values"""
@@ -105,7 +102,305 @@ class DensityData:
             super_dict[self.super_list[i]] = i
         return super_dict
 
+    @property
+    def window_index_dict(self):
+        """Returns a dictionary of window ints as keys and indices as
+        values"""
+        window_dict = {}
+        for i in range(len(self.window_list)):
+            window_dict[self.window_list[i]] = i
+        return window_dict
+
+    def _verify_direction_string(self, direction):
+        """
+        Verify whether
+
+        """
+        acceptable_directions = ["Upstream", "Intra", "Downstream"]
+        if direction not in acceptable_directions:
+            raise ValueError(
+                """The supplied direction string: %s, must be found
+                within the following list: %s, in order to subset the
+                             arrays appropriately."""
+                % (direction, acceptable_directions)
+            )
+
+    def _verify_te_category_string(self, te_category):
+        # TODO get docstring
+        acceptable_te_categories = ["Order", "Superfamily"]
+        if te_category not in acceptable_te_categories:
+            raise ValueError(
+                """The supplied te_category string: %s, must be found
+                within the following list: %s, in order to subset the
+                arrays appropriately."""
+                % (te_category, acceptable_te_categories)
+            )
+
+    def _verify_window_val(self, direction, window_val):
+        # TODO get docstring
+        if direction == "Intra" and window_val is not None:
+            raise ValueError(
+                """The user requested the corresponding dataset
+                             for 'Intra' values, and supplied '%s' for the
+                             'window_val' argument. The 'window_val' argument
+                             ought to be left to its default arg of 'None', as
+                             there is no window for intra values. Raising an
+                             error to notify user of unintended usage."""
+                % window_val
+            )
+        elif direction == "Intra" and window_val is None:
+            return
+
+        acceptable_window_values = self.window_list
+        if window_val not in acceptable_window_values:
+            raise ValueError(
+                """The supplied window value: %s, must be found
+                within the following list: %s, in order to subset the
+                upstream and downstream arrays appropriately."""
+                % (window_val, acceptable_window_values)
+            )
+
+    def _verify_te_name(self, te_category, te_name):
+        # TODO get docstring
+        if te_category == "Order":
+            acceptable_te_name_list = self.order_list
+        if te_category == "Superfamily":
+            acceptable_te_name_list = self.super_list
+        if te_name not in acceptable_te_name_list:
+            raise ValueError(
+                """The supplied TE name string : %s, must be found
+                within the following list: %s, in order to subset the
+                arrays appropriately."""
+                % (direction, acceptable_te_name_list)
+            )
+
+    @staticmethod
+    def _verify_unique_chromosome_pandaframe(gene_info_pandas, chrom_col):
+        # MAGIC to check chromosome identity
+        if len(gene_info_pandas[chrom_col].unique()) > 1:
+            raise ValueError(
+                """Your gene pandaframe has too many unique
+                             pseudomolecule in it, it should only have genes
+                             belonging to one pseudomolecule."""
+            )
+
+    def _verify_self_chromosome_match_w_pandaframe(self, gene_info_pandas, chrom_col):
+        if self.unique_chromosome_id != gene_info_pandas[chrom_col].unique()[0]:
+            raise ValueError(
+                """The pseudomolecule of DensityData instance does
+                    not match pseudomolecule of the supplied pandas
+                    object."""
+            )
+
+    def add_hdf5_indices_to_gene_data(
+        self,
+        gene_info_pandas,
+        gene_name_col="Gene_Name",
+        chrom_col="Chromosome",
+        index_col="Index_Val",
+    ):
+        """
+        Take a pandas dataframe of genes (rows) and pseudomolecule identities
+        and add a column that contains each gene's index value in the
+        DensityData (HDF5) dataset.
+
+        Args:
+            gene_info_pandas (pandas.core.frame.DataFrame): A pandas dataframe
+                with AT LEAST the three columns defined as the default args:
+                gene_name_col, chrom_col, index_col.
+
+            gene_name_col (str): A string that represents the column that
+                contains the genes in the users pandas dataframe.
+
+            chrom_col (str): A string that represents the column that
+                contains the identities of the pseudomolecules in the users
+                pandas dataframe.
+
+            index_col (str): A string that represents the column that contains
+                the integer values of the index values for each gene in the
+                HDF5. The column name defaults to 'Index_Val'.
+
+        Returns:
+            gene_info_pandas (pandas.core.frame.DataFrame): Returns the
+                original dataframe, but with a new column. The column's
+                name is supplied by the argument 'index_col'. The column
+                contains integer values of the index values for each gene in
+                the HDF5.
+        """
+        DensityData._verify_unique_chromosome_pandaframe(gene_info_pandas, chrom_col)
+        self._verify_self_chromosome_match_w_pandaframe(gene_info_pandas, chrom_col)
+
+        # NB get around setting with copy warning by creating a deep copy,
+        # not an issue for performance.
+        gene_info_pandas = gene_info_pandas.copy(deep=True)
+        gene_info_pandas[index_col] = gene_info_pandas.apply(
+            lambda x: self._index_of_gene(x[gene_name_col]), axis=1
+        )
+        return gene_info_pandas
+
+    def add_te_vals_to_gene_info_pandas(
+        self,
+        gene_info_pandas,
+        te_category,
+        te_name,
+        direction,
+        window_val,
+        gene_name_col="Gene_Name",
+        chrom_col="Chromosome",
+        index_col="Index_Val",
+    ):
+        """
+        Take a pandas dataframe that already has HDF5 index values for each
+        gene (row), and add column to the dataframe that has TE Density values
+        for each gene (row) according to a user-supplied TE, direction, and
+        window value.
+
+        Args:
+            gene_info_pandas (pandas.core.frame.DataFrame): A pandas dataframe
+                with AT LEAST the three columns defined as the default args:
+                gene_name_col, chrom_col, index_col.
+
+            te_category (str): A string of a TE category, must be either
+                'Order' or 'Superfamily'.
+
+            te_name (str): A string representing the valid name of a TE group
+                that is in the HDF5.
+
+            direction (str): A string representing whether the user wants TE
+                Density data for 'Upstream' or 'Downstream'. Must be either
+                'Upstream' or 'Downstream'.
+
+            window_val (int): An integer representing a valid window value that
+                the user wants the TE Density data for
+
+            gene_name_col (str): A string that represents the column that
+                contains the genes in the users pandas dataframe.
+
+            chrom_col (str): A string that represents the column that
+                contains the identities of the pseudomolecules in the users
+                pandas dataframe.
+
+            index_col (str): A string that represents the column that contains
+                the integer values of the index values for each gene in the
+                HDF5. These values can be acquired using the
+                'add_hdf5_indices_to_gene_data' function.
+
+        Returns:
+            gene_info_pandas (pandas.core.frame.DataFrame): Returns the
+                original dataframe, but with a new column. The column's
+                identifer is "te_name + '_' + window_val + '_' + direction".
+                The column contains floats of TE Density values for that gene
+                (row).
+        """
+        DensityData._verify_unique_chromosome_pandaframe(gene_info_pandas, chrom_col)
+        self._verify_self_chromosome_match_w_pandaframe(gene_info_pandas, chrom_col)
+
+        te_string_iterable = [te_name, str(window_val), direction]
+        te_column_string = "_".join(te_string_iterable)
+
+        # NB get around setting with copy warning by creating a deep copy,
+        # not an issue for performance.
+        gene_info_pandas = gene_info_pandas.copy(deep=True)
+        gene_info_pandas[te_column_string] = gene_info_pandas.apply(
+            lambda x: self.get_specific_slice(
+                te_category, te_name, direction, window_val, x[index_col]
+            ).slice,
+            axis=1,
+        )
+        return gene_info_pandas
+
+    def get_specific_slice(
+        self, te_category, te_name, direction, window_val=None, gene_indices=slice(None)
+    ):
+        """
+        Return a DensitySlice obj for a combination of TE category, TE name,
+            window, direction, and optionally a set of gene indices. This
+            method used in the methods 'add_hdf5_indices_to_gene_data'
+            and 'add_te_vals_to_gene_info_pandas' will likely be the most
+            useful to users in accessing the TE Density data.
+
+        Args:
+
+            te_category (str): A string of a TE category, must be either
+                'Order' or 'Superfamily'.
+
+            te_name (str): A string representing the valid name of a TE group
+                that is in the HDF5.
+
+            window_val (int): An integer representing a valid window value that
+                the user wants the TE Density data for
+
+            direction (str): A string representing whether the user wants TE
+                Density data for 'Upstream' or 'Downstream'. Must be either
+                'Upstream' or 'Downstream'.
+
+            gene_indices (np.array, list of int, or slice): The indices (of
+                genes) that the user wants TE Density values for. Defaults to
+                slice(None) which gives the values for ALL indices (genes).
+
+        Returns:
+            DensitySlice (DensitySlice): A DensitySlice obj that contains the
+                TE Density values for the combination of args that the user
+                supplied. Users can access their desired output data by
+                accessing the '.slice' attribute of the DensitySlice obj.
+                Will be a 1D array.
+        """
+        self._verify_te_category_string(te_category)
+        self._verify_direction_string(direction)
+        self._verify_window_val(direction, window_val)
+        self._verify_te_name(te_category, te_name)
+
+        if direction == "Intra" and te_category == "Order":
+            slice_to_return = self.intra_orders[
+                self.order_index_dict[te_name],
+                0,  # MAGIC get first index for 'window' for intra, gives back
+                # 1D array
+                gene_indices,
+            ]
+
+        elif direction == "Intra" and te_category == "Superfamily":
+            slice_to_return = self.intra_supers[
+                self.super_index_dict[te_name],
+                0,  # MAGIC get first index for 'window' for intra, gives back
+                # 1D array
+                gene_indices,
+            ]
+
+        elif direction == "Upstream" and te_category == "Order":
+            slice_to_return = self.left_orders[
+                self.order_index_dict[te_name],
+                self.window_index_dict[window_val],
+                gene_indices,
+            ]
+
+        elif direction == "Downstream" and te_category == "Order":
+            slice_to_return = self.right_orders[
+                self.order_index_dict[te_name],
+                self.window_index_dict[window_val],
+                gene_indices,
+            ]
+
+        elif direction == "Upstream" and te_category == "Superfamily":
+            slice_to_return = self.left_supers[
+                self.super_index_dict[te_name],
+                self.window_index_dict[window_val],
+                gene_indices,
+            ]
+
+        elif direction == "Downstream" and te_category == "Superfamily":
+            slice_to_return = self.right_supers[
+                self.super_index_dict[te_name],
+                self.window_index_dict[window_val],
+                gene_indices,
+            ]
+        else:
+            raise ValueError()
+
+        return DensitySlice(slice_to_return, direction, window_val, te_name)
+
     def yield_all_slices(self):
+        # TODO think of refactoring, refactor other code to use the other
+        # methods.
         """
         Yields a DensitySlice (named tuple) object for each TE
         type/direction/window combination for all genes in the DensityData obj.
@@ -208,7 +503,7 @@ class DensityData:
             )
 
     @staticmethod
-    def supply_density_data_files(path_to_folder):
+    def _supply_density_data_files(path_to_folder):
         """
         Iterate over a folder containing the H5 files of TE Density output and
         return a list of absolute file paths.
@@ -230,7 +525,7 @@ class DensityData:
                 a_file_object = os.path.abspath(os.path.join(root, a_file_object))
                 if a_file_object.endswith(".h5"):  # MAGIC file ext
                     raw_file_list.append(a_file_object)
-        return raw_file_list
+        return sorted(raw_file_list)
 
     @classmethod
     def from_list_gene_data_and_hdf5_dir(
@@ -256,30 +551,74 @@ class DensityData:
 
             logger (logging.logger): Obj to log information to
 
-        Returns: processed_density_data (list of DensityData instances).
+        Returns: processed_dd_data (list of DensityData instances).
         """
-        processed_density_data = []
-        for raw_hdf5_data_file in DensityData.supply_density_data_files(HDF5_folder):
-            current_hdf5_file_chromosome = re.search(file_substring, raw_hdf5_data_file)
-            if current_hdf5_file_chromosome is None:
-                logger.warning(
-                    """Using your regex pattern: %s, unable to identify
-                    chromosome IDs from directory: %s. Please refer to the
-                    documentation of the classmethod
-                    'from_list_gene_data_and_hdf5_dir' for more information"""
-                    % (file_substring, HDF5_folder)
+
+        # NB get the list of GeneData objs and sort by chromosome ID
+        list_of_gene_data = sorted(
+            list_of_gene_data,
+            key=lambda gene_data: gene_data.chromosome_unique_id,
+            reverse=False,
+        )
+
+        # NB get the list of TE Density output files in a dir and sort
+        # alphabetically
+        all_unprocessed_h5_files = sorted(
+            DensityData._supply_density_data_files(HDF5_folder)
+        )
+
+        # NB get the hits of files that match your regex substring provided
+        chromosome_ids_unprocessed_h5_files = [
+            re.search(file_substring, x) for x in all_unprocessed_h5_files
+        ]
+
+        # NB check if we actually were able to identify any files matching the
+        # user's supplied regex pattern, raise error and message if no hits
+        if not any(chromosome_ids_unprocessed_h5_files):
+            logger.critical(
+                """Unable to identify files matching your provided regex
+                pattern: %s in the directory: %s. \n
+                Please refer to the documentation of the classmethod
+                'from_list_gene_data_and_hdf5_dir' in transposon/density_data.py
+                for more information"""
+                % (file_substring, HDF5_folder)
+            )
+            raise ValueError
+
+        # MAGIC to get substring (chromosome) from regex hit object
+        chromosome_ids_unprocessed_h5_files = sorted(
+            [x.group(1) for x in chromosome_ids_unprocessed_h5_files]
+        )
+
+        # NB get chromosome ID from list of GeneData
+        chromosome_ids_gene_data = [
+            gene_data.chromosome_unique_id for gene_data in list_of_gene_data
+        ]
+
+        # NB check if chromosome ID of h5 files matches with that of the gene
+        # data, fail if they don't. This is needed to initialize DensityData
+        if not chromosome_ids_unprocessed_h5_files == chromosome_ids_gene_data:
+            logger.critical(
+                """The strings of chromosomes in your unprocessed
+                hdf5 files: %s, identified using your supplied
+                regex pattern: '%s', do not match the
+                chromosomes in the GeneData: %s."""
+                % (
+                    chromosome_ids_unprocessed_h5_files,
+                    file_substring,
+                    chromosome_ids_gene_data,
                 )
-            current_hdf5_file_chromosome = current_hdf5_file_chromosome.group(
-                1
-            )  # MAGIC to extract info from
-            # regex search obj
-            for gene_data_obj in list_of_gene_data:
-                if gene_data_obj.chromosome_unique_id == current_hdf5_file_chromosome:
-                    dd_data_obj = cls.verify_h5_cache(
-                        raw_hdf5_data_file, gene_data_obj, logger
-                    )
-                    processed_density_data.append(dd_data_obj)
-        return processed_density_data
+            )
+            raise ValueError
+
+        # Initialize DensityData for each pseudomolecule
+        processed_dd_data = [
+            cls.verify_h5_cache(raw_hdf5_data_file, gene_data_obj, logger)
+            for raw_hdf5_data_file, gene_data_obj, in zip(
+                all_unprocessed_h5_files, list_of_gene_data
+            )
+        ]
+        return processed_dd_data
 
     def info_of_gene(self, gene_id, window_idx, n_te_types=5):
         """
