@@ -57,65 +57,95 @@ if __name__ == "__main__":
 
     # Begin reading files:
     # Get the genes:
-    one_gene_data = import_filtered_genes(args.o_sativa_gene_data, logger)
-
-    chromosomes_o_sativa_panda_list = [
-        dataframe for k, dataframe in one_gene_data.groupby("Chromosome")
+    cleaned_genes = import_filtered_genes(args.o_sativa_gene_data, logger)
+    gene_dataframe_list = [
+        dataframe for k, dataframe in cleaned_genes.groupby("Chromosome")
     ]
-
-    gene_data_o_sativa_list = [
+    # NB MAGIC get unique chromosome ID
+    gene_data_list = [
         GeneData(dataframe, dataframe["Chromosome"].unique()[0])
-        for dataframe in chromosomes_o_sativa_panda_list
+        for dataframe in gene_dataframe_list
     ]
-
-    processed_o_sativa_density_data = DensityData.from_list_gene_data_and_hdf5_dir(
-        gene_data_o_sativa_list, args.sativa_density_data_dir, "Sativa_(.*?).h5", logger
+    processed_dd_data = DensityData.from_list_gene_data_and_hdf5_dir(
+        gene_data_list, args.sativa_density_data_dir, "Sativa_(.*?).h5", logger
     )
 
-    # TODO begin getting the percentiles for the WHOLE genome not just one
-    # chromosome
+    # NOTE
+    cleaned_genes.reset_index(inplace=True)  # necessary
+    # cleaned_genes = cleaned_genes.loc[cleaned_genes["Chromosome"] == "1"]
+    to_concat = []
+    for chrom, dataframe in cleaned_genes.groupby(["Chromosome"]):
+        for processed_dd_datum in processed_dd_data:
+            if processed_dd_datum.unique_chromosome_id == chrom:
+                x = processed_dd_datum.add_hdf5_indices_to_gene_data(dataframe)
+                to_concat.append(x)
+    gene_frame_with_indices = pd.concat(to_concat)
 
-    # TODO refactor because this is messy, tried to make as little hard-coded
-    # as possible.
-    # Essentially iterates over the densitydata, grabs all the arrays for the
-    # 1KB upstream data for the Order set, and calculates the 99th percentile
-    # for each TE type for all genes, then outputs a txt file with the genes
-    # meeting that cutoff as individual rows in the output file
-
-    # MAGIC, just get an iterable, not actually operating on a single
-    # DensityData
-    test_point = processed_o_sativa_density_data[1]
-    test_point_order_left_1000 = test_point.left_orders[:, 1, :]
-
-    for window_idx, window_val in enumerate(test_point.window_list):
-        for te_idx, te_grouping in enumerate(test_point.order_list):
-            all_upstream_1KB = [
-                density_array.left_orders[te_idx, window_idx, :]  # MAGIC
-                for density_array in processed_o_sativa_density_data
-            ]
-
-            major_concat = np.concatenate(all_upstream_1KB, axis=0)
-            all_chromosomes_cutoff_val = np.percentile(major_concat, 98)
-            # MAGIC 99th percentle cutoff
-
-            list_of_genes_with_cutoff = []
-            for density_array in processed_o_sativa_density_data:
-                y = np.where(
-                    density_array.left_orders[te_idx, window_idx, :]
-                    >= all_chromosomes_cutoff_val
+    # NOTE
+    to_concat = []
+    for chrom, dataframe in gene_frame_with_indices.groupby(["Chromosome"]):
+        for processed_dd_datum in processed_dd_data:
+            if processed_dd_datum.unique_chromosome_id == chrom:
+                x = processed_dd_datum.add_te_vals_to_gene_info_pandas(
+                    dataframe, "Order", "LTR", "Upstream", 1000
                 )
-                list_of_genes_with_cutoff.append(density_array.gene_list[y].tolist())
+                to_concat.append(x)
+    gene_frame_w_ind_te_vals = pd.concat(to_concat)
 
-            filename_to_write = os.path.join(
-                args.output_dir,
-                str(te_grouping + "_file_" + str(window_val) + ".tsv"),
-            )
-            with open(
-                filename_to_write,
-                "w",
-            ) as f_out:
+    upper_cutoff_val = np.percentile(gene_frame_w_ind_te_vals["LTR_1000_Upstream"], 99)
+    lower_cutoff_val = np.percentile(gene_frame_w_ind_te_vals["LTR_1000_Upstream"], 1)
 
-                for list_of_lists in list_of_genes_with_cutoff:
-                    for element in list_of_lists:
-                        f_out.write(element + "\n")
-                logger.info("Writing to: %s" % filename_to_write)
+    genes_meeting_upper_cutoff = gene_frame_w_ind_te_vals.loc[
+        gene_frame_w_ind_te_vals["LTR_1000_Upstream"] >= upper_cutoff_val
+    ]["Gene_Name"].to_list()
+
+    upper_cutoff_len = len(genes_meeting_upper_cutoff)
+
+    print(f"Upper Cutoff Length: {upper_cutoff_len}")
+    print(f"Upper Cutoff Val: {upper_cutoff_val}")
+
+    print(lower_cutoff_val)
+    genes_meeting_lower_cutoff = gene_frame_w_ind_te_vals.loc[
+        gene_frame_w_ind_te_vals["LTR_1000_Upstream"] >= lower_cutoff_val
+    ]["Gene_Name"].to_list()
+    print(len(genes_meeting_lower_cutoff))  # NOTE this is 37741 genes when you
+    # faithfully apply the cutoff
+
+    # Take random sample equal to the length of the gene array of upper values.
+    # Have to take a random sample because data not normally distributed and
+    # the cutoff value for the 1st percentile is so low you would actually get
+    # way too many genes if you actually applied it.
+    genes_meeting_lower_cutoff = np.random.choice(
+        gene_frame_w_ind_te_vals.loc[
+            gene_frame_w_ind_te_vals["LTR_1000_Upstream"] >= lower_cutoff_val
+        ]["Gene_Name"].to_list(),
+        upper_cutoff_len,
+        replace=False,
+    )
+
+    # NOTE begin writing all the values
+    filename_to_write = os.path.join(
+        args.output_dir,
+        str("Upper_Sample_LTR_1000_Upstream" + ".tsv"),
+    )
+    with open(
+        filename_to_write,
+        "w",
+    ) as f_out:
+
+        for gene in genes_meeting_upper_cutoff:
+            f_out.write(gene + "\n")
+    logger.info("Writing to: %s" % filename_to_write)
+
+    filename_to_write = os.path.join(
+        args.output_dir,
+        str("Lower_Sample_LTR_1000_Upstream" + ".tsv"),
+    )
+    with open(
+        filename_to_write,
+        "w",
+    ) as f_out:
+
+        for gene in genes_meeting_lower_cutoff:
+            f_out.write(gene + "\n")
+    logger.info("Writing to: %s" % filename_to_write)

@@ -76,9 +76,6 @@ class PreProcessor:
         self._logger = logger or logging.getLogger(self.__class__.__name__)
         raise_if_no_file(gene_file)
         raise_if_no_file(transposon_file)
-        os.makedirs(filtered_dir, exist_ok=True)
-        os.makedirs(h5_cache_dir, exist_ok=True)
-        os.makedirs(revised_dir, exist_ok=True)
 
         self.filtered_dir = filtered_dir
         self.h5_cache_dir = h5_cache_dir
@@ -258,7 +255,7 @@ class PreProcessor:
                 raise r_err
 
     @classmethod
-    def _processed_cache_name(cls, chrom_id, cache_dir, suffix):
+    def _processed_cache_name(cls, genome_id, chrom_id, cache_dir, suffix):
         """Filepath to preprocessed file.
 
         For a GeneData or TransposonData file, or one chromosome.
@@ -272,7 +269,7 @@ class PreProcessor:
         """
 
         return os.path.join(
-            cache_dir, str(chrom_id + "_" + suffix + "." + cls.CACHE_EXT)
+            cache_dir, str(genome_id + "_" + chrom_id + "_" + suffix + "." + cls.CACHE_EXT)
         )
 
     def _cache_data_filepair(self, gene_frame, te_frame):
@@ -291,10 +288,10 @@ class PreProcessor:
 
         chrom_id = gene_data.chromosome_unique_id
         gene_filepath = self._processed_cache_name(
-            chrom_id, self.h5_cache_dir, self.GCACHE_SUFFIX
+            self.genome_id, chrom_id, self.h5_cache_dir, self.GCACHE_SUFFIX
         )
         te_filepath = self._processed_cache_name(
-            chrom_id, self.h5_cache_dir, self.TCACHE_SUFFIX
+            self.genome_id, chrom_id, self.h5_cache_dir, self.TCACHE_SUFFIX
         )
 
         verify_chromosome_h5_cache(  # this writes the files

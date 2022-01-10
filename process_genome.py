@@ -41,12 +41,6 @@ def validate_args(args, logger):
         logger=logger,
         msg_fmt="arg 'tes_input_file' not a file: %s",
     )
-    raise_if_no_dir(
-        args.output_dir, logger=logger, msg_fmt="arg 'output_dir' not a dir: %s"
-    )
-    raise_if_no_dir(
-        args.tmp_overlap, logger=logger, msg_fmt="arg 'tmp_overlap' not a dir: %s"
-    )
 
 
 def parse_algorithm_config(config_path):
@@ -220,13 +214,6 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--tmp_overlap",
-        type=str,
-        default=os.path.join(output_default, "tmp", "overlap"),
-        help="temporary directory for overlap files",
-    )
-
-    parser.add_argument(
         "--single_process",
         action="store_true",
         help="""Run without multiprocessing; useful for profiling.""",
@@ -254,6 +241,14 @@ if __name__ == "__main__":
     revised_input_data_loc = os.path.abspath(
         os.path.join(args.output_dir, filtered_input_data_loc, "revised_input_data")
     )
+    tmp_overlap_loc = os.path.abspath(os.path.join(args.output_dir, "tmp", "overlap"))
+
+    # NOTE make directories for intermediate and final output data
+    os.makedirs(args.output_dir, exist_ok=True)
+    os.makedirs(filtered_input_data_loc, exist_ok=True)
+    os.makedirs(input_h5_cache_loc, exist_ok=True)
+    os.makedirs(revised_input_data_loc, exist_ok=True)
+    os.makedirs(tmp_overlap_loc, exist_ok=True)
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
@@ -285,9 +280,10 @@ if __name__ == "__main__":
     logger.info("preprocessing... complete")
 
     logger.info("process overlap...")
+
     gene_te_filepaths = list(preprocessor.data_filepaths())
     overlap_mgr = OverlapManager(
-        gene_te_filepaths, args.tmp_overlap, alg_parameters["window_range"]
+        gene_te_filepaths, tmp_overlap_loc, alg_parameters["window_range"]
     )
     overlap_results = overlap_mgr.calculate_overlap()
     logger.info("processed %d overlap jobs" % len(overlap_results))
