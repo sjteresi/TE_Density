@@ -291,7 +291,7 @@ def plot_new_hist(
         deep=True
     )
     non_expressed_genes = complete_df.loc[
-        complete_df["Total_Expression_Mean"] <= 0.1
+        complete_df["Total_Expression_Mean"] < 0.1
     ].copy(deep=True)
     all_genes = complete_df.copy(deep=True)
 
@@ -315,7 +315,8 @@ def plot_new_hist(
 
         # Determine the bins and number of genes in each
         pandaframe["Density_Bins"] = pd.cut(
-            pandaframe["LTR_1000_Upstream"],
+            pandaframe["TIR_5000_Upstream"],  # MAGIC this is the TE vals we
+            # are indexing
             bins=cut_bins,
             labels=cut_labels,
             include_lowest=True,  # this makes the leftmost bin inclusive
@@ -335,9 +336,9 @@ def plot_new_hist(
         )  # sorts the Bin IDs from least
         # to greatest
 
-        bin_count_frame["Bin_Counts"] = bin_count_frame["Bin_Counts"].map(
-            lambda x: np.log10(x)
-        )
+        # bin_count_frame["Bin_Counts"] = bin_count_frame["Bin_Counts"].map(
+        # lambda x: np.log10(x)
+        # )
         my_x_tick_labels = bin_count_frame["Bin_IDs"].to_list()
         sns.barplot(
             ax=axs[i],
@@ -346,15 +347,6 @@ def plot_new_hist(
             color="tab:blue",
             data=bin_count_frame,
         )
-
-        # NOTE, failed superimposed regression plot, didn't look very good
-        # sns.regplot(
-        #    ax=axs[i],
-        #    x=np.arange(0, len(my_x_tick_labels)),
-        #    y="Bin_Counts",
-        #    color="tab:red",
-        # data=bin_count_frame,
-        # )
 
         # TODO get A B C subplot labels?
         # MAGIC, add panel 'A' label to the left side graph
@@ -370,6 +362,7 @@ def plot_new_hist(
             ha="right",
         )
         axs[i].set_xticklabels(my_x_tick_labels, rotation=40, ha="right")
+        axs[i].set_yscale("log")
         axs[i].set_title(name)
         axs[i].set(xlabel=None, ylabel=None)
         axs[i].legend(title=("Total Genes: " + str(len(pandaframe))), loc="upper right")
@@ -379,7 +372,7 @@ def plot_new_hist(
     fig.supylabel("Log10(No. Genes)")
     fig.supxlabel("Density Bins")
     fig.suptitle(
-        "No. Genes Binned by LTR TE 1KB Upstream Density According to Expression Profile"
+        "No. Genes Binned by TIR TE 5KB Upstream Density According to Expression Profile"
     )
     # MAGIC filename
     plt.savefig(

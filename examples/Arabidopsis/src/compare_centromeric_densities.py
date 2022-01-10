@@ -62,11 +62,17 @@ def read_arab_expression(arabidopsis_gene_expression):
     gene_expression_set = pd.read_csv(
         arabidopsis_gene_expression, sep=",", header="infer"
     )
-    gene_expression_set.rename(columns={"Gene": "Gene_Name"}, inplace=True)
+    gene_expression_set.rename(
+        columns={"Gene": "Gene_Name", "Control 1 - 43A RPKM": "Total_Expression_Mean"},
+        inplace=True,
+    )
     gene_expression_set.set_index("Gene_Name", inplace=True)
-    gene_expression_set["Total_Expression_Mean"] = gene_expression_set.mean(
-        axis=1
-    )  # take mean across
+
+    # Convert to log 10(x+1) for future visualization purposes
+    # MAGIC column name
+    gene_expression_set["Total_Expression_Mean"] = np.log10(
+        gene_expression_set["Total_Expression_Mean"] + 1
+    )
     # row for each gene, i.e average all expression libraries for each gene
 
     # Drop all columns except the new 'Expression' column
@@ -76,6 +82,7 @@ def read_arab_expression(arabidopsis_gene_expression):
         inplace=True,
     )
     gene_expression_set.reset_index(inplace=True)
+
     return gene_expression_set
 
 
@@ -101,16 +108,7 @@ def assign_boundary_ID_to_genes(chromosome_boundary_obj, cleaned_genes):
 def gen_violin_plot(gene_frame_within, gene_frame_outside, te_string, output_dir):
     cut_bins, cut_labels = gen_bins()
     fig, axs = plt.subplots(1, 2, figsize=(16, 9), sharey=True)
-    fig.subplots_adjust(wspace=0.08)
-
-    # Convert to log 10(x+1) for visualization purposes
-    # MAGIC column name
-    gene_frame_within["Total_Expression_Mean"] = np.log10(
-        gene_frame_within["Total_Expression_Mean"] + 1
-    )
-    gene_frame_outside["Total_Expression_Mean"] = np.log10(
-        gene_frame_outside["Total_Expression_Mean"] + 1
-    )
+    fig.subplots_adjust(left=0.05, wspace=0.04, hspace=0.02)
 
     inside_val_length = len(gene_frame_within)
     outside_val_length = len(gene_frame_outside)
@@ -134,6 +132,9 @@ def gen_violin_plot(gene_frame_within, gene_frame_outside, te_string, output_dir
     # NOTE the labels will be same for both due to the pd.cut syntax being the
     # same
     my_x_tick_labels = bin_count_frame_inside["Bin_IDs"].to_list()
+
+    gene_counts_inside = bin_count_frame_inside["Bin_Counts"].to_list()
+    gene_counts_outside = bin_count_frame_outside["Bin_Counts"].to_list()
 
     sns.set_theme()
     sns.violinplot(
@@ -173,28 +174,55 @@ def gen_violin_plot(gene_frame_within, gene_frame_outside, te_string, output_dir
         va="top",
         ha="right",
     )
-    axs[1].set_xticklabels(my_x_tick_labels, rotation=40, ha="right")
-    axs[0].set_xticklabels(my_x_tick_labels, rotation=40, ha="right")
-    axs[1].set_title("Inside")
+
+    # NB get the labels with the gene counts
+    # NB initialize empty list to hold info
+    new_inside_labels = []
+    new_outside_labels = []
+
+    # NB go through the pandaframe of the pd.cut output and get the counts
+    for individual_bin, individual_bin_count in zip(
+        my_x_tick_labels, gene_counts_inside
+    ):
+        new_inside_labels.append(
+            individual_bin + "\n" + " N= " + str(individual_bin_count)
+        )
+
+    for individual_bin, individual_bin_count in zip(
+        my_x_tick_labels, gene_counts_outside
+    ):
+        new_outside_labels.append(
+            individual_bin + "\n" + " N= " + str(individual_bin_count)
+        )
+
+    # MAGIC
     axs[0].set_title("Outside")
+    axs[1].set_title("Inside")
+
+    axs[0].set_xticklabels(new_outside_labels, rotation=40, ha="right")
+    axs[1].set_xticklabels(new_inside_labels, rotation=40, ha="right")
+
     axs[1].set(xlabel=None, ylabel=None)
     axs[0].set(xlabel=None, ylabel=None)
     axs[1].legend(title=("Total Genes: " + str(inside_val_length)), loc="upper right")
     axs[0].legend(title=("Total Genes: " + str(outside_val_length)), loc="upper right")
     fig.suptitle(
-        """Expression Profiles of Genes Inside and Outside the Centromere/Pericentromere by Density Bin"""
+        """Expression Profiles of Genes Inside and Outside the Centromere/Pericentromere by """
+        + " ".join(te_string.split("_"))
+        + """ Density by Bin"""
     )
     fig.supylabel("Log(Avg+1) Gene Expression in Arabidopsis")
     fig.supxlabel("Density Bins")
     plt.ylim(-1.0, 5.5)
-    # plt.show()
     plt.savefig(
-        os.path.join(output_dir, "Expression_Profile_Gene_Counts_Centromere.png"),
+        os.path.join(
+            output_dir,
+            "Expression_Profile_Gene_Counts_Centromere_" + te_string + ".png",
+        ),
         bbox_inches="tight",
     )
+    # plt.show()
     plt.close()
-    # are using a specific 'library' from the RNA-seq data that represents
-    # the stem
 
 
 def get_bin_labels(inside_values, outside_values):
@@ -221,7 +249,7 @@ def get_bin_labels(inside_values, outside_values):
 def gen_barplot_counts(gene_frame_within, gene_frame_outside, te_string, output_dir):
     cut_bins, cut_labels = gen_bins()
     fig, axs = plt.subplots(1, 2, figsize=(12, 8), sharey=True)
-    fig.subplots_adjust(wspace=0.08)
+    fig.subplots_adjust(left=0.07, wspace=0.04, hspace=0.02)
 
     # Get TE values
     inside_values = gene_frame_within[te_string].to_list()
@@ -236,8 +264,8 @@ def gen_barplot_counts(gene_frame_within, gene_frame_outside, te_string, output_
         outside_values
     )
     # NOTE
-    print(percent_inside_genes_over_50)
-    print(percent_outside_genes_over_50)
+    # print(percent_inside_genes_over_50)
+    # print(percent_outside_genes_over_50)
 
     # Reformat as pandas for graphing purposes
     inside_values = pd.DataFrame.from_dict({te_string: inside_values})
@@ -308,14 +336,19 @@ def gen_barplot_counts(gene_frame_within, gene_frame_outside, te_string, output_
     )
     plt.yscale("log")
     fig.suptitle(
-        """Counts of Genes Inside and Outside the Centromere/Pericentromere by Density Bin"""
+        """Counts of Genes Inside and Outside the Centromere/Pericentromere """
+        + " ".join(te_string.split("_"))
+        + """ Density by Bin"""
     )
     fig.supylabel("Log10(No. Genes)")
     fig.supxlabel("Density Bins")
     plt.savefig(
-        os.path.join(output_dir, "Gene_Counts_by_Bin_Centromeric.png"),
+        os.path.join(
+            output_dir, ("Gene_Counts_by_Bin_Centromeric_" + te_string + ".png")
+        ),
         bbox_inches="tight",
     )
+    plt.show()
     plt.close()
 
 
@@ -363,6 +396,8 @@ if __name__ == "__main__":
     coloredlogs.install(level=log_level)
     #####################
     # NOTE begin analysis
+    te_string = "LTR_1000_Upstream"  # NOTE MAGIC because I hard-coded in the
+    # TE info
 
     cleaned_genes = import_filtered_genes(args.gene_input_file, logger)
     gene_dataframe_list = [
@@ -414,10 +449,10 @@ if __name__ == "__main__":
         )
     genes_w_ind_bndry_te_val = pd.concat(to_concat)
 
+    # NB do inner join
     genes_w_ind_bndry_te_val = pd.merge(
         expression_dataset, genes_w_ind_bndry_te_val, how="inner", on="Gene_Name"
     )
-
     # NOTE
     gene_frame_within = genes_w_ind_bndry_te_val.loc[
         genes_w_ind_bndry_te_val["Within_Boundary"] == "Y"
@@ -426,9 +461,6 @@ if __name__ == "__main__":
         genes_w_ind_bndry_te_val["Within_Boundary"] == "N"
     ].copy(deep=True)
 
-    # NOTE
-    te_string = "LTR_1000_Upstream"  # NOTE MAGIC because I hard-coded in the
-    # TE info
     gen_barplot_counts(
         gene_frame_within, gene_frame_outside, te_string, args.output_dir
     )
