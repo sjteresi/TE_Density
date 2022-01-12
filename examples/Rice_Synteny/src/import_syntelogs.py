@@ -2,7 +2,6 @@
 
 __author__ = "Scott Teresi"
 
-import logging
 import pandas as pd
 
 

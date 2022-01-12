@@ -11,12 +11,9 @@ import os
 import logging
 import coloredlogs
 import numpy as np
-import pandas as pd
-import h5py
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
-from mpl_toolkits import mplot3d
 
 from transposon.gene_data import GeneData
 from transposon.density_data import DensityData

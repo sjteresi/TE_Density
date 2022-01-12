@@ -11,7 +11,6 @@ import os
 import logging
 import coloredlogs
 import pandas as pd
-import numpy as np
 from collections import namedtuple
 
 from transposon.gene_data import GeneData

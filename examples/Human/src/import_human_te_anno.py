@@ -13,7 +13,6 @@ import os
 import coloredlogs
 
 from examples.Human.src.replace_human_TE_names import te_annot_renamer
-from transposon import check_nulls
 
 
 def write_cleaned_TEs(te_pandaframe, output_dir, genome_name, logger):

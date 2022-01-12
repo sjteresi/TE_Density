@@ -12,8 +12,6 @@ import logging
 import coloredlogs
 import numpy as np
 import pandas as pd
-import h5py
-import re
 
 from transposon.gene_data import GeneData
 from transposon.density_data import DensityData

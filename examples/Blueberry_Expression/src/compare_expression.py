@@ -12,11 +12,9 @@ import os
 import logging
 import coloredlogs
 import numpy as np
-import re
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import statsmodels
 
 from examples.Blueberry_Expression.src.import_blueberry_gene_anno import import_genes
 from transposon.density_data import DensityData
