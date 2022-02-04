@@ -98,3 +98,5 @@ We provide a Python script containing a data class useful in accessing the HDF5 
 This python script, `transposon/density_data.py`, contains the DensityData class structure which provides getter methods to access the sub-arrays of the output data (HDF5).
 We also provide multiple examples of how to access the HDF5 data within the data analysis example directories.
 Please refer to `examples/general_read_density_data.py` for a barebones implementation of how to initialize DensityData for a single output file.
+### Example Script:
+`python examples/general_read_density_data.py CLEANED_GENE_ANNOTATION.tsv DENSITY_DATA_FOLDER "Arabidopsis_(.*?).h5"`
