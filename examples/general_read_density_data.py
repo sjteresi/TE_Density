@@ -2,7 +2,7 @@
 
 """
 Barebones initialization of DensityData class intended for demonstration
-purposes
+purposes.
 """
 
 __author__ = "Scott Teresi"
@@ -21,56 +21,52 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="generate graphs")
 
     parser.add_argument(
-        "dummy_chromosome_hdf5_data",
-        type=str,
-        help="parent path to an HDF5 file of TE density data",
-    )
-
-    parser.add_argument(
         "cleaned_gene_annotation",
         type=str,
         help="""parent path to the cleaned gene data file that was derived from
         preprocessing""",
     )
+
     parser.add_argument(
-        "dummy_chromosome_id",
-        help="""ID of the chromosome of the HDF5 data, so that we may
-        appropriately subset the GeneData file, which is contains information
-        for all chromosomes. Reference your cleaned gene data file to get the
-        appropriate string of the chromosome ID""",
+        "density_data_folder",
+        type=str,
+        help="Parent path of folder containing TE Density results",
+    )
+
+    parser.add_argument(
+        "hdf5_string",
+        type=str,
+        help="""Regex string rule for extracting the genome name and chromosome
+        ID from the h5 file. Please refer to the
+        from_list_gene_data_and_hdf5_dir method of DensityData for more
+        documentation""",
     )
 
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="set debugging level to DEBUG"
     )
     args = parser.parse_args()
-    args.dummy_chromosome_hdf5_data = os.path.abspath(args.dummy_chromosome_hdf5_data)
     args.cleaned_gene_annotation = os.path.abspath(args.cleaned_gene_annotation)
+    args.density_data_folder = os.path.abspath(args.density_data_folder)
+
+    # NB just for logging arguments to import_filtered command and DensityData
+    # initialization
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logger = logging.getLogger(__name__)
     coloredlogs.install(level=log_level)
 
-    # Begin reading files:
-    # Get the genes:
-    gene_pandaframe = import_filtered_genes(args.cleaned_gene_annotation, logger)
-    # Subset the pandas file to get the appropriate chromosome only
-    # NOTE this can 'succeed' even if your chromosome ID is incorrect, which
-    # would give you an unexpected pandaframe, make sure you check that this
-    # object is what it should be after subsetting by chromosome
-    gene_pandaframe = gene_pandaframe.loc[
-        gene_pandaframe["Chromosome"] == args.dummy_chromosome_id
+    cleaned_genes = import_filtered_genes(args.cleaned_gene_annotation, logger)
+
+    gene_dataframe_list = [
+        dataframe for k, dataframe in cleaned_genes.groupby("Chromosome")
     ]
 
-    logger.info("Initializing GeneData from cleaned annotation file")
-    # Wrap as GeneData
-    gene_data = GeneData(
-        gene_pandaframe, str("Sample_Genome_Name_" + str(args.dummy_chromosome_id))
-    )  # The last argument of GeneData is just a genome ID
+    gene_data_list = [
+        GeneData(dataframe, dataframe["Chromosome"].unique()[0])
+        for dataframe in gene_dataframe_list
+    ]
 
-    logger.info("Initializing DensityData from HDF5 file")
-
-    # NOTE will initialize the post processed file in the same directory that
-    # the original density data file is in.
-    processed_one_chromosome_density_data = DensityData.verify_h5_cache(
-        args.dummy_chromosome_hdf5_data, gene_data, logger
+    # NOTE MAGIC hard-coded
+    processed_dd_data = DensityData.from_list_gene_data_and_hdf5_dir(
+        gene_data_list, args.density_data_folder, args.hdf5_string, logger
     )
