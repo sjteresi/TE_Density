@@ -206,9 +206,15 @@ def gen_violin_plot(gene_frame_within, gene_frame_outside, te_string, output_dir
     axs[1].legend(title=("Total Genes: " + str(inside_val_length)), loc="upper right")
     axs[0].legend(title=("Total Genes: " + str(outside_val_length)), loc="upper right")
     fig.suptitle(
-        """Expression Profiles of Genes Inside and Outside the Centromere/Pericentromere by """
-        + " ".join(te_string.split("_"))
-        + """ Density by Bin"""
+        """Expression Profiles of Genes Inside and Outside the
+        Centromere/Pericentromere by Binned """
+        + te_string.split("_")[0]
+        + " "
+        + te_string.split("_")[1]
+        + " BP"
+        + " "
+        + te_string.split("_")[2]
+        + """ Density """
     )
     fig.supylabel("Log(Avg+1) Gene Expression in Arabidopsis")
     fig.supxlabel("Density Bins")
@@ -220,7 +226,6 @@ def gen_violin_plot(gene_frame_within, gene_frame_outside, te_string, output_dir
         ),
         bbox_inches="tight",
     )
-    # plt.show()
     plt.close()
 
 

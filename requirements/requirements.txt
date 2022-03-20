@@ -25,6 +25,7 @@ packaging==19.1
 pandas==1.0.5
 pathspec==0.8.0
 patsy==0.5.2
+Pillow==9.0.1
 pluggy==0.13.1
 psutil==5.7.0
 py==1.8.0
