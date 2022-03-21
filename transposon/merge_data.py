@@ -304,6 +304,7 @@ class MergeData:
         self._window_2_idx = {w: i for i, w in enumerate(self.windows)}
         self._gene_2_idx = {g: i for i, g in enumerate(self.gene_names)}
 
+    # TODO possibly refactor with DensityData
     def _open_existing_file(self, cfg):
 
         self._h5_file = h5py.File(cfg.filepath, "r")

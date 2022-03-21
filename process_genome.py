@@ -66,10 +66,15 @@ from multiprocessing import Pool, Manager
 from threading import Thread, Event
 from queue import Empty
 
-
+# TODO refactor names to specify filepaths not just file.
+# We are storing the path not the handle to the file
 MergeJob = namedtuple(
     "MergeJob",
     ["overlap_file", "te_file", "gene_file", "windows", "output_dir", "progress_bar"],
+)
+MergeJobResult = namedtuple(
+    "MergeJobResult",
+    ["te_data_filepath", "gene_data_filepath", "merge_data_filepath"],
 )
 
 
@@ -101,13 +106,28 @@ def calc_merge_number_operations(job):
 
 
 def calc_merge(job):
-    """Target for a process to calculate density given a job."""
+    """Target for a process to calculate density given a job.
+
+    Args:
+        job(MergeJob): filepaths, config etc for calculating overlap sum
+
+    Returns:
+        (MergeJobResult): the paths to the output files
+    """
 
     merge_data, overlap_data = job_2_merge_and_overlap(job)
     gene_data = GeneData.read(job.gene_file)
+    filepath = None  # NB just for safety
     with merge_data as merge_output:
         with overlap_data as overlap_input:
             merge_output.sum(overlap_input, gene_data, job.progress_bar)
+            filepath = merge_output.filepath  # NB must be done in context manager
+    return MergeJobResult
+    (
+        te_data_filepath=job.te_file,
+        gene_data_filepath=job.gene_file,
+        merge_data_filepath=filepath
+    )
 
 
 class MergeProgress:
@@ -305,6 +325,7 @@ if __name__ == "__main__":
         position=0,
         ncols=80,
     )
+    merge_data_results = []
     with MergeProgress(pbar_update_queue, pbar_subsets) as my_progress:
         if not args.single_process:
             with Pool(processes=args.num_threads) as my_pool:
@@ -314,7 +335,10 @@ if __name__ == "__main__":
                 try:
                     pr = cProfile.Profile()
                     pr.enable()
-                    calc_merge(job)
+                    result = calc_merge(job)  # potentially just return something from this
+                    # TODO collect the results
+                    # aka, store them in a list or something like that
+                    # Need the filepath to the H5 file, and need to give the specific GeneData for that job (chromosome)
                 except KeyboardInterrupt as keybr:
                     pr.disable()
                     stream = io.StringIO()
@@ -323,5 +347,18 @@ if __name__ == "__main__":
                     ps.print_stats(0.1)  # MAGIC percent to print
                     print(stream.getvalue())
                     raise keybr
+                else:
+                    merge_data_results.append(result)
 
     logger.info("process density... complete")
+
+    # TODO for each result, do the anti-sense shizwaz
+    # move the files? or whatever
+    # Either call DensityData.py or refactor that into MergeData. Might be better to refactor.
+    # Also worth asking Michael for tips on better syntax/methodology for the actual swapping of values
+
+    for result in merge_data_results:
+        # TODO check 
+        gene_data = GeneData.read(result.gene_data_filepath)
+        h5_filepath = result.merge_data_filepath
+        DensityData(h5_filepath, gene_data, logger)

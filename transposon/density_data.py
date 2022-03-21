@@ -18,8 +18,12 @@ DensitySlice = namedtuple(
     "DensitySlice", ["slice", "direction", "window_val", "te_type"]
 )
 
+# TODO, reconcile this implementation w/ MergeData
+
 
 class DensityData:
+    """TODO"""
+
     def __init__(self, input_h5, gene_data, logger, sense_swap=True):
         """
         input_h5 (str): Path to h5 file of TE Density output.
