@@ -567,20 +567,6 @@ RIGHT_DIVISORS = {
 
 
 @pytest.fixture
-def GeneData_test_obj():
-    gene_file = "tests/input_data/Test_Genes_NormMatrix.tsv"
-    gene_pandas = pd.read_csv(
-        gene_file,
-        header="infer",
-        sep="\t",
-        dtype={"Start": "float32", "Stop": "float32", "Length": "float32"},
-        index_col="Gene_Name",
-    )
-    sample_genome = GeneData(gene_pandas, "Mock_Camarosa")
-    return sample_genome
-
-
-@pytest.fixture
 def GeneDatum_dict_test_obj():
     gene_file = "tests/input_data/Test_Genes_NormMatrix.tsv"
     gene_pandas = pd.read_csv(
