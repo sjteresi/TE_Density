@@ -198,9 +198,8 @@ def test_merge_summed_real(
     lr_slice = MergeData.left_right_slice(order_idx, gene_idx, 3)
     gene_datum = genedata_test_obj.get_gene(gene_name)
     divisor = gene_datum.divisor_right(2000)
-    numpy_val_to_compare = np.asscalar(
-        active_merge_sink_real.order.right[lr_slice].ravel()
-    )
+    # NB below, np.asscalar was deprecated to .item()
+    numpy_val_to_compare = active_merge_sink_real.order.right[lr_slice].ravel().item()
     expected = np.divide((4100 - 3350 + 1), divisor)
     assert numpy_val_to_compare == pytest.approx(expected, rel=1e-6)
 
@@ -210,9 +209,8 @@ def test_merge_summed_real(
     lr_slice = MergeData.left_right_slice(order_idx, gene_idx, 3)
     gene_datum = genedata_test_obj.get_gene(gene_name)
     divisor = gene_datum.divisor_right(2000)
-    numpy_val_to_compare = np.asscalar(
-        active_merge_sink_real.order.right[lr_slice].ravel()
-    )
+    # NB below, np.asscalar was deprecated to .item()
+    numpy_val_to_compare = active_merge_sink_real.order.right[lr_slice].ravel().item()
     expected = np.divide(
         ((9370 - 8500 + 1) + (9677 - 9556 + 1) + (10500 - 9678 + 1)), divisor
     )
@@ -224,9 +222,8 @@ def test_merge_summed_real(
     lr_slice = MergeData.left_right_slice(order_idx, gene_idx, 1)
     gene_datum = genedata_test_obj.get_gene(gene_name)
     divisor = gene_datum.divisor_left(1000)
-    numpy_val_to_compare = np.asscalar(
-        active_merge_sink_real.order.left[lr_slice].ravel()
-    )
+    # NB below, np.asscalar was deprecated to .item()
+    numpy_val_to_compare = active_merge_sink_real.order.left[lr_slice].ravel().item()
     # NOTE confusing because window actually goes from (gene_start - 1 -
     # window) because the gene start is part of the gene, not the window, so
     # there is a 1 int offset. Since this TE starts outside of the window, and
@@ -243,9 +240,7 @@ def test_merge_summed_real(
     lr_slice = MergeData.intra_slice(order_idx, gene_idx)
     gene_datum = genedata_test_obj.get_gene(gene_name)
     divisor = gene_datum.divisor_intra(None)
-    numpy_val_to_compare = np.asscalar(
-        active_merge_sink_real.order.intra[lr_slice].ravel()
-    )
+    numpy_val_to_compare = active_merge_sink_real.order.intra[lr_slice].ravel().item()
     expected = np.divide((8500 - 8459 + 1), divisor)
     assert numpy_val_to_compare == pytest.approx(expected, rel=1e-6)
 

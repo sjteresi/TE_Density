@@ -39,7 +39,7 @@ clean_overlap:      ## remove overlap temp files
 test:               ## run the tests
 	mkdir -p $(ROOT_DIR)/tests/test_h5_cache_loc
 	mkdir -p $(ROOT_DIR)/tests/output_data
-	pytest $(ROOT_DIR)
+	pytest $(ROOT_DIR) -W ignore::DeprecationWarning
 
 flake8:             ## run style guide
 	flake8 $(ROOT_DIR)
