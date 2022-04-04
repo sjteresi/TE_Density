@@ -122,6 +122,10 @@ def calc_merge(job):
         with overlap_data as overlap_input:
             merge_output.sum(overlap_input, gene_data, job.progress_bar)
             filepath = merge_output.filepath  # NB must be done in context manager
+        # do the swap here for post-processing
+        # TODO check
+        # TODO also check if gene_data is for specific chromosome.
+        merge_output._post_process_swap(gene_data)
     return MergeJobResult
     (
         te_data_filepath=job.te_file,
@@ -357,6 +361,7 @@ if __name__ == "__main__":
     # Either call DensityData.py or refactor that into MergeData. Might be better to refactor.
     # Also worth asking Michael for tips on better syntax/methodology for the actual swapping of values
 
+    # TODO delete because it is being done way above.
     for result in merge_data_results:
         # TODO check 
         gene_data = GeneData.read(result.gene_data_filepath)

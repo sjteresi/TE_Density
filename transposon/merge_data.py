@@ -72,8 +72,7 @@ class MergeData:
         Use the sum
     """
 
-    DTYPE = np.float32  # MAGIC NUMBER experimental, depends on your data
-    # NOTE should this be float64?
+    DTYPE = np.float64
     _GENE_NAMES = "GENE_NAMES"
     _WINDOWS = "WINDOWS"
     _CHROME_ID = "CHROMOSOME_ID"
@@ -303,6 +302,42 @@ class MergeData:
         )
         self._window_2_idx = {w: i for i, w in enumerate(self.windows)}
         self._gene_2_idx = {g: i for i, g in enumerate(self.gene_names)}
+
+    # TODO get the index of gene function in here too
+    # Clean up/
+    def _post_process_swap(self):
+        """
+        Swap the TE density values for antisense genes ONLY.
+
+    #def _swap_strand_vals(self, gene_names):
+        Switch density values for the genes in which it is antisense due to
+        the fact that antisense genes point in the opposite direction to sense
+        genes
+
+        Args:
+            gene_names(list of str):
+        """
+        for name in gene_names:
+            index_to_switch = self._index_of_gene(name)
+
+            # SWAP left and right superfamily values for antisense genes
+            (
+                self.data_frame["RHO_SUPERFAMILIES_LEFT"][:, :, index_to_switch],
+                self.data_frame["RHO_SUPERFAMILIES_RIGHT"][:, :, index_to_switch],
+            ) = (
+                self.data_frame["RHO_SUPERFAMILIES_RIGHT"][:, :, index_to_switch],
+                self.data_frame["RHO_SUPERFAMILIES_LEFT"][:, :, index_to_switch],
+            )
+
+            # SWAP left and right order values for antisense genes
+            (
+                self.data_frame["RHO_ORDERS_LEFT"][:, :, index_to_switch],
+                self.data_frame["RHO_ORDERS_RIGHT"][:, :, index_to_switch],
+            ) = (
+                self.data_frame["RHO_ORDERS_RIGHT"][:, :, index_to_switch],
+                self.data_frame["RHO_ORDERS_LEFT"][:, :, index_to_switch],
+            )
+
 
     # TODO possibly refactor with DensityData
     def _open_existing_file(self, cfg):

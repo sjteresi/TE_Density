@@ -477,6 +477,7 @@ class DensityData:
             processed_density_data = cls(h5_file, gene_data_instance, logger)
         return processed_density_data
 
+    # TODO reconcile with merge data.
     def _swap_strand_vals(self, gene_names):
         """Switch density values for the genes in which it is antisense due to
         the fact that antisense genes point in the opposite direction to sense
