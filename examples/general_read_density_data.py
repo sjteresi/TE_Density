@@ -8,6 +8,7 @@ purposes.
 __author__ = "Scott Teresi"
 
 import argparse
+import pandas as pd
 import os
 import logging
 import coloredlogs
@@ -61,12 +62,26 @@ if __name__ == "__main__":
         dataframe for k, dataframe in cleaned_genes.groupby("Chromosome")
     ]
 
+    # NB this is how I get a list of GeneData objects so that I may
+    # initialize DensityData further on
+    # NB MAGIC int to get chromosome ID
     gene_data_list = [
         GeneData(dataframe, dataframe["Chromosome"].unique()[0])
         for dataframe in gene_dataframe_list
     ]
 
-    # NOTE MAGIC hard-coded
+    # NOTE this object is a list of DensityData instances
+    # Each instance corresponds to one pseudmolecule of TE Density data.
+    # If you are having trouble, please examine the documentation of the
+    # classmethod 'from_list_gene_data_and_hdf5_dir'.
     processed_dd_data = DensityData.from_list_gene_data_and_hdf5_dir(
         gene_data_list, args.density_data_folder, args.hdf5_string, logger
     )
+
+    # ------------------------------------------------------------
+    # NOTE now the user may begin analyzing their data. For more examples
+    # please examine the code used for the Arabidopsis, Blueberry, Human, and
+    # Rice datasets. But here are some select ones:
+
+    # TODO give more explicit examples so the users don't have to go digging as
+    # much through the example code.
