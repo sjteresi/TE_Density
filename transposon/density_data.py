@@ -253,7 +253,7 @@ class DensityData:
         Take a pandas dataframe that already has HDF5 index values for each
         gene (row), and add column to the dataframe that has TE Density values
         for each gene (row) according to a user-supplied TE, direction, and
-        window value.
+        window value. This step comes after the method 'add_hdf5_indices_to_gene_data'.
 
         Args:
             gene_info_pandas (pandas.core.frame.DataFrame): A pandas dataframe
@@ -535,6 +535,7 @@ class DensityData:
         Returns a list of DensityData instances when given a list of GeneData
         and a directory of H5 files
 
+
         Args:
             list_of_gene_data (list): List of GeneData instances, each GeneData
                 represents the information of a single chromosome, the
@@ -547,7 +548,10 @@ class DensityData:
             file_substring (str): MAGIC substring with which to identify the
                 genome and chromosome IDs. Generally, substring should
                 be "GenomeName_(.*?).h5" so that it can correctly grab the
-                chromosome ID from the filename
+                chromosome ID from the filename. The part in the parentheses ()
+                should correspond to a regex group and the
+                chromosome/pseudomolecule identifier for that dataset. For more
+                information please visit: https://docs.python.org/3/library/re.html#
 
             logger (logging.logger): Obj to log information to
 
@@ -571,6 +575,30 @@ class DensityData:
         chromosome_ids_unprocessed_h5_files = [
             re.search(file_substring, x) for x in all_unprocessed_h5_files
         ]
+
+        logger.info(
+            """
+            Using the user's provided regex string '%s' to match file
+            objects and identify the proper pseudomolecule group for
+            each file. Regex group 1 of this string must correspond to
+            a pseudomolecule. This is needed to initialize DensityData.
+            The user should verify that the pseudomolecule IDs derived from
+            the GeneData correspond to the groups derived from the filename
+            of the output .h5 data.
+            """
+            % file_substring
+        )
+        for re_search_obj, gene_data in zip(
+            chromosome_ids_unprocessed_h5_files, list_of_gene_data
+        ):
+            logger.info(
+                "Pseudomolecule from GeneData is %s, Regex group 1 of %s is %s"
+                % (
+                    gene_data.chromosome_unique_id,
+                    re_search_obj,
+                    re_search_obj.group(1),
+                )
+            )
 
         # NB check if we actually were able to identify any files matching the
         # user's supplied regex pattern, raise error and message if no hits
