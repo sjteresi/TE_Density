@@ -27,6 +27,7 @@ def set_numexpr_threads(n_threads=None):
     n_threads = n_threads or numexpr.detect_number_of_cores()
     numexpr.set_num_threads(n_threads)
 
+
 def raise_if_no_file(filepath, logger=None, msg_fmt=None):
 
     logger = logger or logging.getLogger(__name__)
@@ -82,6 +83,46 @@ def read_vlen_str_h5py(h5file, dataset_key):
     """
 
     return h5file[dataset_key][:].tolist()
+
+
+def check_strand(my_df, logger):
+    """
+    In the gene annotation (GFF format), check to see if the user provided
+    incoherent values and raise an error.
+    Values should only be '-' or '+' or '.'. Will raise a logger info if '.'
+    because we will assume that the gene is '+', because we HAVE to choose a
+    direction for the gene to be orientated.
+    """
+    acceptable_values = ["-", "+", "."]
+    # Check if you have any values in Strand that are not part of the whitelist
+    if ~my_df["Strand"].isin(acceptable_values).all():
+        unacceptable_values = my_df["Strand"].unique()
+        unacceptable_values = [
+            item for item in unacceptable_values if item not in acceptable_values
+        ]
+        logger.critical(
+            """
+            You have values in your gene annotation that do not
+            conform to the GFF file format. Please fix this. Your unacceptable
+            strand values are: %s
+            """
+            % unacceptable_values
+        )
+        raise ValueError
+
+    # NOTE separate check for '.'
+    if my_df["Strand"].isin(["."]).any():
+        logger.warning(
+            """
+            You have rows in your gene annotation that have '.' as
+            a Strand column value. Please note that we will treat
+            these genes as sense orientation for the purposes of
+            calculating TE Density.
+
+            %s
+            """
+            % my_df.loc[my_df["Strand"] == "."]
+        )
 
 
 def check_nulls(my_df, logger):

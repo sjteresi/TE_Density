@@ -1,10 +1,10 @@
 import pandas as pd
-from transposon import check_nulls
+from transposon import check_nulls, check_strand
 
 
 def import_filtered_genes(genes_input_path, logger):
     """
-    Import the preprocessed gene annotation file
+    Import the preprocessed gene annotation file. Read it as pandas dataframe
 
     genes_input_path (str): Path to cleaned input annotation file of genes
 
@@ -31,11 +31,18 @@ def import_filtered_genes(genes_input_path, logger):
         )
     except:
         raise ValueError(
-            """Error occurred while trying to read preprocessed gene
-                         annotation file into a Pandas dataframe, please refer
-                         to the README as to what information is expected"""
+            """
+            Error occurred while trying to read preprocessed gene
+            annotation file into a Pandas dataframe, please refer
+            to the README as to what information is expected
+            """
         )
     check_nulls(gene_data, logger)
+    check_strand(gene_data, logger)
+
+    # NOTE edit Strand '.' values to be sense orientation as
+    # described in check_strand()
+    gene_data.loc[gene_data["Strand"] == "."] = "+"
 
     # Sort for legibility
     gene_data.sort_values(by=["Chromosome", "Start"], inplace=True)
