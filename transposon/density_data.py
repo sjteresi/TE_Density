@@ -591,14 +591,30 @@ class DensityData:
         for re_search_obj, gene_data in zip(
             chromosome_ids_unprocessed_h5_files, list_of_gene_data
         ):
-            logger.info(
-                "Pseudomolecule from GeneData is %s, Regex group 1 of %s is %s"
-                % (
-                    gene_data.chromosome_unique_id,
-                    re_search_obj,
-                    re_search_obj.group(1),
+            try:
+                logger.info(
+                    "Pseudomolecule from GeneData is %s, Regex group 1 of %s is %s"
+                    % (
+                        gene_data.chromosome_unique_id,
+                        re_search_obj,
+                        re_search_obj.group(1),
+                    )
                 )
-            )
+            except (IndexError, AttributeError) as err:
+                logger.critical(
+                    """
+                    Unable to identify chromosome IDs from files
+                    matching your provided regex
+                    pattern: '%s' in the directory: %s.
+                    Please refer to the documentation of the classmethod
+                    'from_list_gene_data_and_hdf5_dir' in transposon/density_data.py
+                    for more information. Regex group 1 must correspond to each
+                    .h5 file's pseudomolecule/chromosome ID. The most common
+                    pattern is "GENOMENAME_(*.?).h5"
+                    """
+                    % (file_substring, HDF5_folder)
+                )
+                raise err
 
         # NB check if we actually were able to identify any files matching the
         # user's supplied regex pattern, raise error and message if no hits
