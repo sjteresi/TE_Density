@@ -50,9 +50,7 @@ class PreProcessor:
         self,
         gene_file,
         transposon_file,
-        filtered_dir,
-        h5_cache_dir,
-        revised_dir,
+        results_dir,
         reset_h5,
         genome_id,
         revise_transposons,
@@ -63,9 +61,8 @@ class PreProcessor:
         Args:
             gene_file(str): filepath to genome input data
             transposon_file(str): filepath to transposon input file
-            filtered_dir(str): directory path for the filtered files
-            h5_cache_dir(str): directory path for the cached h5 files
-            revised_dir(str): directory path for revised TE files
+            results_dir (str): master directory path for output files,
+                filtered, cached, and revised
             reset_h5(bool): whether or not to force re-creation of h5 cache
             genome_id(str): user-defined string for the genome.
             revise_transposons(bool): whether or not to force creation of
@@ -77,9 +74,22 @@ class PreProcessor:
         raise_if_no_file(gene_file)
         raise_if_no_file(transposon_file)
 
-        self.filtered_dir = filtered_dir
-        self.h5_cache_dir = h5_cache_dir
-        self.revised_dir = revised_dir
+        # NOTE set paths for the specialized output dirs
+        # MAGIC directory names
+        self.filtered_dir = os.path.abspath(
+            os.path.join(results_dir, "filtered_input_data")
+        )
+        self.h5_cache_dir = os.path.abspath(
+            os.path.join(results_dir, "filtered_input_data", "input_h5_cache")
+        )
+        self.revised_dir = os.path.abspath(
+            os.path.join(results_dir, "filtered_input_data", "revised_input_data")
+        )
+
+        # NOTE make directories for intermediate and final output data
+        os.makedirs(self.filtered_dir, exist_ok=True)
+        os.makedirs(self.h5_cache_dir, exist_ok=True)
+        os.makedirs(self.revised_dir, exist_ok=True)
 
         self.gene_in = str(gene_file)
 
@@ -206,8 +216,8 @@ class PreProcessor:
 
         group_key = "Chromosome"  # MAGIC NUMBER our convention
         gene_groups = filtered_genes.groupby(group_key)
-        gene_list = [gene_groups.get_group(g) for g in gene_groups.groups]
         te_groups = filtered_tes.groupby(group_key)
+        gene_list = [gene_groups.get_group(g) for g in gene_groups.groups]
         te_list = [te_groups.get_group(g) for g in te_groups.groups]
         self._validate_split(gene_list, te_list)
         return (gene_list, te_list)
@@ -223,36 +233,56 @@ class PreProcessor:
             grouped_TEs (list(pandas.DataFrame))): transposon for each chromsome
             genome_id (str) a string of the genome name.
         """
+        # MAGIC get chromosome ID for each data frame
+        chromosomes_in_gene_set = [
+            gene_frame["Chromosome"].unique()[0] for gene_frame in gene_frames
+        ]
+        chromosomes_in_TE_set = [
+            te_frame["Chromosome"].unique()[0] for te_frame in te_frames
+        ]
         if len(gene_frames) != len(te_frames):
-            msg = (
-                """no. gene annotations split by chromosome %d != no. te annotations split by chromosome"""
-                % len(gene_frames),
-                len(te_frames),
-            )
-            self._logger.critical(msg)
             self._logger.critical(
-                """Check that you do not have a chromosome absent of TE or gene annotations"""
+                """
+                Number of gene annotations split by chromosome != number of TE
+                annotations split by chromosome.
+                This error has arisen because you have some
+                chromosomes in one annotation that do not exist in the other
+                annotation. Sometimes this can happen if you have a small
+                scaffold that does not have any gene or TE entries.
+                TE Density cannot be calculated if there is an unequal set of
+                chromosomes between datasets.
+                Please trim your annotations so that they have the same number and
+                set of chromosome IDs.
+
+                Unique chromosomes in cleaned gene annotation: %s
+                Unique chromosomes in cleaned TE annotation: %s
+                """
+                % (chromosomes_in_gene_set, chromosomes_in_TE_set)
             )
-            raise ValueError(msg)
+            raise ValueError
 
         for gene_frame, te_frame in zip(gene_frames, te_frames):
-            # MAGIC NUMBER of 0 to index row and get the Chromosome
-            # column's value. In this case get the string of the chromosome.
-            gene_chromosome = gene_frame.Chromosome.iloc[:].values[0]
-            te_chromosome = te_frame.Chromosome.iloc[:].values[0]
+            # MAGIC get chromosome ID for each data frame
+            gene_chromosome = str(gene_frame["Chromosome"].unique()[0])
+            te_chromosome = str(te_frame["Chromosome"].unique()[0])
             if te_chromosome != gene_chromosome:
-                msg = "mismatching chromosomes: %d != %d (gene vs te)" % (
-                    gene_chromosome,
-                    te_chromosome,
+                self._logger.critical(
+                    """
+                    You have the same number of chromosomes between gene
+                    and TE annotations, but there are mismatching entries.
+                    This error has arisen because you have some chromosomes
+                    in one annotation that do not exist in the other annotation.
+                    TE Density cannot be calculated if there is an unequal set of
+                    chromosomes between datasets.
+                    Please trim your annotations so that they have the same number and
+                    set of chromosome IDs.
+
+                    Unique chromosomes in cleaned gene annotation: %s
+                    Unique chromosomes in cleaned TE annotation: %s
+                    """
+                    % (chromosomes_in_gene_set, chromosomes_in_TE_set)
                 )
-                self._logger.critical(msg)
-                raise ValueError(msg)
-            try:
-                gene_obj = GeneData(gene_frame, self.genome_id)
-                gene_uid = gene_obj.chromosome_unique_id
-            except RuntimeError as r_err:
-                logging.critical("sub gene grouping not unique: {}".format(gene_obj))
-                raise r_err
+                raise ValueError
 
     @classmethod
     def _processed_cache_name(cls, genome_id, chrom_id, cache_dir, suffix):
@@ -269,7 +299,8 @@ class PreProcessor:
         """
 
         return os.path.join(
-            cache_dir, str(genome_id + "_" + chrom_id + "_" + suffix + "." + cls.CACHE_EXT)
+            cache_dir,
+            str(genome_id + "_" + chrom_id + "_" + suffix + "." + cls.CACHE_EXT),
         )
 
     def _cache_data_filepair(self, gene_frame, te_frame):

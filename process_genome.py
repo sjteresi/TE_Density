@@ -231,23 +231,10 @@ if __name__ == "__main__":
     if args.num_threads is not None:
         args.num_threads = int(args.num_threads)
 
-    filtered_input_data_loc = os.path.abspath(
-        os.path.join(args.output_dir, "filtered_input_data")
-    )
-    input_h5_cache_loc = os.path.abspath(
-        os.path.join(args.output_dir, filtered_input_data_loc, "input_h5_cache")
-    )
-
-    revised_input_data_loc = os.path.abspath(
-        os.path.join(args.output_dir, filtered_input_data_loc, "revised_input_data")
-    )
     tmp_overlap_loc = os.path.abspath(os.path.join(args.output_dir, "tmp", "overlap"))
 
     # NOTE make directories for intermediate and final output data
     os.makedirs(args.output_dir, exist_ok=True)
-    os.makedirs(filtered_input_data_loc, exist_ok=True)
-    os.makedirs(input_h5_cache_loc, exist_ok=True)
-    os.makedirs(revised_input_data_loc, exist_ok=True)
     os.makedirs(tmp_overlap_loc, exist_ok=True)
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
@@ -266,16 +253,14 @@ if __name__ == "__main__":
     preprocessor = PreProcessor(
         args.genes_input_file,
         args.tes_input_file,
-        filtered_input_data_loc,
-        input_h5_cache_loc,
-        revised_input_data_loc,
+        args.output_dir,
         args.reset_h5,
         args.genome_id,
         args.revise_anno,
     )
     preprocessor.process()
     n_data_files = sum(1 for _ in preprocessor.data_filepaths())
-    rel_preproc = os.path.relpath(input_h5_cache_loc)
+    rel_preproc = os.path.relpath(preprocessor.h5_cache_dir)
     logger.info("preprocessed %d files to %s" % (n_data_files, rel_preproc))
     logger.info("preprocessing... complete")
 
