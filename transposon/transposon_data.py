@@ -78,6 +78,37 @@ class TransposonData(object):
         frame = pd.DataFrame(data, columns=columns)
         return TransposonData(frame, genome_id)
 
+    @classmethod
+    def mock_v2(
+        cls,
+        start_stop=np.array([[0, 9], [10, 19], [20, 29]]),
+        order_ids=["LTR", "TIR", "LINE"],
+        superfamily_ids=["Gypsy", "Mutator", "L1"],
+        chromosome_ids=["Chrom_1", "Chrom_2", "Chrom_3"],
+        genome_id="fake_genome_id",
+    ):
+        """Mocked data for testing. TODO refactor with main mock.
+
+        Args:
+            start_stop (numpy.array): N gene x (start_idx, stop_idx)
+        """
+        # TODO check to make sure all the arrays are same length
+
+        n_tes = start_stop.shape[0]
+        data = []
+        columns = ["Start", "Stop", "Length", "Order", "SuperFamily", "Chromosome"]
+        for ti in range(n_tes):
+            g0 = start_stop[ti, 0]
+            g1 = start_stop[ti, 1]
+            gL = g1 - g0 + 1
+            chromosome_id = chromosome_ids[ti]
+            order_id = order_ids[ti]
+            superfamily_id = superfamily_ids[ti]
+            datum = [g0, g1, gL, order_id, superfamily_id, chromosome_id]
+            data.append(datum)
+        frame = pd.DataFrame(data, columns=columns)
+        return TransposonData(frame, genome_id)
+
     def write(self, filename, key="default"):
         """Write a Pandaframe to disk.
 
@@ -186,8 +217,10 @@ class TransposonData(object):
         # TODO verify that this isn't weird
         length = self.lengths.shape
         if start != length:
-            msg = "Input TE missing fields: starts.shape {}  != lengths.shape {}".format(
-                start, stop
+            msg = (
+                "Input TE missing fields: starts.shape {}  != lengths.shape {}".format(
+                    start, stop
+                )
             )
             self._logger.critical(msg)
             raise ValueError(msg)

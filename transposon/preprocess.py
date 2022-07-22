@@ -40,12 +40,6 @@ class PreProcessor:
     EXT = "tsv"
     CACHE_EXT = "h5"
 
-    # TODO SCOTT pls reduce number of input args by:
-    # replacing [filtered_dir, h5_cache_dir, revised_dir], with one directory
-    # (e.g. 'results_dir'), then create the sub directories there
-    # there doesn't need to be invididual inputs for each one
-    # then those sub directories can just be properties on this
-
     def __init__(
         self,
         gene_file,
