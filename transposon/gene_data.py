@@ -71,6 +71,36 @@ class GeneData(object):
         frame.set_index("Gene_Name", inplace=True)
         return GeneData(frame, genome_id)
 
+    @classmethod
+    def mock_v2(
+        cls,
+        start_stop=np.array([[500, 1000], [800, 1500], [1600, 2000]]),
+        chromosome_ids=["Chrom_1", "Chrom_2", "Chrom_3"],
+        genome_id="fake_genome_id",
+    ):
+        """Mocked data for testing. TODO refactor with main mock.
+
+        Args:
+            start_stop (numpy.array): N gene x (start_idx, stop_idx)
+            chromosome_id (list): List of string, len(N gene)
+        """
+
+        n_genes = start_stop.shape[0]
+        data = []
+        for gi in range(n_genes):
+            g0 = start_stop[gi, 0]
+            g1 = start_stop[gi, 1]
+            gL = g1 - g0 + 1
+            name = "gene_{}".format(gi)
+            chromosome_id = chromosome_ids[gi]
+            datum = [name, g0, g1, gL, chromosome_id]
+            data.append(datum)
+
+        col_names = ["Gene_Name", "Start", "Stop", "Length", "Chromosome"]
+        frame = pd.DataFrame(data, columns=col_names)
+        frame.set_index("Gene_Name", inplace=True)
+        return GeneData(frame, genome_id)
+
     def write(self, filename, key="default"):
         """Write a Pandaframe to disk.
 

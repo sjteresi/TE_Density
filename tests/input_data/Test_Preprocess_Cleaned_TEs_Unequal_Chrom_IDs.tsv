@@ -1,0 +1,15 @@
+Chromosome	Start	Stop	Strand	Order	SuperFamily	Length
+VaccDscaff24	280.0	369.0	+	LTR	Unknown_LTR_Superfam	90.0
+VaccDscaff24	396.0	494.0	-	TIR	Tc1-Mariner	99.0
+VaccDscaff24	495.0	783.0	+	TIR	Tc1-Mariner	289.0
+VaccDscaff24	3197.0	3361.0	+	TIR	hAT	165.0
+VaccDscaff24	3722.0	3847.0	+	LTR	Copia	126.0
+VaccDscaff24	3749.0	3981.0	-	TIR	Tc1-Mariner	233.0
+VaccDscaff24	4349.0	4509.0	-	Helitron	Helitron	161.0
+VaccDscaff24	4451.0	4663.0	+	Helitron	Helitron	213.0
+VaccDscaff24	4591.0	4681.0	+	TIR	Mutator	91.0
+VaccDscaff24	4884.0	5172.0	-	LTR	Unknown_LTR_Superfam	289.0
+VaccDscaff24	7111.0	7267.0	-	Helitron	Helitron	157.0
+VaccDscaff24	7174.0	7288.0	+	TIR	PIF-Harbinger	115.0
+VaccDscaff24	7209.0	7400.0	+	Helitron	Helitron	192.0
+VaccDscaff24	10667.0	10833.0	+	LTR	Copia	167.0

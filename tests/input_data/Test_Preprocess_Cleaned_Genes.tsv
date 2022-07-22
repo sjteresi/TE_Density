@@ -1,0 +1,15 @@
+Gene_Name	Chromosome	Feature	Start	Stop	Strand	Length
+maker-VaccDscaff1-snap-gene-0.31	VaccDscaff1	gene	893.0	24185.0	+	23293.0
+maker-VaccDscaff1-snap-gene-0.32	VaccDscaff1	gene	24880.0	31033.0	+	6154.0
+maker-VaccDscaff1-snap-gene-0.36	VaccDscaff1	gene	31517.0	32457.0	-	941.0
+maker-VaccDscaff1-snap-gene-0.37	VaccDscaff1	gene	32462.0	39522.0	-	7061.0
+snap_masked-VaccDscaff1-processed-gene-0.15	VaccDscaff1	gene	49288.0	54958.0	+	5671.0
+maker-VaccDscaff1-augustus-gene-0.27	VaccDscaff1	gene	62151.0	89671.0	+	27521.0
+maker-VaccDscaff1-augustus-gene-0.30	VaccDscaff1	gene	86018.0	89723.0	-	3706.0
+maker-VaccDscaff1-augustus-gene-1.27	VaccDscaff1	gene	97467.0	99179.0	-	1713.0
+augustus_masked-VaccDscaff1-processed-gene-1.5	VaccDscaff1	gene	107244.0	110895.0	-	3652.0
+maker-VaccDscaff1-snap-gene-1.29	VaccDscaff1	gene	110385.0	118861.0	+	8477.0
+maker-VaccDscaff1-augustus-gene-1.24	VaccDscaff1	gene	128901.0	132573.0	+	3673.0
+maker-VaccDscaff1-augustus-gene-1.25	VaccDscaff1	gene	147894.0	149490.0	+	1597.0
+maker-VaccDscaff1-snap-gene-1.32	VaccDscaff1	gene	179007.0	185476.0	+	6470.0
+maker-VaccDscaff1-augustus-gene-1.28	VaccDscaff1	gene	186127.0	189575.0	-	3449.0
