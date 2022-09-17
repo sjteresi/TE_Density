@@ -355,14 +355,14 @@ class MergeData:
 
         return len(self._list_density_args(overlap))
 
-    def sum(self, overlap, gene_data, progress_bar=None):
+    def sum(self, overlap, gene_data, progress_bar_cb=None):
         """Sum across the superfamily / order dimension.
 
         Args:
             overlap(OverlapData): container for the intermediate overlap values
             gene_data (GeneData): container for the gene data for one
             pseudomolecule
-            progress_bar(?):
+            progress_bar_cb(callable): callback after each sub calculation
         """
 
         self._validate_chromosome(overlap)
@@ -377,8 +377,8 @@ class MergeData:
         random.shuffle(sums_)  # make progress bar update more evenly
         for args in sums_:
             self._process_sum(overlap, gene_data, args)
-            if progress_bar is not None:
-                progress_bar()
+            if progress_bar_cb is not None:
+                progress_bar_cb()
 
     def _process_sum(self, overlap, gene_data, sum_args):
         """Calculate the sum for one (left | intra | right) & (superfamily | order).
@@ -387,7 +387,6 @@ class MergeData:
             overlap (OverlapData): input data
             gene_data (GeneData): chromosome conatiner
             sum_args (_SummationArgs): parameters for calculations
-            progress (callable): command to update progress
         """
 
         # N.B. loop order affects speed wrt order in data set (SEE self._create_sets)
@@ -435,7 +434,13 @@ class MergeData:
                     sum_args.output[slice_out] = np.divide(overlap_sum, divisor)
 
     def _list_density_args(self, overlap):
-        """List all arguments for calculating the densities."""
+        """List all arguments for calculating the densities.
+
+        Args:
+            overlap(OverlapData): input overlap container
+        Returns:
+            iterable(_SummationArgs): arguments for calculating the sums
+        """
 
         superfam = self._list_sum_input_outputs(
             overlap,
@@ -459,7 +464,7 @@ class MergeData:
     def _list_sum_input_outputs(
         cls, overlap, density, te_group, te_set, te_idx_map, windows
     ):
-        """
+        """List of parameters for each computation.
 
         Args:
             overlap(OverlapData): input overlap container
@@ -469,7 +474,7 @@ class MergeData:
             windows(list(int)): window sizes
 
         Returns:
-            iterable(_SummationArgs): arguments for calculating the sums.
+            iterable(_SummationArgs): arguments for calculating the sums
         """
 
         # NOTE this could be (very) improved, but for now let's get a first iteration...

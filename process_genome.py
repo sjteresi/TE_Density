@@ -69,7 +69,7 @@ from queue import Empty
 
 MergeJob = namedtuple(
     "MergeJob",
-    ["overlap_file", "te_file", "gene_file", "windows", "output_dir", "progress_bar"],
+    ["overlap_file", "te_file", "gene_file", "windows", "output_dir", "progress_bar_callback"],
 )
 
 
@@ -101,19 +101,29 @@ def calc_merge_number_operations(job):
 
 
 def calc_merge(job):
-    """Target for a process to calculate density given a job."""
+    """Target for a process to calculate density given a job.
+
+    Args:
+        job(MergeJob): container of density parameters and etc. for a pseudo-molecule.
+    """
 
     merge_data, overlap_data = job_2_merge_and_overlap(job)
     gene_data = GeneData.read(job.gene_file)
     with merge_data as merge_output:
         with overlap_data as overlap_input:
-            merge_output.sum(overlap_input, gene_data, job.progress_bar)
+            merge_output.sum(overlap_input, gene_data, job.progress_bar_callback)
 
 
 class MergeProgress:
     """Show progress of the merge."""
 
     def __init__(self, queue, progress):
+        """Initialize.
+
+        Args:
+            queue(Queue): multiprocessing queue for results
+            progress(tqdm) progress bar
+        """
 
         self.stop_event = Event()
         self.queue = queue
@@ -121,31 +131,46 @@ class MergeProgress:
         self._thread = None
 
     def __enter__(self):
+        """Context manager start."""
 
         self.stop_event.clear()
         if self._thread is not None:
             self._thread.join()
-        self._thread = Thread(target=self.exec)
+        self._thread = Thread(target=self._exec)
         self._thread.start()
         return self
 
     def __exit__(self, type, val, trace):
+        """Context manager stop."""
 
         self.stop_event.set()
 
-    def exec(self):
+    def _exec(self):
+        """Loop to listen for progress bar updates."""
+
         while not self.stop_event.is_set():
             try:
-                result = self.queue.get(timeout=0.2)
+                # MAGIC arbitrary, mainly effects time to kill this
+                result = self.queue.get(timeout=1.0)
             except Empty:
                 continue
+            else:
+                self.queue.task_done()
 
-            self.progress.update()
+            if result is None:  # MAGIC None is our sentinel
+                self.stop_event.set()
+            else:
+                self.progress.update()
+                self.progress.refresh()
+
+        self.progress.refresh()
+        self.progress.close()
 
 
 def result_to_job(result, windows, output_dir, pbar_callback):
     """Convert an overlap result to a merge job."""
-    job = MergeJob(
+
+    _job = MergeJob(
         str(result.overlap_file),
         str(result.te_file),
         str(result.gene_file),
@@ -153,7 +178,7 @@ def result_to_job(result, windows, output_dir, pbar_callback):
         str(output_dir),
         pbar_callback,
     )
-    return job
+    return _job
 
 
 if __name__ == "__main__":
@@ -277,9 +302,11 @@ if __name__ == "__main__":
     logger.info("process density")
 
     win = alg_parameters["window_range"]
-    pbar_update_mgr = Manager()
-    pbar_update_queue = pbar_update_mgr.Queue()
-    pbar_update = partial(pbar_update_queue.put_nowait, None)
+    multiproc_mgr = Manager()
+    # MAGIC arbitrary, consumer queue is very fast compared to producer
+    pbar_update_queue = multiproc_mgr.Queue(maxsize=512)
+    # MAGIC arbitrary for a single result, using None as sentinel
+    pbar_update = partial(pbar_update_queue.put_nowait, 1)
     jobs = [
         result_to_job(res, win, args.output_dir, pbar_update) for res in overlap_results
     ]
@@ -290,23 +317,28 @@ if __name__ == "__main__":
         position=0,
         ncols=80,
     )
-    with MergeProgress(pbar_update_queue, pbar_subsets) as my_progress:
-        if not args.single_process:
-            with Pool(processes=args.num_threads) as my_pool:
-                my_pool.map(calc_merge, jobs)
-        else:
-            for job in jobs:
-                try:
-                    pr = cProfile.Profile()
-                    pr.enable()
-                    calc_merge(job)
-                except KeyboardInterrupt as keybr:
-                    pr.disable()
-                    stream = io.StringIO()
-                    sortby = "cumulative"
-                    ps = pstats.Stats(pr, stream=stream).sort_stats(sortby)
-                    ps.print_stats(0.1)  # MAGIC percent to print
-                    print(stream.getvalue())
-                    raise keybr
+    with multiproc_mgr as my_multiproc_mgr:
+        with MergeProgress(pbar_update_queue, pbar_subsets) as my_progress:
+            if not args.single_process:
+                with Pool(processes=args.num_threads) as my_pool:
+                    my_pool.map(calc_merge, jobs)
+                # NB signal to progress bar the jobs are done in attempt to debug EOFError
+                pbar_update_queue.put_nowait(None)  # MAGIC using None as a sentinel
+            else:  #
+                logger.info("running in single process mode for profiling,")
+                logger.info("  recommended for debugging only...")
+                for job in jobs:
+                    try:
+                        pr = cProfile.Profile()
+                        pr.enable()
+                        calc_merge(job)
+                    except KeyboardInterrupt as keybr:
+                        pr.disable()
+                        stream = io.StringIO()
+                        sortby = "cumulative"
+                        ps = pstats.Stats(pr, stream=stream).sort_stats(sortby)
+                        ps.print_stats(0.1)  # MAGIC percent to print
+                        print(stream.getvalue())
+                        raise keybr
 
     logger.info("process density... complete")
