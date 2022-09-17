@@ -100,3 +100,20 @@ We also provide multiple examples of how to access the HDF5 data within the data
 Please refer to `examples/general_read_density_data.py` for a barebones implementation of how to initialize DensityData for a single output file.
 ### Example Script:
 `python examples/general_read_density_data.py CLEANED_GENE_ANNOTATION.tsv DENSITY_DATA_FOLDER "Arabidopsis_(.*?).h5"`
+
+
+## Dependencies
+
+Tested on Python 3.8.
+
+SEE ./requirements/requirements.txt
+
+
+### Troubleshooting
+
+On Ubuntu 22.04, you may require the dist-utils package, and the development files for HDF5 and python.
+```
+# apt install libhdf5-serial-dev
+# apt install python3.8-dev
+# apt install python3.8-distutils
+```
