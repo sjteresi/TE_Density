@@ -29,14 +29,13 @@ def import_filtered_genes(genes_input_path, logger):
                 "Feature": str,
             },
         )
-    except:
-        raise ValueError(
-            """
-            Error occurred while trying to read preprocessed gene
-            annotation file into a Pandas dataframe, please refer
-            to the README as to what information is expected
-            """
-        )
+    except Exception as err:
+        msg = ("Error occurred while trying to read preprocessed gene "
+               "annotation file into a Pandas dataframe, please refer "
+               "to the README as to what information is expected ")
+        logger.critical(msg)
+        raise err
+
     check_nulls(gene_data, logger)
     check_strand(gene_data, logger)
 
@@ -47,9 +46,5 @@ def import_filtered_genes(genes_input_path, logger):
     # Sort for legibility
     gene_data.sort_values(by=["Chromosome", "Start"], inplace=True)
 
-    logger.info(
-        """Successfully imported the preprocessed gene annotation
-        information: %s """
-        % genes_input_path
-    )
+    logger.info("import of preprocessed gene annotation... success!")
     return gene_data

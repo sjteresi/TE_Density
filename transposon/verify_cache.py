@@ -15,16 +15,16 @@ from transposon.import_filtered_TEs import import_filtered_TEs
 
 
 def verify_chromosome_h5_cache(
-    gene_data_obj,
-    te_data_obj,
-    h5_g_filename,
-    h5_t_filename,
-    reset_h5,
-    h5_cache_location,
-    genes_input_file,
-    tes_input_file,
-    chrom_id,
-    logger,
+        gene_data_obj,
+        te_data_obj,
+        h5_g_filename,
+        h5_t_filename,
+        reset_h5,
+        h5_cache_location,
+        genes_input_file,
+        tes_input_file,
+        chrom_id,
+        logger,
 ):
     """Determine whether or not previously saved gene_data and TransposonData
     exist in H5 format. Each h5 file represents either gene_data or
@@ -104,7 +104,7 @@ def verify_TE_cache(tes_input_file, logger):
     Returns:
         te_data (pandas.DataFrame): A pandas dataframe of the TE data
     """
-    logger.info("Reading pre-filtered TE annotation file %s" % tes_input_file)
+    logger.info("Reading pre-filtered TE annotation file: %s" % tes_input_file)
     te_data = import_filtered_TEs(tes_input_file, logger)
     return te_data
 
@@ -120,7 +120,7 @@ def verify_gene_cache(genes_input_file, logger):
     Returns:
         gene_data (pandas.DataFrame): the gene data container
     """
-    logger.info("Reading pre-filtered gene annotation file %s" % genes_input_file)
+    logger.info("Reading pre-filtered gene annotation file: %s" % genes_input_file)
     gene_data = import_filtered_genes(genes_input_file, logger)
     return gene_data
 

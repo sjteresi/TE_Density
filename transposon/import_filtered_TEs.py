@@ -30,21 +30,18 @@ def import_filtered_TEs(tes_input_path, logger):
                 "SuperFamily": str,
             },
         )
-    except:
-        raise ValueError(
-            """Error occurred while trying to read preprocessed TE
-                         annotation file into a Pandas dataframe, please refer
-                         to the README as to what information is expected"""
-        )
+    except Exception as err:
+        msg = ("Error occurred while trying to read preprocessed TE "
+               "annotation file into a Pandas dataframe, please refer "
+               "to the README as to what information is expected")
+        logger.critical(msg)
+        raise err
+
     check_nulls(transposon_data, logger)
 
     # Sort for legibility
     transposon_data.sort_values(by=["Chromosome", "Start"], inplace=True)
 
-    logger.info(
-        """Successfully imported the preprocessed transposon annotation
-        information: %s """
-        % tes_input_path
-    )
+    logger.info("import of pre-filtered transposon annotation... success!")
 
     return transposon_data

@@ -170,7 +170,7 @@ class MergeProgress:
 def result_to_job(result, windows, output_dir, pbar_callback):
     """Convert an overlap result to a merge job."""
 
-    job = MergeJob(
+    _job = MergeJob(
         str(result.overlap_file),
         str(result.te_file),
         str(result.gene_file),
@@ -178,7 +178,7 @@ def result_to_job(result, windows, output_dir, pbar_callback):
         str(output_dir),
         pbar_callback,
     )
-    return job
+    return _job
 
 
 if __name__ == "__main__":

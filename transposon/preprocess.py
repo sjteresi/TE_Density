@@ -41,14 +41,14 @@ class PreProcessor:
     CACHE_EXT = "h5"
 
     def __init__(
-        self,
-        gene_file,
-        transposon_file,
-        results_dir,
-        reset_h5,
-        genome_id,
-        revise_transposons,
-        logger=None,
+            self,
+            gene_file,
+            transposon_file,
+            results_dir,
+            reset_h5,
+            genome_id,
+            revise_transposons,
+            logger=None,
     ):
         """Initialize.
 
