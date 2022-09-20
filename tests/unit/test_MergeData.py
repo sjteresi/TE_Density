@@ -20,7 +20,6 @@ from transposon.transposon_data import TransposonData
 from transposon.gene_data import GeneData
 from transposon.overlap import OverlapData, OverlapWorker
 
-MAX_RAM = 1024 * 4
 N_TRANSPOSONS = 4
 WINDOWS = [10, 20, 30, 40]
 CHROME_ID = "fake_chromosome_id"
@@ -84,8 +83,7 @@ def config_sink(te_data, gene_data, temp_file):
         gene_data=gene_data,
         gene_names=gene_data.names,
         windows=WINDOWS,
-        filepath=temp_file,
-        ram_bytes=MAX_RAM,
+        filepath=temp_file
     )
     yield sink
 

@@ -1,3 +1,7 @@
+1.0.1
+- use default h5py.File raw data chunk cache size (rdcc_nbytes),
+  which may reduce ram usage in some cases
+
 1.0.0
 - upgrade numpy  1.20.2 --> 1.23.3
 - upgrade pandas 1.0.5  --> 1.4.4
