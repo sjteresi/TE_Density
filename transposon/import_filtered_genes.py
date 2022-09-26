@@ -30,9 +30,11 @@ def import_filtered_genes(genes_input_path, logger):
             },
         )
     except Exception as err:
-        msg = ("Error occurred while trying to read preprocessed gene "
-               "annotation file into a Pandas dataframe, please refer "
-               "to the README as to what information is expected ")
+        msg = """
+            Error occurred while trying to read preprocessed gene
+            annotation file into a Pandas dataframe, please refer
+            to the README as to what information is expected
+            """
         logger.critical(msg)
         raise err
 
@@ -41,7 +43,7 @@ def import_filtered_genes(genes_input_path, logger):
 
     # NOTE edit Strand '.' values to be sense orientation as
     # described in check_strand()
-    gene_data.loc[gene_data["Strand"] == "."] = "+"
+    gene_data["Strand"].replace(to_replace={".": "+"}, inplace=True)
 
     # Sort for legibility
     gene_data.sort_values(by=["Chromosome", "Start"], inplace=True)
