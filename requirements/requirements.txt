@@ -20,9 +20,9 @@ mccabe==0.6.1
 more-itertools==7.2.0
 mypy-extensions==0.4.3
 numexpr==2.7.1
-numpy==1.20.2
+numpy==1.23.3
 packaging==19.1
-pandas==1.0.5
+pandas==1.4.4
 pathspec==0.8.0
 patsy==0.5.2
 Pillow==9.0.1
@@ -33,10 +33,10 @@ pyflakes==2.3.1
 pylint==2.3.1
 pyparsing==2.4.2
 pytest==5.0.1
-python-dateutil==2.8.0
-pytz==2019.2
+python-dateutil==2.8.2
+pytz==2022.2.1
 regex==2020.7.14
-scipy==1.6.3
+scipy==1.9.1
 seaborn==0.11.1
 six==1.12.0
 tables==3.6.1

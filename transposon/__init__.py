@@ -8,8 +8,8 @@ import logging
 import errno
 from functools import partial
 from os import sysconf, strerror
-import h5py
 import os
+import h5py
 import numexpr  # used by numpy
 
 MAX_SYSTEM_RAM_GB = sysconf("SC_PAGE_SIZE") * sysconf("SC_PHYS_PAGES") / (1024.0 ** 3)
@@ -29,6 +29,7 @@ def set_numexpr_threads(n_threads=None):
 
 
 def raise_if_no_file(filepath, logger=None, msg_fmt=None):
+    """Raise FileNotFoundError if file does not exist."""
 
     logger = logger or logging.getLogger(__name__)
     msg_fmt = msg_fmt or "not a file:  %s"
@@ -38,6 +39,7 @@ def raise_if_no_file(filepath, logger=None, msg_fmt=None):
 
 
 def raise_if_no_dir(filepath, logger=None, msg_fmt=None):
+    """Raise FileNotFoundError if file does not exist and it's not a directory."""
 
     logger = logger or logging.getLogger(__name__)
     msg_fmt = "not a directory:  %s"
@@ -52,7 +54,7 @@ def check_ram(ram_bytes, logger):
     if ram_bytes < 0:
         logger.critical("cache %i bytes < 0" % ram_bytes)
         raise ValueError()
-    elif ram_bytes / (1024.0 ** 3) > MAX_SYSTEM_RAM_GB:
+    if ram_bytes / (1024.0 ** 3) > MAX_SYSTEM_RAM_GB:
         ram_gb = ram_bytes / (1024.0 ** 3)
         msg = "cache %i GB > system %i GB" % ram_gb
         logger.critical(msg)

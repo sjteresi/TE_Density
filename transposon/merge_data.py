@@ -431,6 +431,7 @@ class MergeData:
                     # NOTE np.divide w/ 'out' flag didn't work?
                     # NOTE must assign to the slice, rather than storing a reference to array
                     # and then assigning to it
+                    # NOTE optimize by applying the division after all the sums have been made?
                     sum_args.output[slice_out] = np.divide(overlap_sum, divisor)
 
     def _list_density_args(self, overlap):
