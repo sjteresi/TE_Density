@@ -21,7 +21,7 @@ from transposon.gene_datum import GeneDatum
 
 _MergeConfigSink = namedtuple(
     "_MergeConfigSink",
-    ["transposons", "gene_data", "gene_names", "windows", "filepath", "ram_bytes"],
+    ["transposons", "gene_data", "gene_names", "windows", "filepath"],
 )
 _MergeConfigSource = namedtuple("_MergeConfigSource", ["filepath"])
 _Density = namedtuple("_Density", ["left", "intra", "right"])
@@ -142,7 +142,7 @@ class MergeData:
 
     @classmethod
     def from_param(
-        cls, transposon_data, gene_data, windows, output_dir, ram=1, logger=None
+        cls, transposon_data, gene_data, windows, output_dir, logger=None
     ):
         """Writable sink for a new file.
 
@@ -157,9 +157,6 @@ class MergeData:
         """
 
         logger = logger or logging.getLogger(__name__)
-        bytes2gigabytes = 1024.0 ** 3
-        ram_bytes = int(ram * bytes2gigabytes)
-        transposon.check_ram(ram_bytes, logger)
         chrome = str(transposon_data.chromosome_unique_id)
         genome = str(transposon_data.genome_id)
         # MAGIC, filename creation
@@ -170,8 +167,7 @@ class MergeData:
             gene_data=gene_data,
             gene_names=gene_data.names,
             windows=windows,
-            filepath=filepath,
-            ram_bytes=ram_bytes,
+            filepath=filepath
         )
         return cls(config, logger=logger)
 
@@ -288,7 +284,8 @@ class MergeData:
         self._superfam_2_idx = {s: i for i, s in enumerate(self.superfamily_names)}
         self.order_names = sorted(cfg.transposons.order_name_set)
         self._order_2_idx = {o: i for i, o in enumerate(self.order_names)}
-        self._h5_file = h5py.File(cfg.filepath, "w", rdcc_nbytes=cfg.ram_bytes)
+        # TODO when upgrading to H5PY try using fs_strategy=page, page_buf_size
+        self._h5_file = h5py.File(cfg.filepath, "w")
         self._create_sets(self._h5_file, cfg)
         transposon.write_vlen_str_h5py(self._h5_file, self.windows, self._WINDOWS)
         transposon.write_vlen_str_h5py(self._h5_file, self.gene_names, self._GENE_NAMES)
