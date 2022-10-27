@@ -19,6 +19,7 @@ DensitySlice = namedtuple(
 )
 
 
+# TODO refactor to use the MergeData
 class DensityData:
     def __init__(self, input_h5, gene_data, logger, sense_swap=True):
         """
@@ -31,25 +32,33 @@ class DensityData:
         # need to swap values later
         self.data_frame = h5py.File(new_filename, "r+")
 
-        self.key_list = list(self.data_frame.keys())
-        self.gene_list = self.data_frame["GENE_NAMES"][:]
+        self.gene_list = [
+            gene.decode("utf-8") for gene in self.data_frame["GENE_NAMES"][:]
+        ]
         self.num_genes = len(self.gene_list)
-        self.chromosomes = self.data_frame["CHROMOSOME_ID"][:]
+        self.chromosomes = [
+            chromosome.decode("utf-8")
+            for chromosome in self.data_frame["CHROMOSOME_ID"][:]
+        ]
         self.unique_chromosomes = list(set(self.chromosomes))
         if len(self.unique_chromosomes) != 1:
             raise ValueError(
                 "There are multiple unique chromosomes in this density data."
             )
-
         self.unique_chromosome_id = self.unique_chromosomes[0]  # MAGIC
-        # self.name = self.chromosomes.unique()
+
         self.windows = self.data_frame["WINDOWS"]  # not int
         self.window_list = [int(i) for i in self.windows[:]]  # list of ints
-
-        self.order_list = list(self.data_frame["ORDER_NAMES"][:])
-        self.super_list = list(self.data_frame["SUPERFAMILY_NAMES"][:])
+        self.order_list = [
+            order.decode("utf-8") for order in self.data_frame["ORDER_NAMES"][:]
+        ]
+        self.super_list = [
+            superfam.decode("utf-8")
+            for superfam in self.data_frame["SUPERFAMILY_NAMES"][:]
+        ]
 
         # NB. Shape for these is (type of TE, window, gene)
+        # NB these access the subarrays of the HDF5
         self.left_orders = self.data_frame["RHO_ORDERS_LEFT"]
         self.intra_orders = self.data_frame["RHO_ORDERS_INTRA"]
         self.right_orders = self.data_frame["RHO_ORDERS_RIGHT"]
@@ -75,6 +84,7 @@ class DensityData:
         Returns:
             Returns an index of the gene in the H5 dataset
         """
+
         if gene_string not in self.gene_list:
             raise IndexError(
                 """The gene '%s' is not in the density data,
@@ -83,7 +93,7 @@ class DensityData:
                 in the density data (h5 file). The gene list is: %s"""
                 % (gene_string, self.gene_list)
             )
-        return np.where(self.gene_list == gene_string)[0][0]  # MAGIC
+        return self.gene_list.index(gene_string)
 
     @property
     def order_index_dict(self):

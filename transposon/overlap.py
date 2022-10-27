@@ -182,7 +182,7 @@ class OverlapData:
         ram_bytes = int(ram * 1024.0 ** 3)  # MAGIC NUMBER bytes to gigabytes
         check_ram(ram_bytes, logger)
 
-        chromosome = genes.chromosome_unique_id
+        chromosome = str(genes.chromosome_unique_id)
         _prefix, ext = os.path.splitext(filepath)
         if ext != "."+cls.EXT:
             raise ValueError("output filepath extension must be '%s', but got %s"
@@ -265,7 +265,7 @@ class OverlapData:
             cfg (_OverlapConfigSink): the configuration for a new file.
         """
 
-        self.chromosome_id = cfg.genes.chromosome_unique_id
+        self.chromosome_id = str(cfg.genes.chromosome_unique_id)
         self.genome_id = cfg.genes.genome_id
         create_set = partial(
             h5_file.create_dataset, dtype=self.DTYPE, compression=self.COMPRESSION
@@ -320,8 +320,8 @@ class OverlapData:
             raise ValueError(cfg.filepath)
         self.gene_names = self._read_gene_names()
         self.windows = self._read_windows()
-        self.chromosome_id = self._read_chromosome_id()
-        self.genome_id = self._read_genome_id()
+        self.chromosome_id = str(self._read_chromosome_id())
+        self.genome_id = str(self._read_genome_id())
         self.left = self._h5_file[self._LEFT]
         self.intra = self._h5_file[self._INTRA]
         self.right = self._h5_file[self._RIGHT]
@@ -350,7 +350,8 @@ class OverlapData:
     def _read_gene_names(self):
         """Return list of gene names."""
 
-        return self._h5_file[self._GENE_NAMES][:].tolist()
+        gene_names = self._h5_file[self._GENE_NAMES][:].tolist()
+        return [gname.decode("utf-8") for gname in gene_names]
 
     def _write_windows(self):
         """Assign list of windows to the file."""
@@ -371,12 +372,13 @@ class OverlapData:
         vlen = h5py.special_dtype(vlen=str)
         # MAGIC NUMBER there can only be one unique ID
         dset = self._h5_file.create_dataset(self._CHROME_ID, (1,), dtype=vlen)
-        dset[:] = self.chromosome_id
+        dset[:] = str(self.chromosome_id)
 
     def _read_chromosome_id(self):
         """Return the unique chromosome identifier."""
 
-        return self._h5_file[self._CHROME_ID][:].tolist()[0]  # MAGIC NUMBER only one ID
+        chrome_id = self._h5_file[self._CHROME_ID][:].tolist()[0]  # MAGIC NUMBER only one ID
+        return chrome_id.decode("utf-8")
 
     def _write_genome_id(self):
         """Assign genome identifier to file."""
@@ -389,7 +391,8 @@ class OverlapData:
     def _read_genome_id(self):
         """Read genome identifier."""
 
-        return self._h5_file[self._GENOME_ID][:].tolist()[0]  # MAGIC NUMBER only one ID
+        genome_id = self._h5_file[self._GENOME_ID][:].tolist()[0]  # MAGIC NUMBER only one ID
+        return genome_id.decode("utf-8")
 
 
 class OverlapWorker:

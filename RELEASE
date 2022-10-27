@@ -1,0 +1,7 @@
+2.0.0
+- Upgrade h5py 2.10 --> 3.7, resulted in incompatibility w/ output H5 files
+	+ string variables now require explicit de/encode
+	+ reading previous output files not supported
+
+1.0.0
+- initial release

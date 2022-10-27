@@ -12,6 +12,7 @@ import pytest
 import logging
 import coloredlogs
 
+from transposon import write_vlen_str_h5py
 from transposon.density_data import DensityData
 from transposon.import_filtered_genes import import_filtered_genes
 from transposon.gene_data import GeneData
@@ -19,21 +20,6 @@ from transposon.gene_data import GeneData
 LOGGER = logging.getLogger(__name__)
 coloredlogs.install(level=logging.DEBUG)
 TEST_GENE_FILE = "tests/input_data/Test_Genes_DensityData.tsv"
-
-
-def write_vlen_str_h5py(h5file, strings, dataset_key):
-    """Write to an H5 File an iterable of variable length unicode
-
-    Args:
-        h5file (h5py.File): opened destination file
-        strings (iterable(str)): string list
-        dataset_key(str): name of data set to write
-
-    """
-    vlen = h5py.special_dtype(vlen=str)
-    n_strings = sum(1 for s in strings)
-    dset = h5file.create_dataset(dataset_key, (n_strings,), dtype=vlen)
-    dset[:] = strings
 
 
 @pytest.fixture
