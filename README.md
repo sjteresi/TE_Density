@@ -116,4 +116,7 @@ On Ubuntu 22.04, you may require the dist-utils package, and the development fil
 # apt install libhdf5-serial-dev
 # apt install python3.8-dev
 # apt install python3.8-distutils
+
+sudo apt install libblas3 liblapack3 liblapack-dev libblas-dev
+sudo apt install libatlas-base-dev
 ```

@@ -141,9 +141,7 @@ class MergeData:
         return self._h5_file.filename if self._h5_file is not None else None
 
     @classmethod
-    def from_param(
-        cls, transposon_data, gene_data, windows, output_dir, logger=None
-    ):
+    def from_param(cls, transposon_data, gene_data, windows, output_dir, logger=None):
         """Writable sink for a new file.
 
         Args:
@@ -167,7 +165,7 @@ class MergeData:
             gene_data=gene_data,
             gene_names=gene_data.names,
             windows=windows,
-            filepath=filepath
+            filepath=filepath,
         )
         return cls(config, logger=logger)
 
@@ -279,7 +277,7 @@ class MergeData:
 
         self.windows = list(cfg.windows)
         self.gene_names = list(cfg.gene_names)
-        self.chromosome_id = cfg.transposons.chromosome_unique_id
+        self.chromosome_id = str(cfg.transposons.chromosome_unique_id)
         self.superfamily_names = sorted(cfg.transposons.superfamily_name_set)
         self._superfam_2_idx = {s: i for i, s in enumerate(self.superfamily_names)}
         self.order_names = sorted(cfg.transposons.order_name_set)
@@ -289,8 +287,12 @@ class MergeData:
         self._create_sets(self._h5_file, cfg)
         transposon.write_vlen_str_h5py(self._h5_file, self.windows, self._WINDOWS)
         transposon.write_vlen_str_h5py(self._h5_file, self.gene_names, self._GENE_NAMES)
+        # NB self.chromosome_id needs to be iterable for the
+        # write_vlen_str_h5py function to convert it back and forth between
+        # bytes, because when it is just a normal string it gets split up
+        # by write_vlen_str_h5py into its constituent characters.
         transposon.write_vlen_str_h5py(
-            self._h5_file, self.chromosome_id, self._CHROME_ID
+            self._h5_file, [self.chromosome_id], self._CHROME_ID
         )
         transposon.write_vlen_str_h5py(
             self._h5_file, self.order_names, self._ORDER_NAMES

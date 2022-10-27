@@ -1,3 +1,6 @@
+2.0.0
+- upgrade h5py 2.10 --> 3.7
+
 1.0.1
 - use default h5py.File raw data chunk cache size (rdcc_nbytes),
   which may reduce ram usage in some cases

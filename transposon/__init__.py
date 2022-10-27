@@ -73,7 +73,7 @@ def write_vlen_str_h5py(h5file, strings, dataset_key):
     vlen = h5py.special_dtype(vlen=str)
     n_strings = sum(1 for s in strings)
     dset = h5file.create_dataset(dataset_key, (n_strings,), dtype=vlen)
-    dset[:] = strings
+    dset[:] = [str(s) for s in strings]
 
 
 def read_vlen_str_h5py(h5file, dataset_key):
