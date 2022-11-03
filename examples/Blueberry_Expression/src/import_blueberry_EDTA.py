@@ -39,10 +39,10 @@ def write_cleaned_transposons(te_pandaframe, output_dir, genome_name, logger):
 def import_transposons(tes_input_path, te_annot_renamer, logger):
     """Import TE file and read as a dataframe in Pandas
 
-        Args:
-            tes_input_path (str): string of the file path to the TE annotation
+    Args:
+        tes_input_path (str): string of the file path to the TE annotation
 
-            logger (logging obj): The object to call logs and info
+        logger (logging obj): The object to call logs and info
     """
     col_names = [
         "Chromosome",
@@ -101,20 +101,13 @@ def import_transposons(tes_input_path, te_annot_renamer, logger):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Reformat TE annotation file")
-    path_main = os.path.abspath(__file__)
-    dir_main = os.path.dirname(path_main)
-    output_default = os.path.join(
-        dir_main, "../../../../", "TE_Data/filtered_input_data"
-    )
     parser.add_argument(
         "TE_input_file", type=str, help="Parent path of TE annotation file"
     )
 
     parser.add_argument(
-        "--output_dir",
-        "-o",
+        "output_dir",
         type=str,
-        default=output_default,
         help="Parent directory to output results",
     )
 
