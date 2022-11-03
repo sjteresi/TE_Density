@@ -16,6 +16,11 @@ import coloredlogs
 from transposon.gene_data import GeneData
 from transposon.density_data import DensityData
 from transposon.import_filtered_genes import import_filtered_genes
+from transposon.density_utils import (
+    add_hdf5_indices_to_gene_data_from_list_hdf5,
+    add_te_vals_to_gene_info_pandas_from_list_hdf5,
+    info_of_gene,
+)
 
 
 if __name__ == "__main__":
@@ -60,6 +65,33 @@ if __name__ == "__main__":
     )
     # Note this is a pandas object of all of your genes
     cleaned_genes = import_filtered_genes(args.cleaned_gene_annotation, logger)
+
+    # NOTE, this adds the indices of the genes in the HDF5 datasets to a pandas
+    # dataframe, this is used later on to access the density data for each gene
+    gene_frame_with_hdf5_indices = add_hdf5_indices_to_gene_data_from_list_hdf5(
+        cleaned_genes, processed_dd_data
+    )
+
+    # NOTE, now we can add columns to the pandas dataframe which are the
+    # density values for a specific TE type and window combo. This right here
+    # adds a column called "LTR_400_Upstream" to the pandas dataframe, this
+    # column represents the TE density values for each gene, for the 400 bp
+    # upstream window. 400 bp window is used here because I use a smaller
+    # testing set of windows for development.
+    gene_frame_with_te_vals_of_interest = (
+        add_te_vals_to_gene_info_pandas_from_list_hdf5(
+            gene_frame_with_hdf5_indices,
+            processed_dd_data,
+            "Order",
+            "LTR",
+            "Upstream",
+            500,
+        )
+    )
+
+    print(gene_frame_with_te_vals_of_interest)
+    print(gene_frame_with_te_vals_of_interest)
+    print(info_of_gene(processed_dd_data[0], "AT1G01ad10", 0))
 
     # ------------------------------------------------------------
     # NOTE now the user may begin analyzing their data. For more examples

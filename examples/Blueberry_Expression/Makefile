@@ -3,22 +3,22 @@
 # __author__ Scott Teresi
 
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-DEV_DATA := $(realpath $(ROOT_DIR)/../../../TE_Density_Example_Data/Blueberry)
+DEV_DATA := $(realpath $(ROOT_DIR)/../../../TE_Data/Example_Blueberry)
 DEV_GENES := $(DEV_DATA)/Genes/Blueberry_Genes.gff
 DEV_TES := $(DEV_DATA)/TEs/Blueberry_EDTA_TEs.gff
+DEV_FILTERED := $(DEV_DATA)/filtered_input_data
 DEV_GENE_EXPRESSION := $(DEV_DATA)/Genes/Blueberry_TPM_All.tsv
-DEV_DENSITY_FILES := $(DEV_DATA)/../../TE_Data/finalized_data/10KB/Draper
-DEV_GENOME := "BlueberryExample"
+DEV_DENSITY_FILES := $(DEV_DATA)/../../TE_Data/Example_Blueberry/
 
 filter_genes:
 	@echo Filtering blueberry genes into appropriate format for TE Density
 	@echo 
-	python $(ROOT_DIR)/src/import_blueberry_gene_anno.py $(DEV_GENES)
+	python $(ROOT_DIR)/src/import_blueberry_gene_anno.py $(DEV_GENES) $(DEV_FILTERED)
 
 filter_TEs:
 	@echo Filtering blueberry TEs into appropriate format for TE Density
 	@echo 
-	python $(ROOT_DIR)/src/import_blueberry_EDTA.py $(DEV_TES)
+	python $(ROOT_DIR)/src/import_blueberry_EDTA.py $(DEV_TES) $(DEV_FILTERED)
 
 calculate_TE_Density:
 	@echo Running TE Density for blueberry

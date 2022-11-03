@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=20
 #SBATCH --mem-per-cpu=32G
-#SBATCH -o Blueberry_Density.out
+#SBATCH -o /mnt/research/edgerpat_lab/Scotty/TE_Data/Example_Blueberry/Blueberry_Density.out
 #--------------------------------------------------------
 echo ""
 echo "Job Information"
@@ -13,12 +13,14 @@ echo "Job ID:" $SLURM_JOB_ID
 echo ""
 
 ROOT_DIR=/mnt/research/edgerpat_lab/Scotty/TE_Density
-DATA_DIR=/mnt/research/edgerpat_lab/Scotty/TE_Data/filtered_input_data
+DATA_DIR=/mnt/research/edgerpat_lab/Scotty/TE_Data/Example_Blueberry/filtered_input_data
+OUT_DIR=/mnt/research/edgerpat_lab/Scotty/TE_Data/Example_Blueberry/
 GENOME="Vacc_Cory"
 
 
-# Load the Python scripts
-module load GCC/7.3.0-2.30 OpenMPI/3.1.1 Python/3.7.0
+# Load the Python on HPCC
+module purge
+module load GCC/10.2.0 Python/3.8.10
 
 # Source the Python packages that are version controlled
 source /mnt/research/edgerpat_lab/Scotty/venvs/TE_Density/bin/activate
@@ -26,5 +28,8 @@ source /mnt/research/edgerpat_lab/Scotty/venvs/TE_Density/bin/activate
 # Go to project directory
 cd $ROOT_DIR
 
+# Make output dir
+mkdir -p $OUT_DIR
+
 # Run the code
-python $ROOT_DIR/process_genome.py $DATA_DIR/Cleaned_Blueberry_Genes.tsv $DATA_DIR/Cleaned_Blueberry_EDTA_TEs.tsv $GENOME -c $ROOT_DIR/config/production_run_config.ini  -n 20 --reset_h5
+python $ROOT_DIR/process_genome.py $DATA_DIR/Cleaned_Blueberry_Genes.tsv $DATA_DIR/Cleaned_Blueberry_EDTA_TEs.tsv $GENOME -c $ROOT_DIR/config/production_run_config.ini  -n 20 --reset_h5 -o $OUT_DIR
