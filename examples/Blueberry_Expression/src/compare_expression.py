@@ -20,6 +20,11 @@ from examples.Blueberry_Expression.src.import_blueberry_gene_anno import import_
 from transposon.density_data import DensityData
 from transposon.gene_data import GeneData
 
+from transposon.density_utils import (
+    add_hdf5_indices_to_gene_data_from_list_hdf5,
+    add_te_vals_to_gene_info_pandas_from_list_hdf5,
+)
+
 
 def read_TPM_matrix(tpm_matrix_file):
     """
@@ -73,64 +78,6 @@ def verify_gene_order(tpm_matrix, density_data):
     return tpm_matrix
 
 
-def add_TE_density_to_expression_matrix(
-    tpm_matrix, processed_dd_data, output_dir, logger, show=False
-):
-
-    one_chrom_storage = []
-    for dd_chromosome in processed_dd_data:
-        # NOTE the regular tpm matrix represents all genes, so we must break it
-        # apart into chunks to get the correct density data before we merge it
-        # back together
-        subsetted_tpm_matrix_by_genes = tpm_matrix[
-            tpm_matrix["Gene_Name"].isin(dd_chromosome.gene_list)
-        ]
-
-        if len(subsetted_tpm_matrix_by_genes) != len(dd_chromosome.gene_list):
-            raise ValueError(
-                """Unable to subset the TPM matrix correctly so that
-                             its genes directly correspond to what is in the
-                             DensityData object."""
-            )
-        subsetted_tpm_matrix_by_genes.set_index(
-            "Gene_Name", inplace=True
-        )  # set index as gene names
-        subsetted_tpm_matrix_by_genes = subsetted_tpm_matrix_by_genes.reindex(
-            dd_chromosome.gene_list
-        )
-
-        te_columns_to_graph = []  # NB container to store string names, doesn't
-        # matter that it is overwritten between loops, the names will be the
-        # same for the last loop
-
-        for density_slice in dd_chromosome.yield_all_slices():
-            # Here we are still on a single chromosome, beginning to loop over
-            # all of the windows, TEs, and directions
-
-            # NOTE yield all slices is a function that skips the Revision
-            # datasets. TODO this will likely be accomplished through other
-            # means in future releases.
-            window_direction_type = str(
-                density_slice.te_type
-                + "_"
-                + str(density_slice.window_val)
-                + "_"
-                + density_slice.direction
-            )
-
-            subsetted_tpm_matrix_by_genes[window_direction_type] = density_slice.slice
-
-            # Store the TE column names to graph later
-            te_columns_to_graph.append(window_direction_type)
-
-        # Now I have a matrix that contains all of the TE Data for one
-        # chromosome, so we will save it for concatenating
-        one_chrom_storage.append(subsetted_tpm_matrix_by_genes)
-
-    complete_df = pd.concat(one_chrom_storage)
-    return (complete_df, te_columns_to_graph)
-
-
 def gen_bins():
     """
     Return
@@ -147,8 +94,7 @@ def gen_bins():
 
 
 def plot_expression_v_density_violin(
-    tpm_matrix,
-    processed_dd_data,
+    complete_df,
     output_dir,
     logger,
     show=False,
@@ -158,6 +104,8 @@ def plot_expression_v_density_violin(
     values for each gene
 
     Args:
+
+        # TODO write out the description for the new arg.
         tpm_matrix (pandas.DataFrame): A pandas dataframe of the gene
         expression values in TPM format. Shape (genes X 1 column of
         expression values
@@ -174,15 +122,7 @@ def plot_expression_v_density_violin(
         None, creates graph, saves it to disk, and shows it if the keyword
         argument show is provided as True.
     """
-    complete_df, te_columns_to_graph = add_TE_density_to_expression_matrix(
-        tpm_matrix,
-        processed_dd_data,
-        output_dir,
-        logger,
-        show=False,
-    )
     cut_bins, cut_labels = gen_bins()
-
     complete_df = complete_df[complete_df["Total_Expression_Mean"] >= 0.1].copy(
         deep=True
     )
@@ -253,15 +193,14 @@ def plot_expression_v_density_violin(
         os.path.join(output_dir, "Expression_Profile_Gene_Counts.png"),
         bbox_inches="tight",
     )
-    # if show:
-    # plt.show()
+    if show:
+        plt.show()
 
     plt.clf()
 
 
 def plot_new_hist(
-    tpm_matrix,
-    processed_dd_data,
+    complete_df,
     output_dir,
     logger,
     show=False,
@@ -275,13 +214,6 @@ def plot_new_hist(
 
 
     """
-    complete_df, te_columns_to_graph = add_TE_density_to_expression_matrix(
-        tpm_matrix,
-        processed_dd_data,
-        output_dir,
-        logger,
-        show=False,
-    )
     cut_bins, cut_labels = gen_bins()
 
     # MAGIC, gene expression column in the pandaframe
@@ -313,7 +245,7 @@ def plot_new_hist(
 
         # Determine the bins and number of genes in each
         pandaframe["Density_Bins"] = pd.cut(
-            pandaframe["TIR_5000_Upstream"],  # MAGIC this is the TE vals we
+            pandaframe["LTR_5000_Upstream"],  # MAGIC this is the TE vals we
             # are indexing
             bins=cut_bins,
             labels=cut_labels,
@@ -370,13 +302,14 @@ def plot_new_hist(
     fig.supylabel("Log10(No. Genes)")
     fig.supxlabel("Density Bins")
     fig.suptitle(
-        "No. Genes Binned by TIR TE 5KB Upstream Density According to Expression Profile"
+        "No. Genes Binned by LTR TE 5KB Upstream Density According to Expression Profile"
     )
     # MAGIC filename
     plt.savefig(
         os.path.join(output_dir, "Gene_Counts_by_Expression_and_Density_Bin.png")
     )
-    plt.show()
+    if show:
+        plt.show()
     plt.clf()
 
 
@@ -436,23 +369,47 @@ if __name__ == "__main__":
         gene_data_list, args.density_data_folder, "Vacc_Cory_(.*?).h5", logger
     )
 
-    # NOTE at this point I have a list of initialized DensityData (chromosome
-    # level) and one large expression matrix (all chromosomes). But the
-    # expression matrix doesn't actually have the chromosome information so I
-    # can't easily split by that method. So I need to use the list of genes in
-    # the density data to split the 'chromosomes' of the expression matrix.
+    # ----------------------------
+    # NB add hdf5 indices to the gene data so that we may add on TE values
+    # later
+    genes_with_hdf5_indices = add_hdf5_indices_to_gene_data_from_list_hdf5(
+        cleaned_genes, processed_dd_data
+    )
 
-    # plot_expression_v_density_violin(
-    # tpm_matrix,
-    # processed_dd_data,
-    # args.output_dir,
-    # logger,
-    # show=False,
-    # )
+    # NOTE add TE values of interest to the data table.
+    # Users can paramatrize this as wanted
+    genes_with_te_vals = add_te_vals_to_gene_info_pandas_from_list_hdf5(
+        genes_with_hdf5_indices, processed_dd_data, "Order", "TIR", "Upstream", 500
+    )
 
+    # NB merge in the expresssion matrix
+    complete_df = tpm_matrix.merge(genes_with_te_vals, how="inner", on="Gene_Name")
+
+    # NOTE this is hard-coded to plot the TIR 500 upstream, users will want to
+    # adjust
+    plot_expression_v_density_violin(
+        complete_df,
+        args.output_dir,
+        logger,
+        show=False,
+    )
+
+    # ----------------------------
+    # NOTE add TE values of interest to the data table.
+    # NOTE, here we want LTR 5000 upstream, because the histogram code is
+    # hard-coded for this set for the sake of the examples
+    # Users can paramatrize this as wanted
+    genes_with_te_vals = add_te_vals_to_gene_info_pandas_from_list_hdf5(
+        genes_with_hdf5_indices, processed_dd_data, "Order", "LTR", "Upstream", 5000
+    )
+
+    # NB merge in the expresssion matrix
+    complete_df = tpm_matrix.merge(genes_with_te_vals, how="inner", on="Gene_Name")
+
+    # NOTE this is hard-coded to plot the LTR 5000 upstream, users will want to
+    # adjust
     plot_new_hist(
-        tpm_matrix,
-        processed_dd_data,
+        complete_df,
         args.output_dir,
         logger,
         show=False,
