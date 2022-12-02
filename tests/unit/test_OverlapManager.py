@@ -18,7 +18,7 @@ N_SUBGENES = 4  # MAGIC arbitrary, enough for testing
 GENOME_ID = "FAKE_GENOME_ID"
 
 
-@pytest.yield_fixture(scope="session")
+@pytest.fixture(scope="session")
 def temp_dir():
     """Temporary directory."""
 
@@ -33,14 +33,14 @@ def temp_filenames(temp_dir):
     return paths
 
 
-@pytest.yield_fixture(scope="session")
+@pytest.fixture(scope="session")
 def sub_genes(temp_filenames):
 
     genes = [GeneData.mock(genome_id=GENOME_ID) for _ in range(len(temp_filenames))]
     return [gene.write(path) for gene, path in zip(genes, temp_filenames)]
 
 
-@pytest.yield_fixture(scope="session")
+@pytest.fixture(scope="session")
 def sub_transposons(temp_filenames):
 
     genes = [

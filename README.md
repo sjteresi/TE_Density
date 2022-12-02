@@ -104,19 +104,23 @@ Please refer to `examples/general_read_density_data.py` for a barebones implemen
 
 ## Dependencies
 
-Tested on Python 3.8.
+Tested on `Python 3.10` and `Ubuntu 22.04`.
 
 SEE ./requirements/requirements.txt
 
 
 ### Troubleshooting
 
-On Ubuntu 22.04, you may require the dist-utils package, and the development files for HDF5 and python.
-```
+HDF5 and pytables requires the HDF5 runtime and development files.
+e.g. on Ubuntu 22.04:
+```bash
+# apt install python3.10-dev
+# apt install python3-distutils
 # apt install libhdf5-serial-dev
-# apt install python3.8-dev
-# apt install python3.8-distutils
+```
 
-sudo apt install libblas3 liblapack3 liblapack-dev libblas-dev
-sudo apt install libatlas-base-dev
+You may require additional BLAS dependencies to support NUMPY / HDF5 etc.
+```bash
+# apt install libblas3 liblapack3 liblapack-dev libblas-dev
+# apt install libatlas-base-dev
 ```

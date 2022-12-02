@@ -27,7 +27,7 @@ class FakeWorker(WorkerProcess):
         return (job * job, os.getpid())
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def worker():
     mgr = multiprocessing.Manager
     input = multiprocessing.Queue()
@@ -35,7 +35,7 @@ def worker():
     stop = multiprocessing.Event()
     yield FakeWorker(input, output, stop)
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def worker_running(worker):
     """Yield a running process."""
     worker.start()
