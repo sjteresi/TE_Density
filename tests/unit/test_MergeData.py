@@ -59,7 +59,7 @@ def te_data():
     return _te_data()
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def temp_dir():
     """Temporary directory."""
 
@@ -67,7 +67,7 @@ def temp_dir():
         yield dir
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def temp_file(temp_dir):
     """Temporary h5 file."""
 
@@ -76,7 +76,7 @@ def temp_file(temp_dir):
         yield temp.name
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def config_sink(te_data, gene_data, temp_file):
     sink = _MergeConfigSink(
         transposons=te_data,
@@ -88,7 +88,7 @@ def config_sink(te_data, gene_data, temp_file):
     yield sink
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def merge_sink(te_data, gene_data, temp_dir):
     """Yield a MergeData instance.
     The instance is yielded b/c it has a file resource.
@@ -135,7 +135,7 @@ def transposondata_test_obj():
     return sample_genome
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def active_merge_sink_real(transposondata_test_obj, genedata_test_obj, temp_dir):
     """Yield an active MergeData instance from real data"""
     my_merge = MergeData.from_param(
@@ -145,7 +145,7 @@ def active_merge_sink_real(transposondata_test_obj, genedata_test_obj, temp_dir)
         yield active_merge
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def active_overlap_data_real(genedata_test_obj, transposondata_test_obj, temp_file):
     """Yield an active OverlapData instance from real data"""
 
@@ -264,7 +264,7 @@ def test_list_sum_args_no_throw_real(active_merge_sink_real, active_overlap_data
 
 
 # -----------------------------------------------------
-@pytest.yield_fixture
+@pytest.fixture
 def active_merge_sink(merge_sink):
 
     with merge_sink as active:

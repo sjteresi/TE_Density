@@ -21,7 +21,7 @@ from transposon.transposon_data import TransposonData
 from transposon.gene_data import GeneData
 from transposon.overlap import OverlapData, OverlapWorker
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def temp_dir():
     """Temporary directory."""
 

@@ -33,7 +33,7 @@ def gene_data():
 
     return GeneData.mock()
 
-@pytest.yield_fixture
+@pytest.fixture
 def temp_dir():
     """Temporary directory."""
 
@@ -41,7 +41,7 @@ def temp_dir():
         yield temp_dir
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def temp_file():
     """Temporary directory."""
 
@@ -56,14 +56,14 @@ def default_data_out(temp_file):
         GeneData.mock(), N_TRANSPOSONS, WINDOWS, temp_file, logger=LOGGER
     )
 
-@pytest.yield_fixture
+@pytest.fixture
 def active_output(default_data_out):
     """Default OverlapData instance for writing."""
 
     with default_data_out as active_output:
         yield active_output
 
-@pytest.yield_fixture
+@pytest.fixture
 def active_input(default_data_out):
     """Default OverlapData instance for reading."""
 
@@ -73,7 +73,7 @@ def active_input(default_data_out):
     with OverlapData.from_file(filepath) as io:
         yield io
 
-@pytest.yield_fixture
+@pytest.fixture
 def serialized_deserialized(default_data_out):
     """Yield an overlap written to disk and one read from the first."""
 

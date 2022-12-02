@@ -30,7 +30,7 @@ def transposon_file(request):
     return request.param
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def temp_dir():
     """Temporary directory."""
 
