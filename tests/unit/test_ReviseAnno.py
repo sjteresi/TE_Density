@@ -237,11 +237,13 @@ def test_superfam(
 ):
     """Create superfamily revisions"""
     revise_anno_obj = Revise_Anno(
-        TEData_TestObj.data_frame, h5_cache_loc, superfam_name
+        TEData_TestObj.data_frame, "test.tsv", h5_cache_loc, superfam_name
     )
     revise_anno_obj.create_superfam()
     observed = revise_anno_obj.updated_te_annotation.Length.to_numpy(copy=False)
-    revise_anno_obj.save_for_dev(
+
+    # NB this is just for manual inspection
+    revise_anno_obj._write(
         revise_anno_obj.updated_te_annotation,
         os.path.join(revised_te_annotation_loc, output_filenames),
     )
@@ -261,7 +263,11 @@ def test_superfam(
             TRUE_SingleC_MultiE_ORDER,
             "SingleC_MultiE_Order.tsv",
         ),
-        (SingleC_Conc_Order, TRUE_SingleC_ConcOverlap_ORDER, "SingleC_Conc_Order.tsv",),
+        (
+            SingleC_Conc_Order,
+            TRUE_SingleC_ConcOverlap_ORDER,
+            "SingleC_Conc_Order.tsv",
+        ),
     ],
     indirect=["TEData_TestObj"],
 )
@@ -274,10 +280,14 @@ def test_order(
     revised_te_annotation_loc,
 ):
     """Create order revisions"""
-    revise_anno_obj = Revise_Anno(TEData_TestObj.data_frame, h5_cache_loc, order_name)
+    revise_anno_obj = Revise_Anno(
+        TEData_TestObj.data_frame, "test.tsv", h5_cache_loc, order_name
+    )
     revise_anno_obj.create_order()
     observed = revise_anno_obj.updated_te_annotation.Length.to_numpy(copy=False)
-    revise_anno_obj.save_for_dev(
+
+    # NB this is just for manual inspection
+    revise_anno_obj._write(
         revise_anno_obj.updated_te_annotation,
         os.path.join(revised_te_annotation_loc, output_filenames),
     )
@@ -315,11 +325,13 @@ def test_nameless(
 ):
     """Create nameless revisions"""
     revise_anno_obj = Revise_Anno(
-        TEData_TestObj.data_frame, h5_cache_loc, nameless_name
+        TEData_TestObj.data_frame, "test.tsv", h5_cache_loc, nameless_name
     )
     revise_anno_obj.create_nameless()
     observed = revise_anno_obj.updated_te_annotation.Length.to_numpy(copy=False)
-    revise_anno_obj.save_for_dev(
+
+    # NB this is just for manual inspection
+    revise_anno_obj._write(
         revise_anno_obj.updated_te_annotation,
         os.path.join(revised_te_annotation_loc, output_filenames),
     )
