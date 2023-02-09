@@ -44,15 +44,14 @@ class Revise_Anno:
     Superfamilies, then irrespective of Order or Superfamily (nameless).
     """
 
-    def __init__(self, transposon_anno, h5_cache_loc, genome_name):
+    def __init__(self, transposon_anno, revised_filename, output_dir, genome_name):
         """Initialize
 
         Args:
             transposon_anno (pandas.core.DataFrame): Pandas dataframe of the
             transposon annotation.
 
-            h5_cache_loc (str): String representing the location in which to
-            store the h5 formatted results
+            output_dir (str): Directory to output results
 
             genome_name (str): String representing the current genome name.
 
@@ -67,45 +66,50 @@ class Revise_Anno:
 
         self.transposon_data = transposon_anno
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.superfam_cache_loc = os.path.abspath(
-            os.path.join(h5_cache_loc, (genome_name + "_superfam_revision_cache.h5"))
+        self.revised_superfam_file = os.path.abspath(
+            os.path.join(output_dir, (genome_name + "_superfam_revision_cache.tsv"))
         )
-        self.order_cache_loc = os.path.abspath(
-            os.path.join(h5_cache_loc, (genome_name + "_order_revision_cache.h5"))
+        self.revised_order_file = os.path.abspath(
+            os.path.join(output_dir, (genome_name + "_order_revision_cache.tsv"))
         )
-        self.nameless_cache_loc = os.path.abspath(
-            os.path.join(h5_cache_loc, (genome_name + "_nameless_revision_cache.h5"))
+        self.revised_nameless_file = os.path.abspath(
+            os.path.join(output_dir, (genome_name + "_nameless_revision_cache.tsv"))
         )
-        self.updated_te_annotation = None
+        self.updated_te_annotation = None  # this will be set to a pandaframe
+        # for each iteration of the revision process
+
+        # TODO edit/check
+        self.revised_filename = revised_filename
+        self.whole_te_annotation = None
 
     def create_superfam(self):
         """Create the revised dataset on a Superfamily basis.
 
-        Writes the Superfamily revision to an h5 file to read later and fuse
+        Writes the Superfamily revision to tsv file to read later and fuse
         with the other revisions.
         """
         self._reset_starting_vals()
         super_transposon_data = self.transposon_data.copy(deep=True)
         super_transposon_data["Order"] = "S_Revision"
         self.iterate_call_merge(super_transposon_data, "SuperFamily")
-        self._write(self.updated_te_annotation, self.superfam_cache_loc)
+        self._write(self.updated_te_annotation, self.revised_superfam_file)
 
     def create_order(self):
         """Create the revised dataset on an Order basis.
 
-        Writes the Order revision to an h5 file to read later and fuse
+        Writes the Order revision to tsv file to read later and fuse
         with the other revisions.
         """
         self._reset_starting_vals()
         order_transposon_data = self.transposon_data.copy(deep=True)
         order_transposon_data["SuperFamily"] = "O_Revision"
         self.iterate_call_merge(order_transposon_data, "Order")
-        self._write(self.updated_te_annotation, self.order_cache_loc)
+        self._write(self.updated_te_annotation, self.revised_order_file)
 
     def create_nameless(self):
         """Create revised dataset on an nameless basis, irrespective of TE identity.
 
-        Writes the nameless revision to an h5 file to read later and fuse
+        Writes the nameless revision to tsv file to read later and fuse
         with the other revisions.
         """
         self._reset_starting_vals()
@@ -114,7 +118,7 @@ class Revise_Anno:
         nameless_transposon_data["Order"] = "Total_TE_Density"
         nameless_transposon_data["SuperFamily"] = "Total_TE_Density"
         self.iterate_call_merge(nameless_transposon_data, "Nameless", "Nameless")
-        self._write(self.updated_te_annotation, self.nameless_cache_loc)
+        self._write(self.updated_te_annotation, self.revised_nameless_file)
 
     def _merge_all(self):
         """Merge all of the previously revised TE sets (order, superfamily, nameless).
@@ -126,61 +130,44 @@ class Revise_Anno:
             self.whole_te_annotation (pandas.core.DataFrame): The complete
             revised TE annotation.
         """
-        self._verify_files()
-        supers = self._read(self.superfam_cache_loc)
-        orders = self._read(self.order_cache_loc)
-        nameless = self._read(self.nameless_cache_loc)
+        supers = self._read(self.revised_superfam_file)
+        orders = self._read(self.revised_order_file)
+        nameless = self._read(self.revised_nameless_file)
         self.whole_te_annotation = pd.concat([supers, orders, nameless])
         self.whole_te_annotation.sort_values(by=["Chromosome", "Start"], inplace=True)
 
-    def save_updated_te_annotation(self, filename, header=True, index=False):
-        """Save the annotation.
+        # Save the final results to disk
+        self._write(self.whole_te_annotation, self.revised_filename)
+        self.logger.info(
+            "Revised annotation has been saved: %s" % self.revised_filename
+        )
 
-        Args:
-            filename (str): Filename to save the file with. Saves as a tsv
-
-            header (bool): Defaults to True. If False, do not write the header
-            of the annotation to the file.
-
-            index (bool): Defaults to False. If True, writes the index to the
-            file, which in this case adds an extra column to the pandas
-            dataframe numbering each row from 1 to infinity.
-
-        Returns:
-            Saves the pandas dataframe to disk as a tsv.
-        """
-        self._merge_all()
-        self.logger.info("Annotation has been saved: %s" % filename)
-        self.whole_te_annotation.to_csv(filename, sep="\t", header=header, index=index)
-
-    def _verify_files(self):
+    def verify_files(self):
         """
         Make sure we can appropriately merge the revised elements to create a complete
-        revised annotation.
+        revised annotation, then call the merge code to manage combining the
+        input files
         """
         # Superfamilies
-        if os.path.exists(self.superfam_cache_loc):
-            return
-        else:
-            msg = "Revised SuperFamily H5 file DNE: {self.superfam_cache_loc}"
+        if not os.path.exists(self.revised_superfam_file):
+            msg = "Revised SuperFamily file DNE: {self.revised_superfam_file}"
             self.logger.critical(msg.format(self=self))
             raise FileNotFoundError(msg.format(self=self))
 
         # Orders
-        if os.path.exists(self.order_cache_loc):
-            return
-        else:
-            msg = "Revised Order H5 file DNE: {self.order_cache_loc}"
+        if not os.path.exists(self.revised_order_file):
+            msg = "Revised Order file DNE: {self.revised_order_file}"
             self.logger.critical(msg.format(self=self))
             raise FileNotFoundError(msg.format(self=self))
 
         # Nameless
-        if os.path.exists(self.nameless_cache_loc):
-            return
-        else:
-            msg = "Revised Nameless H5 file DNE: {self.nameless_cache_loc}"
+        if not os.path.exists(self.revised_nameless_file):
+            msg = "Revised Nameless file DNE: {self.revised_nameless_file}"
             self.logger.critical(msg.format(self=self))
             raise FileNotFoundError(msg.format(self=self))
+
+        # All intermediate output files are verified, call the merger code
+        self._merge_all()
 
     def _reset_starting_vals(self):
         """Reset the class variables to run the next ieration (order,
@@ -312,13 +299,6 @@ class Revise_Anno:
         ]
         self.updated_te_annotation = pd.concat(to_concat, ignore_index=True)
 
-    @staticmethod
-    def save_for_dev(pandaframe, filename):
-        """Save command for developer."""
-
-        # TODO candidate for deletion in the future
-        pandaframe.to_csv(filename, sep="\t", header=True, index=False)
-
     def concat_single_chrom(self, chromosome):
         """Collect all of the chromosomes and merge into one dataframe.
 
@@ -330,7 +310,7 @@ class Revise_Anno:
         Args:
             chromosome (str): String representing the current chromosome
         """
-        self.logger.debug("Concatenating chromosome " + chromosome + "...")
+        self.logger.debug("Revision: Concatenating chromosome " + chromosome + "...")
         to_concat = [
             te_anno_dataframe
             for te_id, te_anno_dataframe in self.chrom_specific_frame_dict.items()
@@ -481,8 +461,15 @@ class Revise_Anno:
             seed_stop (int): The value for the seed stop.
         """
         for hit_index in array_of_hits:
-            if self.search_frame.loc[hit_index,].Stop > seed_stop:
-                seed_stop = self.search_frame.loc[hit_index,].Stop
+            if (
+                self.search_frame.loc[
+                    hit_index,
+                ].Stop
+                > seed_stop
+            ):
+                seed_stop = self.search_frame.loc[
+                    hit_index,
+                ].Stop
         return seed_stop
 
     @staticmethod
@@ -507,26 +494,23 @@ class Revise_Anno:
         return dataframe
 
     @staticmethod
-    def _write(dataframe, filename, key="default"):
-        """Write a Pandaframe to disk.
+    def _write(dataframe, filename):
+        """Write a Pandaframe to disk as tsv.
 
         Args:
             dataframe ():
             filename (str): a string of the filename to write.
-            key (str): identifier for the group (dataset) in the hdf5 obj.
-        Returns:
-            Writes a pandas dataframe in H5 format to disk.
         """
-        dataframe.to_hdf(filename, key=key, mode="w")
+        dataframe.to_csv(filename, header=True, sep="\t", index=False)
 
     @staticmethod
-    def _read(filename, key="default"):
-        """Read from disk. Returns a Pandaframe from an hdf5 file.
+    def _read(filename):
+        """Read a tsv from disk as Pandaframe
 
         Args:
-            filename (str): a string of the filename to write.
-            key (str): identifier for the group (dataset) in the hdf5 obj.
+            filename (str): a string of the filename to read.
+
         Returns:
             A pandas object of the revised TE data.
         """
-        return pd.read_hdf(filename, key=key)
+        return pd.read_csv(filename, header="infer", sep="\t")

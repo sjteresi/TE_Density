@@ -15,16 +15,16 @@ from transposon.import_filtered_TEs import import_filtered_TEs
 
 
 def verify_chromosome_h5_cache(
-        gene_data_obj,
-        te_data_obj,
-        h5_g_filename,
-        h5_t_filename,
-        reset_h5,
-        h5_cache_location,
-        genes_input_file,
-        tes_input_file,
-        chrom_id,
-        logger,
+    gene_data_obj,
+    te_data_obj,
+    h5_g_filename,
+    h5_t_filename,
+    reset_h5,
+    h5_cache_location,
+    genes_input_file,
+    tes_input_file,
+    chrom_id,
+    logger,
 ):
     """Determine whether or not previously saved gene_data and TransposonData
     exist in H5 format. Each h5 file represents either gene_data or
@@ -149,14 +149,14 @@ def revise_annotation(
         revised_transposons (str): A string representing the path of a
         previously filtered (cleaned) and revised TE annotation.
 
-        revised_cache_loc ():
+        revised_cache_loc (): Directory for output files
 
         logger ():
 
         genome_id (str): String of the genome ID
 
     Returns:
-        te_data (pandaframe): A pandas dataframe of the TE data
+        te_data (pandaframe): A pandas dataframe of the revised TE data
     """
 
     if os.path.exists(revised_transposons_loc) and not revise_anno:
@@ -167,11 +167,12 @@ def revise_annotation(
         logger.info("revising the TE dataset will take a long time!")
         # N.B we want higher recursion limit for the code
         sys.setrecursionlimit(11 ** 6)
-        revised_te_data = Revise_Anno(te_data, revised_cache_loc, genome_id)
+        revised_te_data = Revise_Anno(
+            te_data, revised_transposons_loc, revised_cache_loc, genome_id
+        )
         revised_te_data.create_superfam()
         revised_te_data.create_order()
         revised_te_data.create_nameless()
-        logger.info("write revised TE: %s" % revised_transposons_loc)
-        revised_te_data.save_updated_te_annotation(revised_transposons_loc)
+        revised_te_data.verify_files()
         te_data = revised_te_data.whole_te_annotation
     return te_data
