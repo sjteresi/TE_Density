@@ -19,6 +19,7 @@ from transposon.merge_data import _MergeConfigSink, _MergeConfigSource, _Summati
 from transposon.transposon_data import TransposonData
 from transposon.gene_data import GeneData
 from transposon.overlap import OverlapData, OverlapWorker
+from transposon.test_utils import temp_dir, temp_h5_file
 
 N_TRANSPOSONS = 4
 WINDOWS = [10, 20, 30, 40]
@@ -59,31 +60,14 @@ def te_data():
     return _te_data()
 
 
-@pytest.fixture()
-def temp_dir():
-    """Temporary directory."""
-
-    with tempfile.TemporaryDirectory() as dir:
-        yield dir
-
-
 @pytest.fixture
-def temp_file(temp_dir):
-    """Temporary h5 file."""
-
-    file = tempfile.NamedTemporaryFile(dir=temp_dir, suffix=".h5")
-    with file as temp:
-        yield temp.name
-
-
-@pytest.fixture
-def config_sink(te_data, gene_data, temp_file):
+def config_sink(te_data, gene_data, temp_h5_file):
     sink = _MergeConfigSink(
         transposons=te_data,
         gene_data=gene_data,
         gene_names=gene_data.names,
         windows=WINDOWS,
-        filepath=temp_file
+        filepath=temp_h5_file
     )
     yield sink
 
@@ -146,10 +130,10 @@ def active_merge_sink_real(transposondata_test_obj, genedata_test_obj, temp_dir)
 
 
 @pytest.fixture
-def active_overlap_data_real(genedata_test_obj, transposondata_test_obj, temp_file):
+def active_overlap_data_real(genedata_test_obj, transposondata_test_obj, temp_h5_file):
     """Yield an active OverlapData instance from real data"""
 
-    overlap_worker = OverlapWorker(temp_file)
+    overlap_worker = OverlapWorker(temp_h5_file)
     overlap_worker.calculate(
         genedata_test_obj,
         transposondata_test_obj,
@@ -157,7 +141,7 @@ def active_overlap_data_real(genedata_test_obj, transposondata_test_obj, temp_fi
         genedata_test_obj.names,
     )
 
-    with OverlapData.from_file(temp_file) as active_overlap:
+    with OverlapData.from_file(temp_h5_file) as active_overlap:
         yield active_overlap
 
 
@@ -274,8 +258,8 @@ def active_merge_sink(merge_sink):
 @pytest.fixture(scope="module")
 def overlap_source():
 
-    with tempfile.NamedTemporaryFile(suffix=".h5") as temp_file:
-        worker = OverlapWorker(temp_file.name)
+    with tempfile.NamedTemporaryFile(suffix=".h5") as temp_h5_file:
+        worker = OverlapWorker(temp_h5_file.name)
         gene_data = _gene_data()
         te_data = _te_data()
         overlap_file = worker.calculate(gene_data, te_data, WINDOWS, gene_data.names)

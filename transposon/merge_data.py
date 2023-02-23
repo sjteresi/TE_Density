@@ -147,7 +147,6 @@ class MergeData:
         Args:
             transposon_data (TransposonData): transposon container.
             gene_data (GeneData): gene data container
-            gene_names (iterable(str)): gene names to process.
             windows (iterable(int)): window inputs to process (not the same as windows).
             output_dir (str): directory to output merge data files.
             ram (int): gigabytes RAM to cache during processing.
