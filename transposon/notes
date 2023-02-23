@@ -1,0 +1,121 @@
+
+"""
+DESIGN
+
+- refactor merge data to do multiple processes per chromosome
+    - so it doesn't suck
+    - allow rewrite of files (open and close)
+    - allow bitmap to track completed jobs (so I know which jobs need to be done)
+    - so density calculators don't suck
+"""
+
+for each chromosome
+    process = new_process(chromosome) # BAD
+        for each gene in process;
+            for each entry in gene / TE / window ...
+                calculate
+                insert
+
+
+for each chromosome
+    workers = make_workers_for_a_chromosome(chrom)
+
+    # split
+    # mega job is composed of little jobs
+    jobs = make_jobs(gene_subset, te_subset, window_subset)  # pseudo-split
+
+    # merge
+    # for each result from the jobs, combine in some way
+    merge_worker = make_merger()  #
+    better_density_data = new_density_data()
+    with merge_worker as my_merger:
+        result = get_result()
+        better_density_data.insert_result(result)
+
+
+do_merge
+    receive result
+
+    insert result
+
+    transmit success/failure
+
+do_work
+    receive job
+
+    create_subset of density
+    loop
+
+    transmit job
+
+
+# USER STORIES
+
+## really basic access
+
+I just need density for one thing....(window/direction/te-type)
+
+can we add a column to the gene data panda frame,
+	that column would be a specify TE density value for window/direction/te-type
+	we aren't limited to adding to a gene data frame
+
+give me TE density values for all genes (2Darray?), e.g.:
+
+for all genes
+	for one TE type
+		for one window
+			for one direction
+
+
+
+class NewHotness:
+
+    def __init__(self):
+        pass
+
+
+def fixture_density():
+    
+
+def test_muhgenes():
+    """ """
+
+    density = NewHotness()
+    density.muhgenes(args...)  # what are these args?
+
+
+
+@dataclass
+class DensityAccessor():
+	genes
+	density
+	te_order (Order|SuperFamily)
+	te_name (LTR...)
+	direction (left|intra|right)
+	window (100 000 000...)
+	
+	def muhdensity():
+	"""Convenience function to get some values."""
+		return pandaframe()
+
+	def muhgenes():
+	"""Generator to produce the densities across the genes"""
+		for gene in allthegenes:
+			self.gene = gene
+			yield self.mudensity()
+
+
+## what the heck are all these chromosome files, I just want my genome!
+
+having all of the files split up by chromosome may make logical sense
+from a density calculation standpoint b/c each on is indepenent
+BUT it's annoying when making analysis
+
+can we make one H5 file to rule them all?
+yes
+	maybe just have one layer of abstraction, index each chromosome
+	maybe concatenate the data? need to maintain what chromosome it came from
+
+
+	
+	
