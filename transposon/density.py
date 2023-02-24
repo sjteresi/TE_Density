@@ -35,7 +35,7 @@ from transposon.verify_cache import (
     verify_gene_cache,
     revise_annotation,
 )
-from transposon.revise_annotation import Revise_Anno
+from transposon.revise_annotation import ReviseAnno
 
 
 def get_nulls(my_df):

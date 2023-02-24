@@ -15,7 +15,7 @@ import pandas as pd
 import logging
 
 from transposon.transposon_data import TransposonData
-from transposon.revise_annotation import Revise_Anno
+from transposon.revise_annotation import ReviseAnno
 
 # -------------------------------------------------------------
 # TEST VALUES
@@ -98,7 +98,7 @@ TRUE_SingleC_ConcOverlap_NAMELESS = [608, 792, 201]
 @pytest.fixture
 def logger_obj():
     """
-    Dummy logging object for Revise_Anno constructor
+    Dummy logging object for ReviseAnno constructor
     """
     logger = logging.getLogger(__name__)
     return logger
@@ -131,7 +131,7 @@ def revised_te_annotation_loc():
 @pytest.fixture
 def superfam_name():
     """
-    Dummy name used for Revise_Anno constructor
+    Dummy name used for ReviseAnno constructor
     """
     return "test_superfam_set"
 
@@ -139,7 +139,7 @@ def superfam_name():
 @pytest.fixture
 def order_name():
     """
-    Dummy name used for Revise_Anno constructor
+    Dummy name used for ReviseAnno constructor
     """
     return "test_order_set"
 
@@ -147,7 +147,7 @@ def order_name():
 @pytest.fixture
 def nameless_name():
     """
-    Dummy name used for Revise_Anno constructor
+    Dummy name used for ReviseAnno constructor
     """
     return "test_nameless_set"
 
@@ -236,7 +236,7 @@ def test_superfam(
     revised_te_annotation_loc,
 ):
     """Create superfamily revisions"""
-    revise_anno_obj = Revise_Anno(
+    revise_anno_obj = ReviseAnno(
         TEData_TestObj.data_frame, "test.tsv", h5_cache_loc, superfam_name
     )
     revise_anno_obj.create_superfam()
@@ -280,7 +280,7 @@ def test_order(
     revised_te_annotation_loc,
 ):
     """Create order revisions"""
-    revise_anno_obj = Revise_Anno(
+    revise_anno_obj = ReviseAnno(
         TEData_TestObj.data_frame, "test.tsv", h5_cache_loc, order_name
     )
     revise_anno_obj.create_order()
@@ -324,7 +324,7 @@ def test_nameless(
     revised_te_annotation_loc,
 ):
     """Create nameless revisions"""
-    revise_anno_obj = Revise_Anno(
+    revise_anno_obj = ReviseAnno(
         TEData_TestObj.data_frame, "test.tsv", h5_cache_loc, nameless_name
     )
     revise_anno_obj.create_nameless()

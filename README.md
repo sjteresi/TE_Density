@@ -124,3 +124,6 @@ You may require additional BLAS dependencies to support NUMPY / HDF5 etc.
 # apt install libblas3 liblapack3 liblapack-dev libblas-dev
 # apt install libatlas-base-dev
 ```
+
+## Performance:
+I ran the TE Density on the Arabidopsis system test files (`tests/system_test_input_data/`) in under 10 minutes on a Dell Latitude 5490 Laptop running Ubuntu 20.04.5 with an Intel i7-8650U and 32 GB of RAM.

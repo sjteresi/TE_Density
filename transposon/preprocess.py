@@ -22,7 +22,7 @@ from transposon.verify_cache import (
     verify_gene_cache,
     revise_annotation,
 )
-from transposon.revise_annotation import Revise_Anno
+from transposon.revise_annotation import ReviseAnno
 
 # FUTURE add option to change the filtering implementation
 class PreProcessor:
@@ -41,14 +41,14 @@ class PreProcessor:
     CACHE_EXT = "h5"
 
     def __init__(
-            self,
-            gene_file,
-            transposon_file,
-            results_dir,
-            reset_h5,
-            genome_id,
-            revise_transposons,
-            logger=None,
+        self,
+        gene_file,
+        transposon_file,
+        results_dir,
+        reset_h5,
+        genome_id,
+        revise_transposons,
+        logger=None,
     ):
         """Initialize.
 
