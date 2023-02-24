@@ -9,7 +9,7 @@ __author__ = "Scott Teresi"
 import os
 import sys
 import pandas as pd
-from transposon.revise_annotation import Revise_Anno
+from transposon.revise_annotation import ReviseAnno
 from transposon.import_filtered_genes import import_filtered_genes
 from transposon.import_filtered_TEs import import_filtered_TEs
 
@@ -167,7 +167,7 @@ def revise_annotation(
         logger.info("revising the TE dataset will take a long time!")
         # N.B we want higher recursion limit for the code
         sys.setrecursionlimit(11 ** 6)
-        revised_te_data = Revise_Anno(
+        revised_te_data = ReviseAnno(
             te_data, revised_transposons_loc, revised_cache_loc, genome_id
         )
         revised_te_data.create_superfam()

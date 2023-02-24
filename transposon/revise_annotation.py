@@ -32,7 +32,7 @@ import pandas as pd
 from tqdm import tqdm
 
 
-class Revise_Anno:
+class ReviseAnno:
     """Create a new TE annotation file without overlapping TEs.
 
     Contains methods to create an altered transposon annotation file (GFF
@@ -56,7 +56,7 @@ class Revise_Anno:
             genome_name (str): String representing the current genome name.
 
         Returns:
-            Revise_Anno object: Principal output to examine is
+            ReviseAnno object: Principal output to examine is
             self.whole_te_annotation which represents the amalgamation of the order,
             superfamily, and nameless revisions.
         """
@@ -78,7 +78,6 @@ class Revise_Anno:
         self.updated_te_annotation = None  # this will be set to a pandaframe
         # for each iteration of the revision process
 
-        # TODO edit/check
         self.revised_filename = revised_filename
         self.whole_te_annotation = None
 
@@ -197,7 +196,7 @@ class Revise_Anno:
         else:
             pbar_split = te_type_to_split
         with tqdm(
-            total=len(Revise_Anno.chromosome_groups(modified_transposon_data)),
+            total=len(ReviseAnno.chromosome_groups(modified_transposon_data)),
             ncols=88,
         ) as pbar:
             if te_type_to_split == "Nameless":
@@ -205,7 +204,7 @@ class Revise_Anno:
                 # doesn't matter, just wanted to have nameless for the tqdm
                 # object below. Needs to be order or super because of splitting
                 # and the data columns inherent to the data
-            for chromosome_of_data in Revise_Anno.chromosome_groups(
+            for chromosome_of_data in ReviseAnno.chromosome_groups(
                 modified_transposon_data
             ):
                 self.chrom_specific_frame_dict = {}
@@ -252,7 +251,7 @@ class Revise_Anno:
         """
         Split the annotation by chromosome into multiple pandaframe
         objects"""
-        return Revise_Anno.split(dataframe, "Chromosome")
+        return ReviseAnno.split(dataframe, "Chromosome")
 
     def call_merge(self):
         """
@@ -360,16 +359,16 @@ class Revise_Anno:
         if len(hit_scan_overlap_array) > 0:  # there are hits, that are non-seed
             seed_stop = self.determine_seed_stop(seed_stop, hit_scan_overlap_array)
             # Remove the hits (the rows) from the search frame.
-            self.search_frame = Revise_Anno.clear_array_by_index(
+            self.search_frame = ReviseAnno.clear_array_by_index(
                 self.search_frame, hit_scan_overlap_array
             )
             # Remove the hits (the rows) from the seed frame.
-            self.seed_frame = Revise_Anno.clear_array_by_index(
+            self.seed_frame = ReviseAnno.clear_array_by_index(
                 self.seed_frame, hit_scan_overlap_array
             )
 
             # seed_row.Stop = seed_stop NOTE this was old, change?
-            seed_row = Revise_Anno.set_seed_stop(seed_row, seed_stop)
+            seed_row = ReviseAnno.set_seed_stop(seed_row, seed_stop)
 
             # Call search again with updated information
 
@@ -383,7 +382,7 @@ class Revise_Anno:
             # Once there are no more hits we go about adding the updated final
             # element into the dataframe
             # Add the row in its virgin or final updated form to the dataframe
-            seed_row = Revise_Anno.set_seed_stop(seed_row, seed_stop)
+            seed_row = ReviseAnno.set_seed_stop(seed_row, seed_stop)
             self.update_data_frame(seed_row)
 
             # Seed element has laready been dropped from search and seed array
