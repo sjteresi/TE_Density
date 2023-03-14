@@ -51,4 +51,6 @@ tags:               ## run ctags
 	ctags \
 		$(ROOT_DIR)/*.py \
 		$(ROOT_DIR)/transposon/*.py
-
+system_test:
+	mkdir -p ./tmp
+	python $(ROOT_DIR)/process_genome.py $(ROOT_DIR)/tests/system_test_input_data/Cleaned_TAIR10_GFF3_genes_main_chromosomes.tsv $(ROOT_DIR)/tests/system_test_input_data/Cleaned_TAIR10_chr_main_chromosomes.fas.mod.EDTA.TEanno.tsv Arabidopsis -o ./tmp --revise_anno
