@@ -228,15 +228,17 @@ class PreProcessor:
             genome_id (str) a string of the genome name.
         """
         # MAGIC get chromosome ID for each data frame
-        chromosomes_in_gene_set = [
-            gene_frame["Chromosome"].unique()[0] for gene_frame in gene_frames
-        ]
-        chromosomes_in_TE_set = [
-            te_frame["Chromosome"].unique()[0] for te_frame in te_frames
-        ]
+        chromosomes_in_gene_set = sorted(
+            [gene_frame["Chromosome"].unique()[0] for gene_frame in gene_frames]
+        )
+        chromosomes_in_TE_set = sorted(
+            [te_frame["Chromosome"].unique()[0] for te_frame in te_frames]
+        )
+        gene_minus_te = list(set(chromosomes_in_gene_set) - set(chromosomes_in_TE_set))
+        te_minus_gene = list(set(chromosomes_in_TE_set) - set(chromosomes_in_gene_set))
         if len(gene_frames) != len(te_frames):
             self._logger.critical(
-                """
+                f"""
                 Number of gene annotations split by chromosome != number of TE
                 annotations split by chromosome.
                 This error has arisen because you have some
@@ -248,10 +250,12 @@ class PreProcessor:
                 Please trim your annotations so that they have the same number and
                 set of chromosome IDs.
 
-                Unique chromosomes in cleaned gene annotation: %s
-                Unique chromosomes in cleaned TE annotation: %s
+                Chromosomes in cleaned gene annotation: {chromosomes_in_gene_set}
+                Chromosomes in cleaned TE annotation: {chromosomes_in_TE_set}
+                Intersection of both: {sorted(list(set(chromosomes_in_gene_set) & set(chromosomes_in_TE_set)))}
+                In gene but not in TE: {gene_minus_te}
+                In TE but not in gene: {te_minus_gene}
                 """
-                % (chromosomes_in_gene_set, chromosomes_in_TE_set)
             )
             raise ValueError
 
