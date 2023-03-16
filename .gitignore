@@ -2,6 +2,7 @@
 **/*.swo
 **/*.orig
 **/*.pyc
+tmp
 tags
 cumtime
 .vscode

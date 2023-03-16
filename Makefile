@@ -3,54 +3,47 @@
 # __author__ Michael Teresi
 
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-DEV_DATA := $(realpath $(ROOT_DIR)/../TE_Data)
-DEV_CACHE := $(DEV_DATA)/tmp                                # MAGIC default
-DEV_CACHE_OVERLAP := $(addsuffix /overlap,$(DEV_CACHE))     # MAGIC default
-DEV_GENES := $(DEV_DATA)/Camarosa_Genes.gtf
-DEV_TES := $(DEV_DATA)/Camarosa_EDTA_TEs.gff
-DEV_PROCESSED_GENES := $(DEV_DATA)/filtered_input_data/Cleaned_Camarosa_Genes.tsv
-DEV_PROCESSED_TES := $(DEV_DATA)/filtered_input_data/Cleaned_Camarosa_EDTA_TEs.tsv
-DEV_PROD_CONF := $(ROOT_DIR)/config/production_run_config.ini
-DEV_GENOME := "Camarosa"
 
-.PHONY: dev help clean test flake8 lint
-
-dev: | tags         ## execute with default testing arguments
-	mkdir -p $(DEV_CACHE)
-	$(ROOT_DIR)/process_genome.py $(DEV_GENES) $(DEV_TES) $(DEV_GENOME) -vv
+SYS_TEST_DIR := tests/system_test_input_data
+SYS_TEST_GENES := $(ROOT_DIR)/$(SYS_TEST_DIR)/Cleaned_TAIR10_GFF3_genes_main_chromosomes.tsv
+SYS_TEST_TES := $(ROOT_DIR)/$(SYS_TEST_DIR)/Cleaned_TAIR10_chr_main_chromosomes.fas.mod.EDTA.TEanno.tsv
 
 
-# Use this command to make the processed/cleaned input files
-filtered_data:
-	python $(ROOT_DIR)/examples/Strawberry/src/import_strawberry_gene_anno.py $(DEV_GENES)
-	python $(ROOT_DIR)/examples/Strawberry/src/import_strawberry_EDTA.py $(DEV_TES)
+.PHONY: help
+help:               ## Show this help
+	@grep -E '^[a-z_A-Z0-9^.(]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-production: | tags         ## execute with default production arguments
-	mkdir -p $(DEV_CACHE)
-	$(ROOT_DIR)/process_genome.py $(DEV_PROCESSED_GENES) $(DEV_PROCESSED_TES) $(DEV_GENOME) -c $(DEV_PROD_CONF) -n 16 -vv
 
-help:               ## Show this help.
-	fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
+.PHONY: system_test
+system_test:        ## run system test on sample data
+	mkdir -p ./tmp
+	python $(ROOT_DIR)/process_genome.py $(SYS_TEST_GENES) $(SYS_TEST_TES) Test -o ./tmp
 
-clean_overlap:      ## remove overlap temp files
-	@echo cleaning temporary files
-	cd $(DEV_CACHE_OVERLAP) && rm *.h5
 
+.PHONY: system_clean
+system_clean:       ## clean the system test
+	rm -rf ./tmp
+
+
+.PHONY: test
 test:               ## run the tests
 	mkdir -p $(ROOT_DIR)/tests/test_h5_cache_loc
 	mkdir -p $(ROOT_DIR)/tests/output_data
 	pytest $(ROOT_DIR)
 
+
+.PHONY: flake8
 flake8:             ## run style guide
 	flake8 $(ROOT_DIR)
 
+
+.PHONY: lint
 lint:               ## run linter
 	pylint $(ROOT_DIR)/transposon
 
+
+.PHONY: tags
 tags:               ## run ctags
 	ctags \
 		$(ROOT_DIR)/*.py \
 		$(ROOT_DIR)/transposon/*.py
-system_test:
-	mkdir -p ./tmp
-	python $(ROOT_DIR)/process_genome.py $(ROOT_DIR)/tests/system_test_input_data/Cleaned_TAIR10_GFF3_genes_main_chromosomes.tsv $(ROOT_DIR)/tests/system_test_input_data/Cleaned_TAIR10_chr_main_chromosomes.fas.mod.EDTA.TEanno.tsv Arabidopsis -o ./tmp --revise_anno

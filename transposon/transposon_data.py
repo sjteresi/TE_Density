@@ -42,6 +42,8 @@ class TransposonData(object):
         self.stops = self.data_frame.Stop.to_numpy(copy=False)
         self.lengths = self.data_frame.Length.to_numpy(copy=False)
         self.orders = self.data_frame.Order.to_numpy(copy=False)
+        # TODO can we store the superfamilies as ints instead of strings?
+        # and then we compare ints rather than strings when finding the matching TE?
         self.superfamilies = self.data_frame.SuperFamily.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
         self.genome_id = genome_id

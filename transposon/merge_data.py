@@ -173,7 +173,11 @@ class MergeData:
     def from_file(cls, filepath, logger=None):
         """Read only source for an existing file."""
 
-        raise NotImplementedError()
+        logger = logger or logging.getLogger(__name__)
+        config = _MergeConfigSink(
+            filepath=filepath,
+        )
+        return cls(config, logger=logger)
 
     @classmethod
     def left_right_slice(cls, group_idx=None, gene_idx=None, window_idx=None):
@@ -304,17 +308,40 @@ class MergeData:
         self._gene_2_idx = {g: i for i, g in enumerate(self.gene_names)}
 
     def _open_existing_file(self, cfg):
+        """Read data from an existing HDF5 file into member variables.
 
-        self._h5_file = h5py.File(cfg.filepath, "r")
-        transposon.read_vlen_str_h5py(
+        Args:
+            cfg(_MergeConfigSource): holds the filepath
+        """
+
+        self._h5_file = h5py.File(cfg.filepath, "r+")  # r+ means read/write & must exist
+
+        # TODO check these read functions
+        self.windows = transposon.read_vlen_str_h5py(
             self._h5_file,
+            self._WINDOWS,
         )
-        # TODO
-        # read windows
-        # read chromosome id
-        # read gene names
-        # read superfams
-        # read orders
+        self.chromosome_id = transposon.read_vlen_str_h5py(
+            self._h5_file,
+            self._CHROME_ID,
+        )
+        self.gene_names = transposon.read_vlen_str_h5py(
+            self._h5_file,
+            self._GENE_NAMES,
+        )
+        self.superfamily_names = transposon.read_vlen_str_h5py(
+            self._h5_file,
+            self._SUPERFAMILY_NAMES
+        )
+        self.order_names = transposon.read_vlen_str_h5py(
+            self._h5_file,
+            self._ORDER_NAMES
+        )
+        # TODO this is copy/paste from the _open_new_file
+        self._window_2_idx = {w: i for i, w in enumerate(self.windows)}
+        self._gene_2_idx = {g: i for i, g in enumerate(self.gene_names)}
+        self._superfam_2_idx = {s: i for i, s in enumerate(self.superfamily_names)}
+        self._order_2_idx = {o: i for i, o in enumerate(self.order_names)}
 
     def _create_sets(self, h5_file, cfg):
         """Add empty data sets to the file.
@@ -442,11 +469,15 @@ class MergeData:
             iterable(_SummationArgs): arguments for calculating the sums
         """
 
+        # BUG this should crash here IF you open from an existing file b/c
+        # the config file will NOT have the transposons attr (TransposonData)
+        # however, restarting a calculation from an existing file
+        # is not yet supported...
         superfam = self._list_sum_input_outputs(
             overlap,
             self.superfamily,
             self._config.transposons.superfamilies,
-            self._config.transposons.superfamily_name_set,
+            self.superfamily_names,
             self._superfam_2_idx,
             overlap.windows,
         )
@@ -454,7 +485,7 @@ class MergeData:
             overlap,
             self.order,
             self._config.transposons.orders,
-            self._config.transposons.order_name_set,
+            self.order_names,
             self._order_2_idx,
             overlap.windows,
         )
