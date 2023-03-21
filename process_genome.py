@@ -69,7 +69,14 @@ from queue import Empty
 
 MergeJob = namedtuple(
     "MergeJob",
-    ["overlap_file", "te_file", "gene_file", "windows", "output_dir", "progress_bar_callback"],
+    [
+        "overlap_file",
+        "te_file",
+        "gene_file",
+        "windows",
+        "output_dir",
+        "progress_bar_callback",
+    ],
 )
 
 
@@ -285,7 +292,7 @@ if __name__ == "__main__":
     )
     preprocessor.process()
     n_data_files = sum(1 for _ in preprocessor.data_filepaths())
-    rel_preproc = os.path.relpath(preprocessor.h5_cache_dir)
+    rel_preproc = os.path.relpath(preprocessor.cache_dir)
     logger.info("preprocessed %d files to %s" % (n_data_files, rel_preproc))
     logger.info("preprocessing... complete")
 

@@ -73,8 +73,8 @@ class PreProcessor:
         self.filtered_dir = os.path.abspath(
             os.path.join(results_dir, "filtered_input_data")
         )
-        self.h5_cache_dir = os.path.abspath(
-            os.path.join(results_dir, "filtered_input_data", "input_h5_cache")
+        self.cache_dir = os.path.abspath(
+            os.path.join(results_dir, "filtered_input_data", "input_cache")
         )
         self.revised_dir = os.path.abspath(
             os.path.join(results_dir, "filtered_input_data", "revised_input_data")
@@ -82,7 +82,7 @@ class PreProcessor:
 
         # NOTE make directories for intermediate and final output data
         os.makedirs(self.filtered_dir, exist_ok=True)
-        os.makedirs(self.h5_cache_dir, exist_ok=True)
+        os.makedirs(self.cache_dir, exist_ok=True)
         os.makedirs(self.revised_dir, exist_ok=True)
 
         self.gene_in = str(gene_file)
@@ -103,8 +103,8 @@ class PreProcessor:
         Mutates self.
         """
 
-        gene_frame = self._filter_genes()
-        transposon_frame = self._filter_transposons()
+        gene_frame = self._load_filtered_genes()
+        transposon_frame = self._load_filtered_transposons()
         transposon_frame = self._revise_transposons(transposon_frame)
         g_split, t_split = self._split_wrt_chromosome(gene_frame, transposon_frame)
         self.g_t_paths = []
@@ -154,7 +154,7 @@ class PreProcessor:
         else:
             raise ValueError("unknown genome file ext '%s' at %s" % (ext, filepath))
 
-    def _filter_genes(self):
+    def _load_filtered_genes(self):
         """Updates filtered gene file if necessary.
 
         Returns:
@@ -165,7 +165,7 @@ class PreProcessor:
         gene_data_unwrapped = verify_gene_cache(self.gene_in, self._logger)
         return gene_data_unwrapped
 
-    def _filter_transposons(self):
+    def _load_filtered_transposons(self):
         """Updates filtered transposon file if necessary.
 
         Returns:
@@ -286,7 +286,7 @@ class PreProcessor:
     def _processed_cache_name(cls, genome_id, chrom_id, cache_dir, suffix):
         """Filepath to preprocessed file.
 
-        For a GeneData or TransposonData file, or one chromosome.
+        For a GeneData or TransposonData file, one chromosome.
 
         Args:
             chrom_id (str): string representation of the chromosome
@@ -295,10 +295,9 @@ class PreProcessor:
         Returns:
             str: expected filepath
         """
-
         return os.path.join(
             cache_dir,
-            str(genome_id + "_" + chrom_id + "_" + suffix + "." + cls.CACHE_EXT),
+            str(genome_id + "_" + chrom_id + "_" + suffix + "." + cls.EXT),
         )
 
     def _cache_data_filepair(self, gene_frame, te_frame):
@@ -316,11 +315,13 @@ class PreProcessor:
         te_data = TransposonData(te_frame, self.genome_id)
 
         chrom_id = gene_data.chromosome_unique_id
+
+        # TODO redo variable so it isn't cache_dir
         gene_filepath = self._processed_cache_name(
-            self.genome_id, chrom_id, self.h5_cache_dir, self.GCACHE_SUFFIX
+            self.genome_id, chrom_id, self.cache_dir, self.GCACHE_SUFFIX
         )
         te_filepath = self._processed_cache_name(
-            self.genome_id, chrom_id, self.h5_cache_dir, self.TCACHE_SUFFIX
+            self.genome_id, chrom_id, self.cache_dir, self.TCACHE_SUFFIX
         )
 
         verify_chromosome_h5_cache(  # this writes the files
@@ -329,7 +330,7 @@ class PreProcessor:
             gene_filepath,
             te_filepath,
             self.do_h5_cache_recreation,
-            self.h5_cache_dir,
+            self.cache_dir,
             self.gene_in,
             self.te_in,
             chrom_id,

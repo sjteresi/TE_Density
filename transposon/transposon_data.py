@@ -111,24 +111,40 @@ class TransposonData(object):
         frame = pd.DataFrame(data, columns=columns)
         return TransposonData(frame, genome_id)
 
-    def write(self, filename, key="default"):
+    def write(self, filename):
         """Write a Pandaframe to disk.
 
         Args:
             filename (str): a string of the filename to write.
-            key (str): identifier for the group (dataset) in the hdf5 obj.
         """
-        self.data_frame.to_hdf(filename, key=key, mode="w")
+        self.data_frame.to_csv(filename, sep="\t", header=True, index=False)
 
     @classmethod
-    def read(cls, filename, key="default"):
+    def read(cls, filename):
         """Read from disk. Returns a wrapped Pandaframe from an hdf5 file
 
         Args:
             filename (str): a string of the filename to write.
-            key (str): identifier for the group (dataset) in the hdf5 obj.
         """
-        data_frame = pd.read_hdf(filename, key=key)
+        # NOTE this is a little duplicate with import_filtered_TEs
+        # NOTE I don't have logger obj here, so talk to Mike if we just want to have
+        # semi-duplicate code.
+        data_frame = pd.read_csv(
+            filename,
+            header="infer",
+            sep="\t",
+            dtype={
+                "Start": "float64",
+                "Stop": "float64",
+                "Length": "float64",
+                "Chromosome": str,
+                "Strand": str,
+                "Order": str,
+                "SuperFamily": str,
+                "Genome_ID": str,
+            },
+        )
+        data_frame.sort_values(by=["Chromosome", "Start"], inplace=True)
         genome_id_list = data_frame["Genome_ID"].unique().tolist()
         if not genome_id_list:
             raise RuntimeError("column 'Genome_ID' is empty")
@@ -136,6 +152,10 @@ class TransposonData(object):
             raise RuntimeError("Genome IDs are are not unique: %s" % genome_id_list)
         else:
             genome_id = genome_id_list[0]  # MAGIC NUMBER list to string
+
+        data_frame.drop(columns=["Genome_ID"], inplace=True)  # NOTE, have to do
+        # this to avoid it getting the column twice, perhaps refactor?
+
         new_instance = cls(data_frame, genome_id)
         return new_instance
 

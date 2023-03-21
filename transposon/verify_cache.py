@@ -17,39 +17,40 @@ from transposon.import_filtered_TEs import import_filtered_TEs
 def verify_chromosome_h5_cache(
     gene_data_obj,
     te_data_obj,
-    h5_g_filename,
-    h5_t_filename,
-    reset_h5,
-    h5_cache_location,
+    g_filepath,
+    t_filepath,
+    reset_h5,  # TODO edit this later
+    cache_location,
     genes_input_file,
     tes_input_file,
     chrom_id,
     logger,
 ):
     """Determine whether or not previously saved gene_data and TransposonData
-    exist in H5 format. Each h5 file represents either gene_data or
-    TransposonData for one chromosome at a time. Save/Update H5 files as
+    exist in .tsv format. Each file represents either gene_data or
+    TransposonData for one chromosome at a time. Save/update files as
     necessary.
 
-    When are H5 files written?
-    1. H5 files will be written if there are no current corresponding H5 files
+    When are the tsv cache files written?
+    1. Files will be written if there are no current corresponding files
     saved on disk.
-    2. If a command-line option is passed to density.py to re-write the H5
-    files, this option defaults to not re-write.
+    2. If a command-line option is passed to density.py to re-write the
+    files, this option defaults to NOT re-write.
+    # TODO check
     3. If enough time has passed between the creation of the H5 file and the
     current run-time of the program. TODO talk to Michael more about this.
 
     Args:
         gene_data_obj (gene_data): Instance of gene_data
         te_data_obj (TransposonData): Instance of TransposonData
-        h5_g_filename (str): The string of the filename in which to save the
+        g_filepath (str): The string of the filename in which to save the
             gene_data as an H5 file.
-        h5_t_filename (str): The string of the filename in which to save the
+        t_filepath (str): The string of the filename in which to save the
             TransposonData as an H5 file.
         reset_h5 (bool): Boolean, whether or not to completely rewrite the
             cache of all H5 files. True means that we will rewrite.
-        h5_cache_location (str): The location (file path) in which to store the
-            h5 files. Defaults to /filtered_input_data/h5_cache
+        cache_location (str): The location (file path) in which to store the
+            cache gene and TE data files.
         genes_input_file (str): The file path of the file that was used to
             generate the gene_data instance.
         tes_input_file (str): The file path of the file that was used to
@@ -58,33 +59,31 @@ def verify_chromosome_h5_cache(
         to name each H5 file.
     """
     if reset_h5:
-        logger.info("overwrite: %s" % h5_g_filename)
-        logger.info("overwrite: %s" % h5_t_filename)
-        gene_data_obj.write(h5_g_filename)
-        te_data_obj.write(h5_t_filename)
+        logger.info("overwrite: %s" % g_filepath)
+        logger.info("overwrite: %s" % t_filepath)
+        gene_data_obj.write(g_filepath)
+        te_data_obj.write(t_filepath)
 
-    if os.path.exists(h5_g_filename) and os.path.exists(h5_t_filename):
+    if os.path.exists(g_filepath) and os.path.exists(t_filepath):
         gene_annot_time = os.path.getmtime(genes_input_file)
         te_annot_time = os.path.getmtime(tes_input_file)
-        gene_h5_time = os.path.getmtime(h5_g_filename)
-        te_h5_time = os.path.getmtime(h5_t_filename)
+        gene_h5_time = os.path.getmtime(g_filepath)
+        te_h5_time = os.path.getmtime(t_filepath)
 
         if (gene_annot_time > gene_h5_time) and (te_annot_time > te_h5_time):
             logger.info("cache is too old for chromosome '%s'" % chrom_id)
-            logger.info("write: %s" % h5_g_filename)
-            logger.info("write: %s" % h5_t_filename)
-            gene_data_obj.write(h5_g_filename)
-            te_data_obj.write(h5_t_filename)
+            logger.info("write: %s" % g_filepath)
+            logger.info("write: %s" % t_filepath)
+            gene_data_obj.write(g_filepath)
+            te_data_obj.write(t_filepath)
 
         elif (gene_annot_time < gene_h5_time) and (te_annot_time < te_h5_time):
             # No need to re-write a current cache
             return
 
-    elif reset_h5 or (
-        not (os.path.exists(h5_g_filename) and os.path.exists(h5_t_filename))
-    ):
-        gene_data_obj.write(h5_g_filename)
-        te_data_obj.write(h5_t_filename)
+    elif reset_h5 or (not (os.path.exists(g_filepath) and os.path.exists(t_filepath))):
+        gene_data_obj.write(g_filepath)
+        te_data_obj.write(t_filepath)
     else:
         logger.critical(
             """During the verification of the H5 cache nothing was
@@ -93,7 +92,6 @@ def verify_chromosome_h5_cache(
 
 
 def verify_TE_cache(tes_input_file, logger):
-
     """Read a preprocessed/filtered TE annotation file from disk; return a
     pandaframe of the file, no modifications are made to the data.
 
