@@ -69,8 +69,8 @@ def test_validate_split(gene_file, transposon_file, temp_dir):
         "fake_genome_id",  # MAGIC genome ID arg
         True,  # revise TE arg
     )
-    gene_frame = preprocessor_obj._filter_genes()
-    transposon_frame = preprocessor_obj._filter_transposons()
+    gene_frame = preprocessor_obj._load_filtered_genes()
+    transposon_frame = preprocessor_obj._load_filtered_transposons()
     transposon_frame = preprocessor_obj._revise_transposons(transposon_frame)
     with pytest.raises(ValueError) as exc:
         preprocessor_obj._split_wrt_chromosome(gene_frame, transposon_frame)
