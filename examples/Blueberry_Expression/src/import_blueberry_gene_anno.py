@@ -83,23 +83,14 @@ def import_genes(genes_input_path, logger):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Reformat gene annotation file")
-    path_main = os.path.abspath(__file__)
-    dir_main = os.path.dirname(path_main)
-    output_default = os.path.join(
-        dir_main, "../../../../", "TE_Data/filtered_input_data"
-    )
     parser.add_argument(
         "gene_input_file", type=str, help="Parent path of gene annotation file"
     )
-
     parser.add_argument(
-        "--output_dir",
-        "-o",
+        "output_dir",
         type=str,
-        default=output_default,
         help="Parent directory to output results",
     )
-
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="set debugging level to DEBUG"
     )
