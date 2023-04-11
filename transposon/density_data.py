@@ -14,6 +14,8 @@ import shutil
 import re
 from collections import namedtuple
 
+from transposon.gene_data import GeneData
+
 DensitySlice = namedtuple(
     "DensitySlice", ["slice", "direction", "window_val", "te_type"]
 )
@@ -513,7 +515,7 @@ class DensityData:
             )
 
     @staticmethod
-    def _supply_density_data_files(path_to_folder):
+    def _supply_density_data_files(path_to_folder, pattern=".h5"):
         """
         Iterate over a folder containing the H5 files of TE Density output and
         return a list of absolute file paths.
@@ -528,15 +530,89 @@ class DensityData:
             raw_file_list (list of str): A list containing the absolute paths to
             each relevant H5 file of density data
         """
+        # TODO modify this function name and description now that I am also
+        # using it for tsvs
         raw_file_list = []  # init empty list to store filenames
         for root, dirs, files in os.walk(path_to_folder):
             for a_file_object in files:
                 # N.B very particular usage of abspath and join.
                 a_file_object = os.path.abspath(os.path.join(root, a_file_object))
-                if a_file_object.endswith(".h5"):  # MAGIC file ext
+                if a_file_object.endswith(pattern):  # MAGIC file ext
                     raw_file_list.append(a_file_object)
         return sorted(raw_file_list)
 
+    @classmethod
+    def from_list_genedata_dir_and_hdf5_dir(
+        cls, genedata_cache_dir, HDF5_folder, logger
+    ):
+        """
+        Returns a list of DensityData instances when given a list of GeneData
+        and a directory of H5 files
+
+
+        Args:
+            genedata_cache_dir (list): Path to directory containing the cached
+            genedata files that were made during the pipeline. These are
+            basically .tsv files corresponding to each pseudomolecule of the
+            user's gene annotation
+
+            HDF5_folder (str): Path to directory containing results (.h5) files
+            following the successful computation of TE Density
+
+            logger (logging.logger): Obj to log information to
+
+        Returns: processed_dd_data (list of DensityData instances).
+        """
+        # Sort the filepaths for the GeneDatas, this will make it so that
+        # the pseudmolecules are sorted
+        genedata_abs_paths = sorted(
+            DensityData._supply_density_data_files(genedata_cache_dir, "GeneData.tsv")
+        )
+        # Initialize gene data from the sorted filepaths, now I have 'sorted'
+        # GeneData objects
+        list_of_gene_data = [GeneData.read(filepath) for filepath in genedata_abs_paths]
+
+        # Sort the filepaths for the h5 data.
+        all_unprocessed_h5_files = sorted(
+            DensityData._supply_density_data_files(HDF5_folder)
+        )
+
+        if len(list_of_gene_data) != len(all_unprocessed_h5_files):
+            logger.critical(
+                """
+                Your gene data cache files: %s do not correspond 1:1 to your
+                output from TE Density: %s
+
+                This function only looks for '*GeneData.tsv' files in a
+                directory, as well as the '.h5' (NOT overlap) output files.
+                It could help to make sure there are no extraneous files in
+                each directory.
+            """
+                % (genedata_abs_paths, all_unprocessed_h5_files)
+            )
+            raise ValueError
+
+        # Initialize DensityData for each pseudomolecule
+        processed_dd_data = [
+            cls.verify_h5_cache(raw_hdf5_data_file, gene_data_obj, logger)
+            for raw_hdf5_data_file, gene_data_obj, in zip(
+                all_unprocessed_h5_files, list_of_gene_data
+            )
+        ]
+        return processed_dd_data
+
+    # NOTE, this is legacy code. It has been replaced with
+    # from_list_genedata_dir_and_hdf5_dir() which I think is more clean and
+    # easier to interact with. Users kept getting tripped up with the regex
+    # pattern and I forgot that users will have genomes with both 'chr_xyz' and
+    # 'contig24_abc_xyz' as their pseudmolecule IDs, so a single regex pattern would
+    # be hard to implement at times. The replacement class method,
+    # from_list_genedata_dir_and_hdf5_dir(), foregos the usage of a regex
+    # pattern and simply alphabetically sorts the filenames, this makes it easy
+    # to match GeneData to HDF5 files.
+
+    # More to come, Michael and I are still working on refactoring DensityData
+    # and MergeData.
     @classmethod
     def from_list_gene_data_and_hdf5_dir(
         cls, list_of_gene_data, HDF5_folder, file_substring, logger
@@ -806,6 +882,7 @@ class DensityData:
         """String representation for developer."""
         info = """
                 DensityData Genome ID: {self.genome_id}
+                DensityData Chromosome ID: {self.unique_chromosome_id}
                 DensityData shape key: (type of TE, windows, genes)
                 DensityData left_order shape: {self.left_orders.shape}
                 DensityData intra_order shape: {self.intra_orders.shape}
