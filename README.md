@@ -25,6 +25,13 @@ To install all required packages for this tool run `pip install -r requirements.
 We suggest that you use a virtual environment for this tool in order to better keep track of the packages being installed.
 Please refer to this [guide](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) for directions on how to use a virtual environment in conjunction with *pip*.
 
+## System Test:
+Once you have the Python packages installed and the correct version of Python
+(3.10), please try the system test with `make system_test` from within the root
+directory. This runs TE Density on a slightly modified *Arabidopsis thaliana*
+genome. I ran the TE Density on the Arabidopsis system test files (`tests/system_test_input_data/`) in under 10 minutes on a Dell Latitude 5490 Laptop running Ubuntu 20.04.5 with an Intel i7-8650U and 32 GB of RAM.
+
+
 ## Preprocessing:
 The user is responsible for preprocessing both of their annotation files into the format described below.
 To aid in this endeavor, we provide the scripts we used to reformat our input data.
