@@ -31,7 +31,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "density_data_folder",
         type=str,
-        help="Parent path of folder containing TE Density results",
+        help="Parent path of folder containing ONLY the TE Density results",
     )
 
     parser.add_argument(

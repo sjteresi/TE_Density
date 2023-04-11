@@ -99,7 +99,8 @@ This python script, `transposon/density_data.py`, contains the DensityData class
 We also provide multiple examples of how to access the HDF5 data within the data analysis example directories.
 Please refer to `examples/general_read_density_data.py` for a barebones implementation of how to initialize DensityData for a single output file.
 ### Example Script:
-`python examples/general_read_density_data.py CLEANED_GENE_ANNOTATION.tsv DENSITY_DATA_FOLDER "Arabidopsis_(.*?).h5"`
+`python examples/general_read_density_data.py CLEANED_GENE_ANNOTATION.tsv DENSITY_DATA_FOLDER "Arabidopsis_(.*?).h5"`.
+The `DENSITY_DATA_FOLDER` argument must **only** contain density data results (not GeneData or TEData)
 
 
 ## Dependencies
