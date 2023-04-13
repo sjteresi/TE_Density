@@ -252,6 +252,9 @@ class MergeData:
         self._superfam_2_idx = None
         self._order_2_idx = None
 
+        self._superfam_idxs = None
+        self._order_idxs = None
+
         self.superfamily = None
         self.order = None
 
@@ -307,6 +310,9 @@ class MergeData:
         self._window_2_idx = {w: i for i, w in enumerate(self.windows)}
         self._gene_2_idx = {g: i for i, g in enumerate(self.gene_names)}
 
+        self._superfam_idxs = np.array([i for i, s in enumerate(self.superfamily_names)])
+        self._order_idxs = np.array([i for i, s in enumerate(self.order_names)])
+
     def _open_existing_file(self, cfg):
         """Read data from an existing HDF5 file into member variables.
 
@@ -342,6 +348,9 @@ class MergeData:
         self._gene_2_idx = {g: i for i, g in enumerate(self.gene_names)}
         self._superfam_2_idx = {s: i for i, s in enumerate(self.superfamily_names)}
         self._order_2_idx = {o: i for i, o in enumerate(self.order_names)}
+
+        self._superfam_idxs = np.array([i for i, s in enumerate(self.superfamily_names)])
+        self._order_idxs = np.array([i for i, s in enumerate(self.order_names)])
 
     def _create_sets(self, h5_file, cfg):
         """Add empty data sets to the file.
@@ -493,7 +502,7 @@ class MergeData:
 
     @classmethod
     def _list_sum_input_outputs(
-        cls, overlap, density, te_group, te_set, te_idx_map, windows
+        cls, overlap, density, te_group, te_set, te_idx_map, windows,
     ):
         """List of parameters for each computation.
 

@@ -42,12 +42,24 @@ class TransposonData(object):
         self.stops = self.data_frame.Stop.to_numpy(copy=False)
         self.lengths = self.data_frame.Length.to_numpy(copy=False)
         self.orders = self.data_frame.Order.to_numpy(copy=False)
-        # TODO can we store the superfamilies as ints instead of strings?
-        # and then we compare ints rather than strings when finding the matching TE?
         self.superfamilies = self.data_frame.SuperFamily.to_numpy(copy=False)
         self.chromosomes = self.data_frame.Chromosome.to_numpy(copy=False)
         self.genome_id = genome_id
         self.add_genome_id()
+
+        # TODO can we store the superfamilies as ints instead of strings?
+        # and then we compare ints rather than strings when finding the matching TE?
+        sfam_set = sorted(set(self.data_frame.SuperFamily))
+        self.superfam_uids = [i for i,s in enumerate(sfam_set)]
+        self.superfam_2_uid = {s: i for i, s in enumerate(sfam_set)}
+        #self._logger.info("superfamilies  {}".format(self.superfamilies))
+        #self._logger.info("superfam set   {}".format(sfam_set))
+        #self._logger.info("superfam uids  {}".format(self.superfam_uids))
+        #self._logger.info("superfam map   {}".format(self.superfam_2_uid))
+        order_set = sorted(set(self.data_frame.Order))
+        self.order_uids = [i for i,s in enumerate(order_set)]
+        self.order_2_uid = {s: i for i, s in enumerate(order_set)}
+
 
     @classmethod
     def mock(
