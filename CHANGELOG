@@ -1,3 +1,10 @@
+2.1.1
+- add initial setup.py
+- remove tables (pytables)
+- upgrade numpy  1.23.5 --> 1.24.2
+- upgrade h5py   3.7.0  --> 3.8.0
+- test on cpython 3.11.3+
+
 2.1.0
 - upgrade py3.8 --> py3.10
 - upgrade dependencies

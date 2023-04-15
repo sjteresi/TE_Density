@@ -1,6 +1,10 @@
-# Summary:
+# Transposable Element Density
+
 This software pipeline calculates TE density.
+
+----
 TE density is a metric that we define as the number of TE-occupied base-pairs in a given window (a base-pair range), divided by that window value, relative to each gene in the genome.
+
 TE density values are calculated for every gene in the genome for the combination of TE *(TE superfamily || TE order) x (upstream || intragenic || downstream) wrt* a window length.
 The pipeline requires two main inputs, a gene annotation and a TE annotation.
 The pipeline outputs an [HDF5](https://portal.hdfgroup.org/display/HDF5/HDF5) file of TE density values for each pseudomolecule in the genome.
@@ -12,22 +16,52 @@ Calculate TE density for every gene in a genome, along sliding windows, upstream
 Our main goal in writing this tool was to provide a clear and concise pipeline/metric to aid in the study of TE presence relative to genes.
 
 # Usage:
+```
+$ ./process_genome.py -h  # displays usage
+```
 This code requires two input files, both a gene and a TE annotation.
 We divide the pipeline into three stages described below, preprocessing, processing, and postprocessing.
 Preprocessing requires the user to reformat their annotation files for the general pipeline, processing requires the user the user to executing the `process_genome.py` script with their chosen input arguments, and postprocessing aids the user in accessing the subarrays of the resulting TE density datafiles.
 
+
 ## Datasets for Examples:
 The datasets can be accessed on Dryad at the following [link](https://datadryad.org/stash/share/mFjpHlP53Y-BUP4nKI0LQGVmLkXevNatnz8MLlK36zw)
 
-## Installation Requirements:
-Please install *pip* so that you may easily install Python packages.
-To install all required packages for this tool run `pip install -r requirements.txt`.
-We suggest that you use a virtual environment for this tool in order to better keep track of the packages being installed.
-Please refer to this [guide](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) for directions on how to use a virtual environment in conjunction with *pip*.
+
+## Installation:
+
+We have developed on `Ubuntu 22.04` with `cpython` `3.10` and `3.11`, and with `pip`.
+Other distributions / package managers are available.
+
+We suggest using `pip` and a virtual environment to properly manage your installation.
+See [venv](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) or [virtualenvwrapper](https://virtualenvwrapper.readthedocs.io/en/latest/)
+for directions on how to use a virtual environment in conjunction with `pip`.
+
+You may install as a package, see `setup.py` for list of general requirements.
+
+(Note that this will install the module and `process_genome.py` but not the test data and `Makefile` etc.)
+```
+$ pip install 'te-density @ git+https://github.com/sjteresi/TE_Density.git@master'
+$ process_genome.py -h  # the main entry point
+$ python
+>>> import transposon   # the module
+```
+
+You may clone directly, see `./requirements.txt` for an exact requirements list.
+```
+$ git clone https://github.com/sjteresi/TE_Density.git && cd TE_Density
+$ pip install -r requirements.txt
+$ ./process_genome.py -h  # the main entry point
+$ python
+>>> import transposon     # the module
+```
+
+See [Troubleshooting](#troubleshooting) for further system installation.
+
 
 ## System Test:
 Once you have the Python packages installed and the correct version of Python
-(3.10), please try the system test with `make system_test` from within the root
+(>=3.10), please try the system test with `make system_test` from within the root
 directory. This runs TE Density on a slightly modified *Arabidopsis thaliana*
 genome. I ran the TE Density on the Arabidopsis system test files (`tests/system_test_input_data/`) in under 10 minutes on a Dell Latitude 5490 Laptop running Ubuntu 20.04.5 with an Intel i7-8650U and 32 GB of RAM.
 
@@ -110,20 +144,11 @@ Please refer to `examples/general_read_density_data.py` for a barebones implemen
 The `DENSITY_DATA_FOLDER` argument must **only** contain density data results (not GeneData or TEData)
 
 
-## Dependencies
-
-Tested on `Python 3.10` and `Ubuntu 22.04`.
-
-SEE ./requirements/requirements.txt
-
-
 ### Troubleshooting
 
-HDF5 and pytables requires the HDF5 runtime and development files.
+HDF5 may require the HDF5 runtime and development files,
 e.g. on Ubuntu 22.04:
 ```bash
-# apt install python3.10-dev
-# apt install python3-distutils
 # apt install libhdf5-serial-dev
 ```
 
@@ -131,6 +156,12 @@ You may require additional BLAS dependencies to support NUMPY / HDF5 etc.
 ```bash
 # apt install libblas3 liblapack3 liblapack-dev libblas-dev
 # apt install libatlas-base-dev
+```
+
+You may require additional development headers to compile, e.g.:
+```bash
+# apt install python3.10-dev
+# apt install python3-distutils
 ```
 
 ## Performance:
