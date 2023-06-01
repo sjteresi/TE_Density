@@ -310,9 +310,11 @@ class DensityData:
             DensityData._supply_density_data_files(HDF5_folder)
         )
 
+        # This just needs to be run on the last part of the word. Failing wit
+        # David's stuff because it has redudancy in the filepath
         # NB get the hits of files that match your regex substring provided
         chromosome_ids_unprocessed_h5_files = [
-            re.search(file_substring, x) for x in all_unprocessed_h5_files
+            re.search(file_substring, os.path.basename(x)) for x in all_unprocessed_h5_files
         ]
 
         logger.info(
@@ -401,7 +403,26 @@ class DensityData:
                 all_unprocessed_h5_files, list_of_gene_data
             )
         ]
+        # TODO Scott
+        #DensityData._verify_TE_name_sequence(processed_dd_data)
         return processed_dd_data
+
+    # TODO Scott start here next time. Basically need to verify if the order
+    # and superfamily lengths match between all density data objects. My code
+    # is failing because some "chromosomes" in David's data must be like either
+    # super small or it is an artifact of running with the test config (I think
+    # just the fact that they are small, and some TE types are not present on
+    # these tiny chromosomes. This creates a situation where one or more
+    # chromosomes don't have an LTR or DNA element etc, so then when I try to
+    # add that information to the pandas table of TE density float values it
+    # fails because it is trying to do a lookup on a nonexisting column.
+
+    # Also make sure to note the basename change and make a commit for that.
+
+    # Right now the Total_TE_Density should suffice.
+
+    # def _verify_TE_name_sequence()
+
 
     def __repr__(self):
         """String representation for developer."""
