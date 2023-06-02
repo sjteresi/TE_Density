@@ -34,8 +34,9 @@ def import_filtered_genes(genes_input_path, logger):
             Error occurred while trying to read preprocessed gene
             annotation file into a Pandas dataframe, please refer
             to the README as to what information is expected
+            input file: %s
             """
-        logger.critical(msg)
+        logger.critical(msg, genes_input_path)
         raise err
 
     check_nulls(gene_data, logger)
