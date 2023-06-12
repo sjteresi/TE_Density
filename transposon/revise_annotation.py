@@ -60,12 +60,19 @@ class ReviseAnno:
             self.whole_te_annotation which represents the amalgamation of the order,
             superfamily, and nameless revisions.
         """
+
+        self.logger = logging.getLogger(self.__class__.__name__)
         # Set stack size to unlimited so that we can use the code's recursion
         # for merging TEs.
-        resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, -1))
+        try:
+            resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, -1))
+        except ValueError as verr:
+            msg = ("could not raise recursion limit using 'resource' module, "
+                   "are you using Windows? revision may fail")
+            self.logger.error(msg)
+            self.logger.warn("got this ValueError in __init__: %s", str(verr))
 
         self.transposon_data = transposon_anno
-        self.logger = logging.getLogger(self.__class__.__name__)
         self.revised_superfam_file = os.path.abspath(
             os.path.join(output_dir, (genome_name + "_superfam_revision_cache.tsv"))
         )
