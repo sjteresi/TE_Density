@@ -440,11 +440,6 @@ class MergeData:
                     # for one gene, one window, and all the TEs, we have overlap values
                     # select only the overlaps for the TEs that match the TE type
                     g_slice_in, w_slice_in, te_slice_in = slice_in
-                    filtered_slice_in = (
-                        g_slice_in,
-                        w_slice_in,
-                        superfam_or_order_match,
-                    )
                     # sum all the entries for the gene/window at that TE type
                     overlap_sum = np.sum(
                         overlaps[g_slice_in, w_slice_in, slice(None)],
