@@ -57,6 +57,7 @@ class _DensitySubsetConfig:
     gene_names: list[str] = field(default_factory=list)
 
 
+# TODO should actually be public, b/c we will expose its methods
 class _DensitySubset:
     """Contains the arrays for either a superfamily XOR order.
 
@@ -110,7 +111,7 @@ class _DensitySubset:
         self.left = self._group[self._LEFT]
         self.intra = self._group[self._INTRA]
         self.right = self._group[self._RIGHT]
-        self.bitmap = self._group[self._BITMAP]
+        self._bitmap = self._group[self._BITMAP]
 
     @property
     def filename(self):

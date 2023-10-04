@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from contextlib import ExitStack
 from enum import Enum
 from tempfile import NamedTemporaryFile
+import logging
 
 import h5py
 
 from transposon.density2 import _DensitySubset, _DensitySubsetConfig
-
 
 
 @dataclass
@@ -45,25 +45,31 @@ class DensityWorker:
 
 
 class DensityData(ExitStack):
-    """Contains the calculated transposable element density.
+    """Read and write the transposable element densities
 
-    Is a context manager; wraps an HDF5 file.
+    Wraps an HDF5 file.
+    Is a context manager.
+        If no filepath is provided, a temporary file will be used.
+    Provides methods to read/update densities.
 
-    Contains the densities for the superfamilies and orders.
+    Intialize your instance, enter, read/write, exit.
     """
 
     def __init__(self, gene_data, te_data, windows, filepath=None, logger=None):
         """Initialize.
 
+        NB if reading an existing file, the GeneData, TransposonData, and windows,
+            _must_ match the data in the existing file or the program will abort,
         Args:
-            gene_data():
-            te_data():
-            windows():
-            filepath():
-            logger():
+            gene_data(): the genes container
+            te_data(): the transposable elements container
+            windows(): the window counts
+            filepath(str): path to a file to read/write, creates a TemporaryFile if None
+            logger(Logger): logging instance, creates one under class name if None
         """
 
         super().__init__()
+        self._logger = logger or logging.getLogger(__name__)
 
         self._path = filepath
         self._hdf5 = None
@@ -80,6 +86,16 @@ class DensityData(ExitStack):
         """The current filepath."""
 
         return self._path
+
+    def flush(self):
+        """Write buffers to file."""
+
+        self._hdf5.flush()
+
+    def write(self, path):
+        """Write the data to a new filepath."""
+
+        raise NotImplementedError()
 
     def __enter__(self):
         """Acquire resources.
@@ -100,9 +116,13 @@ class DensityData(ExitStack):
 
         return self
 
-    def __exit__(self, exc_type, exc, exc_tb):
-        pass
-        # TODO close file
+    def __exit__(self, *args):
+        """Release resources."""
+
+        super().__exit__(*args)
+        self._hdf5 = None
+        self.superfamily = None
+        self.order = None
 
     def _init_subset(self, prefix, te_names):
         """Initialize the type of TE density data"""
@@ -126,21 +146,23 @@ class DensityData(ExitStack):
         """
 
         if self._path is None:
-            # NB SpooledTemporaryFile doesn't appear to work w/ h5py by default
-            tf = NamedTemporaryFile()
-            self.enter_context(tf)
-            self._path = tf.name
+            # NOTE it's more secure to first create a temporary directory
+            # then create the file
+            handle = NamedTemporaryFile()
+            self.enter_context(handle)
+            self._path = handle.name
         # MAGIC a is: Read/write if exists, create otherwise
-        hfile = h5py.File(self._path, 'a')
+        # MAGIC latest: use most performant version over backwards compatibility
+        hfile = h5py.File(self._path, 'a', libver='latest')
         self.enter_context(hfile)
         self._hdf5 = hfile
 
     def generate_jobs(self):
         """Yield DensityJob instances, for each missing entry."""
+
         pass  # TODO
 
     def reduce_result(self):
         """Save the DensityResult in the matrix."""
+
         pass  # TODO
-
-
