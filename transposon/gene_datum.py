@@ -200,6 +200,8 @@ class GeneDatum(object):
         divisor = self.win_length(window)
         return divisor
 
+    # TODO add func to returm divisor given left/intra/right
+
     def __repr__(self):
         """Printable representation."""
 

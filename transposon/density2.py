@@ -58,7 +58,7 @@ class _DensitySubsetConfig:
 
 
 # TODO should actually be public, b/c we will expose its methods
-class _DensitySubset:
+class DensitySubset:
     """Contains the arrays for either a superfamily XOR order.
 
     This is an abstraction b/c both the superfamily/order have the same format.
@@ -105,9 +105,10 @@ class _DensitySubset:
 
         self._init_gene_names()
         self._init_te_names()
+        # NOTE do we also need to store te groups here? (the superfamily or order te column)
         self._init_windows()
-
         self._init_densities()
+
         self.left = self._group[self._LEFT]
         self.intra = self._group[self._INTRA]
         self.right = self._group[self._RIGHT]
@@ -215,7 +216,7 @@ class _DensitySubset:
             )
         except TypeError as err:
             msg = "input dataset for %s shape %s but the file is %s"
-            self._logger.error(msg, key, shape, self._group[key].shape)
+            self._logger.critical(msg, key, shape, self._group[key].shape)
             raise err
 
     def _init_strings(self, key, data_from_file, data_from_config):
@@ -246,7 +247,7 @@ class _DensitySubset:
             msg = (
                 "input data for key '{}' does not match file: input v.s. file:\n{}\n{}"
             )
-            self._logger.error(msg.format(key, data_from_config, data_from_file))
+            self._logger.critical(msg.format(key, data_from_config, data_from_file))
             raise ValueError(msg.format(key, data_from_config, data_from_file))
 
     def _init_array(self, key, data_in, dtype):
@@ -263,7 +264,7 @@ class _DensitySubset:
         data_out = self._group[key][:]
         if data_in is not None and (data_in != data_out).any():
             msg = "input {} does not match file, \n{}\n{}"
-            self._logger.error(msg.format(key, data_in, data_out))
+            self._logger.critical(msg.format(key, data_in, data_out))
             raise ValueError(msg.format(key, data_in, data_out))
 
     def _init_gene_names(self):
@@ -311,6 +312,10 @@ class _DensitySubset:
         comp = self.cfg.compression
 
         # MAGIC experimental, so far needed more than f16 for density
+        # NB in row major, the rightmost index varies the fastest
+        # TODO move the windows to left most, (win, gen, te),
+        # b/c it looks like we'll do all windows for one gene, and vary TE the least
+        # https://agilescientific.com/blog/2018/12/28/what-is-the-fastest-axis-of-an-array
         require = partial(self._group.require_dataset, compression=comp)
         require(self._LEFT, (n_tes, n_win, n_gen), np.double, exact=True)
         require(self._INTRA, (n_tes, 1, n_gen), np.double, exact=True)

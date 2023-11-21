@@ -281,8 +281,10 @@ class MergeData:
         self.windows = list(cfg.windows)
         self.gene_names = list(cfg.gene_names)
         self.chromosome_id = str(cfg.transposons.chromosome_unique_id)
+        # NOTE should these be sorted?
         self.superfamily_names = sorted(cfg.transposons.superfamily_name_set)
         self._superfam_2_idx = {s: i for i, s in enumerate(self.superfamily_names)}
+        # NOTE should these be sorted?
         self.order_names = sorted(cfg.transposons.order_name_set)
         self._order_2_idx = {o: i for i, o in enumerate(self.order_names)}
         # TODO when upgrading to H5PY try using fs_strategy=page, page_buf_size
@@ -423,6 +425,8 @@ class MergeData:
         # a) left / intra / right, and, b) superfamily / order
         # although there are so few intra calcs it might be easier to do that separately
 
+
+        # TODO switch order to TE -> gene -> window (to reuse TE.where call)
         overlaps = sum_args.input[()]
         w_indices = [self._window_2_idx.get(w, None) for w in sum_args.windows]
         for gene_name in overlap.gene_names:
@@ -433,6 +437,7 @@ class MergeData:
             te_indices, te_names = sum_args.te_idx_name
             for _i_te, _te_idx_name in enumerate(zip(te_indices, te_names)):
                 te_idx, te_name = _te_idx_name
+                # TODO should be able to convert the te_name strings to ints for faster comparison
                 superfam_or_order_match = sum_args.where(te_name)
 
                 for w_idx, divisor in zip(w_indices, divisors):

@@ -394,6 +394,33 @@ class OverlapData:
         genome_id = self._h5_file[self._GENOME_ID][:].tolist()[0]  # MAGIC NUMBER only one ID
         return genome_id.decode("utf-8")
 
+    def gene_name_to_idx(self, gene_name):
+        pass
+        # TODO for the density refactor
+
+    def window_to_idx(self, window, direction):
+        pass
+        # TODO for the density refactor
+
+    def subset(
+        self,
+        overlap_sub_array: np.ndarray,
+        gene_name: str,
+        window_count, int,
+    ):
+        """Return the sub-array of the overlap data given the gene and window."""
+
+        pass
+        # TODO for the density refactor
+
+        # add the w_val -> w_idx map to self on __init__
+        # add the gene_name -> g_idx map to self on __init__
+
+        # find the index of the gene
+        # find the index of the window
+        # select the left/intra/right array
+        # return the array[g_idx, w_idx, :]
+
 
 class OverlapWorker:
     """Calculates the overlap values."""

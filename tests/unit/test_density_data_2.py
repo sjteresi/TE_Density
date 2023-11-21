@@ -52,5 +52,8 @@ def density(gene_data, te_data):
     with rho as handle:
         yield handle
 
+
 def test_density_init(density):
+    """Does the DensityData instance enter / exit?"""
+
     pass

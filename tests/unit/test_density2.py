@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 import h5py
 
-from transposon.density2 import _DensitySubset, _DensitySubsetConfig
+from transposon.density2 import DensitySubset, _DensitySubsetConfig
 
 
 WINDOWS = [10, 100, 1000]
@@ -65,12 +65,12 @@ def default_config():
 def default_density(temp_dir, default_config):
 
     with temp_h5_context(temp_dir) as file:
-        yield _DensitySubset(file, CHROME_ID, default_config)
+        yield DensitySubset(file, CHROME_ID, default_config)
 
 
 @contextmanager
 def read_density_from_other(density):
-    """Create a new _DensitySubset from another.
+    """Create a new DensitySubset from another.
 
     Intended to simplify writing / reading data from an H5.
     """
@@ -82,7 +82,7 @@ def read_density_from_other(density):
             shutil.copyfile(density.filename, temp.name)
             # MAGIC h5py convention, 'a' is append
             with h5py.File(temp, 'a') as new_h5:
-                new_density = _DensitySubset(new_h5, CHROME_ID, density.cfg)
+                new_density = DensitySubset(new_h5, CHROME_ID, density.cfg)
                 yield new_density
 
 
@@ -124,7 +124,7 @@ def test_read_check_mismatch_genes(default_density):
     other_cfg = deepcopy(default_density.cfg)
     other_cfg.gene_names.append("unexpected_gene")
     with pytest.raises(TypeError):
-        other_density = _DensitySubset(default_density.file, CHROME_ID, other_cfg)
+        other_density = DensitySubset(default_density.file, CHROME_ID, other_cfg)
 
 
 def test_gene_value_mismatch(default_density):
@@ -133,7 +133,7 @@ def test_gene_value_mismatch(default_density):
     other_cfg = deepcopy(default_density.cfg)
     other_cfg.gene_names[0] = "unexpected_gene"
     with pytest.raises(ValueError):
-        other_density = _DensitySubset(default_density.file, CHROME_ID, other_cfg)
+        other_density = DensitySubset(default_density.file, CHROME_ID, other_cfg)
 
 
 def test_write_read_transposons(default_density):
@@ -148,7 +148,7 @@ def test_read_check_mismatch_transposons(default_density):
     other_cfg = deepcopy(default_density.cfg)
     other_cfg.te_names.append("unexpected_transposon")
     with pytest.raises(TypeError):
-        other_density = _DensitySubset(default_density.file, CHROME_ID, other_cfg)
+        other_density = DensitySubset(default_density.file, CHROME_ID, other_cfg)
 
 
 def test_te_value_mismatch(default_density):
@@ -157,7 +157,7 @@ def test_te_value_mismatch(default_density):
     other_cfg = deepcopy(default_density.cfg)
     other_cfg.te_names[0] = "unexpected_te"
     with pytest.raises(ValueError):
-        other_density = _DensitySubset(default_density.file, CHROME_ID, other_cfg)
+        other_density = DensitySubset(default_density.file, CHROME_ID, other_cfg)
 
 
 def test_write_read_windows(default_density):
@@ -172,7 +172,7 @@ def test_read_check_mismatch_windows(default_density):
     other_cfg = deepcopy(default_density.cfg)
     other_cfg.windows.append(9191)
     with pytest.raises(TypeError):
-        other_density = _DensitySubset(default_density.file, CHROME_ID, other_cfg)
+        other_density = DensitySubset(default_density.file, CHROME_ID, other_cfg)
 
 
 def test_window_value_mismatch(default_density):
@@ -181,7 +181,7 @@ def test_window_value_mismatch(default_density):
     other_cfg = deepcopy(default_density.cfg)
     other_cfg.windows[0] = 9999
     with pytest.raises(ValueError):
-        other_density = _DensitySubset(default_density.file, CHROME_ID, other_cfg)
+        DensitySubset(default_density.file, CHROME_ID, other_cfg)
 
 
 def test_write_read_left(default_density):
@@ -209,12 +209,12 @@ def test_write_read_bitmap(default_density):
     """Can we write / read the bitmap?"""
 
     with read_density_from_other(default_density) as other:
-        assert (default_density.bitmap[:] == other.bitmap[:]).all()
+        assert (default_density._bitmap[:] == other._bitmap[:]).all()
 
 
 def test_write_read_bitmap_noequals(default_density):
     """If we flip one bitmap, is the other unchanged?"""
 
     with read_density_from_other(default_density) as other:
-        other.bitmap[:] = np.invert(default_density.bitmap[:])
-        assert (default_density.bitmap[:] != other.bitmap[:]).all()
+        other._bitmap[:] = np.invert(default_density._bitmap[:])
+        assert (default_density._bitmap[:] != other._bitmap[:]).all()
