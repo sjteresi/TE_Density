@@ -19,7 +19,6 @@ def import_filtered_genes(genes_input_path, logger):
             genes_input_path,
             header="infer",
             sep="\t",
-            index_col="Gene_Name",
             dtype={
                 "Start": "float64",
                 "Stop": "float64",
@@ -27,6 +26,7 @@ def import_filtered_genes(genes_input_path, logger):
                 "Chromosome": str,
                 "Strand": str,
                 "Feature": str,
+                "Gene_Name": str,
             },
         )
     except Exception as err:
@@ -39,6 +39,7 @@ def import_filtered_genes(genes_input_path, logger):
         logger.critical(msg, genes_input_path)
         raise err
 
+    gene_data.set_index("Gene_Name", verify_integrity=True, inplace=True)
     check_nulls(gene_data, logger)
     check_strand(gene_data, logger)
 
