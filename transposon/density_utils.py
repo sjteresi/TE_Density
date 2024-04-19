@@ -41,7 +41,7 @@ def add_hdf5_indices_to_gene_data_from_list_hdf5(
     """
     to_concat = []
     # MAGIC 'Chromosome' name for column
-    for chrom, dataframe in cleaned_genes.groupby([chrom_col]):
+    for chrom, dataframe in cleaned_genes.groupby(chrom_col):
         # NB, reset index is done because I want Gene_Name to act as a column,
         # not as a pandas index object, it is initially read in as an index
         # though because of the import_filtered_genes function
@@ -71,7 +71,7 @@ def add_te_vals_to_gene_info_pandas_from_list_hdf5(
     TODO
     """
     to_concat = []
-    for chrom, dataframe in gene_frame_with_indices.groupby([chrom_col]):
+    for chrom, dataframe in gene_frame_with_indices.groupby(chrom_col):
         for processed_dd_datum in list_processed_dd_instance:
             if processed_dd_datum.unique_chromosome_id == chrom:
                 x = add_te_vals_to_gene_info_pandas(
