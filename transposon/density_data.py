@@ -28,11 +28,40 @@ class DensityData:
         input_h5 (str): Path to h5 file of TE Density output.
         gene_data (GeneData):
         """
-        # MAGIC must have '.h5' as extension
-        new_filename = input_h5.replace(".h5", "_SenseSwapped.HDF5")
-        shutil.copyfile(input_h5, new_filename)  # copy because we
-        # need to swap values later
-        self.data_frame = h5py.File(new_filename, "r+")
+        # self.data_frame = h5py.File(input_h5, "r+")
+
+        if sense_swap:
+            # Check to see if the file has already been sense swapped
+            swapped_filename = input_h5.replace(".h5", "_SenseSwapped.HDF5")
+            if os.path.exists(swapped_filename):
+                logger.info("Previous sense swapped data exists, reading...")
+                self.data_frame = h5py.File(swapped_filename, "r")
+            else:
+                gene_data.data_frame["Strand"].replace({"+": 1, "-": 0}, inplace=True)
+                strands_as_numpy = gene_data.data_frame.Strand.to_numpy(copy=False)
+
+                logger.info("Writing new sense swapped DensityData...")
+                # We need to swap values, prepare a new file, and then write to
+                # it.
+                shutil.copyfile(input_h5, swapped_filename)
+                self.data_frame = h5py.File(swapped_filename, "r+")
+
+                self.gene_list = [
+                    gene.decode("utf-8") for gene in self.data_frame["GENE_NAMES"][:]
+                ]
+
+                # Identify the genes to swap
+                zero_gene_list = np.where(strands_as_numpy == 0)[
+                    0
+                ]  # gets indices of 0s
+                genes_to_swap = gene_data.data_frame.iloc[
+                    zero_gene_list, :
+                ].index.tolist()
+                self._swap_strand_vals(genes_to_swap)
+        else:
+            # If we don't want to swap the values, we just read the file, and
+            # continue as normal
+            self.data_frame = h5py.File(input_h5, "r+")
 
         self.gene_list = [
             gene.decode("utf-8") for gene in self.data_frame["GENE_NAMES"][:]
@@ -70,14 +99,7 @@ class DensityData:
         self.right_supers = self.data_frame["RHO_SUPERFAMILIES_RIGHT"]
 
         self.genome_id = gene_data.genome_id
-        gene_data.data_frame.Strand.replace({"+": 1, "-": 0}, inplace=True)
-        strands_as_numpy = gene_data.data_frame.Strand.to_numpy(copy=False)
         # NB the 0s are the antisense
-
-        if sense_swap:
-            zero_gene_list = np.where(strands_as_numpy == 0)[0]  # gets indices of 0s
-            genes_to_swap = gene_data.data_frame.iloc[zero_gene_list, :].index.tolist()
-            self._swap_strand_vals(genes_to_swap)
 
     def _index_of_gene(self, gene_string):
         """Return the index of a gene given the name of the gene
@@ -474,7 +496,7 @@ class DensityData:
 
         # Initialize DensityData for each pseudomolecule
         processed_dd_data = [
-            cls.verify_h5_cache(raw_hdf5_data_file, gene_data_obj, logger)
+            cls(raw_hdf5_data_file, gene_data_obj, logger)
             for raw_hdf5_data_file, gene_data_obj, in zip(
                 all_unprocessed_h5_files, list_of_gene_data
             )
