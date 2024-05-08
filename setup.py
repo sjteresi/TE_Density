@@ -3,15 +3,15 @@ from setuptools import setup, find_packages
 
 setup(
     name="te-density",
-    version="2.1.1",
+    version="2.2.0",
     description="Calculates Transposable Element density",
     url="https://github.com/sjteresi/TE_Density",
-    packages=find_packages(),
+    packages=['transposon'],
     author="Scott Teresi, Michael Teresi",
     license = "GPL-3.0",
     install_requires=[
         'coloredlogs>=15.0',
-        'h5py>=3.7',
+        'h5py>=3.8',
         'matplotlib>=3.6',
         'numpy>=1.23',
         'numexpr>=2.8.3',

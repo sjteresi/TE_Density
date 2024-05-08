@@ -47,3 +47,20 @@ tags:               ## run ctags
 	ctags \
 		$(ROOT_DIR)/*.py \
 		$(ROOT_DIR)/transposon/*.py
+
+
+.PHONY: image
+image:                   ## docker image for testing
+	docker build \
+		-f Dockerfile \
+		--tag te_density \
+		.
+
+
+.PHONY: container
+container:               ## run docker image for testing interactively
+	docker run -it --rm \
+		-e TZ=$(cat /etc/timezone) \
+		--volume .:/root/te_density \
+		te_density \
+		bash || true
