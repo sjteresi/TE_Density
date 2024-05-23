@@ -10,6 +10,7 @@ from transposon.density_data import DensityData
 from transposon.density_data import DensitySlice
 import pandas as pd
 import numpy as np
+import logging
 
 
 def add_hdf5_indices_to_gene_data_from_list_hdf5(
@@ -101,6 +102,7 @@ def add_te_vals_to_gene_info_pandas(
     gene_name_col="Gene_Name",
     chrom_col="Chromosome",
     index_col="Index_Val",
+    logger=logging.getLogger(__name__),
 ):
     """
     Take a pandas dataframe that already has HDF5 index values for each
@@ -146,25 +148,48 @@ def add_te_vals_to_gene_info_pandas(
             The column contains floats of TE Density values for that gene
             (row).
     """
-    # Do a bunch of verification steps to make sure the user didn't provide
-    # inputs that aren't valid
-    dd_instance._verify_te_category_string(te_category)
-    dd_instance._verify_direction_string(direction)
-    dd_instance._verify_window_val(direction, window_val)
-    dd_instance._verify_te_name(te_category, te_name)
-
-    # Do more verification related to the pandas dataframe this time
-    verify_uniq_chrom_pandaframe(gene_info_pandas, chrom_col)
-    verify_chromosome_match_w_pandaframe(dd_instance, gene_info_pandas, chrom_col)
-
     # Set our new column name
     te_string_iterable = [te_name, str(window_val), direction]
     te_column_string = "_".join(te_string_iterable)
 
     # NB get around setting with copy warning by creating a deep copy,
     # not an issue for performance.
-    # Add the column of TE values for each gene to the pandas dataframe
     gene_info_pandas = gene_info_pandas.copy(deep=True)
+
+    # Do a bunch of verification steps to make sure the user didn't provide
+    # inputs that aren't valid
+    dd_instance._verify_te_category_string(te_category)
+    dd_instance._verify_direction_string(direction)
+    dd_instance._verify_window_val(direction, window_val)
+
+    # Do more verification related to the pandas dataframe this time
+    verify_uniq_chrom_pandaframe(gene_info_pandas, chrom_col)
+    verify_chromosome_match_w_pandaframe(dd_instance, gene_info_pandas, chrom_col)
+
+    # Check to see if the requested TE is indeed in the HDF5
+    # This warning will occur a lot if people have fragmented TE annotations
+    # where a certain TE type is not present on all psuedomolecules/scaffolds.
+    # We don't want to raise an error here and force a crash but we do want to
+    # communicate to the user that they are asking for a TE that is not
+    # available. Since this function will often be used to generate one big
+    # table for the entire genome, we will add a column of NaNs to the table
+    try:
+        dd_instance._verify_te_name(te_category, te_name)
+    except ValueError:
+        logger.warning(
+            f"""
+            User has asked for a TE name: ({te_category} {te_name}) that is
+            not in the HDF5 for {dd_instance.unique_chromosome_id}.
+            Window: {window_val}, Direction: {direction}.
+
+            Logging warning to user.
+            Adding a column of np.NaNs to the pandas dataframe.
+            """
+        )
+        gene_info_pandas[te_column_string] = np.nan
+        return gene_info_pandas
+
+    # Add the column of TE values for each gene to the pandas dataframe
     gene_info_pandas[te_column_string] = gene_info_pandas.apply(
         lambda x: get_specific_slice(
             dd_instance, te_category, te_name, direction, window_val, x[index_col]
@@ -217,10 +242,16 @@ def get_specific_slice(
             Will be a 1D array.
     """
     # Do a bunch of verification steps to make sure the user didn't provide
-    # inputs that aren't valid
+    # inputs that aren't valid, NOTE this doubles up on verifying with
+    # add_te_vals_to_gene_info_pandas()
     dd_instance._verify_te_category_string(te_category)
     dd_instance._verify_direction_string(direction)
     dd_instance._verify_window_val(direction, window_val)
+
+    # TODO consider adding a try except block here to catch the ValueError and
+    # return a NaN array. But since this function is expected to be used
+    # in a limited fasion on one specific chromosome, I will leave it as is for
+    # now. Scott 05-08-2024
     dd_instance._verify_te_name(te_category, te_name)
 
     if direction == "Intra" and te_category == "Order":
