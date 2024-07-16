@@ -79,6 +79,21 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "chromosome_string",
+        type=str,
+        help="regex for chromosome ID, e.g. 'GenomeName_(.*?).h5'",
+    )
+    # NOTE users will need to edit this as needed!
+    # This is the regular expression that is used to extract the chromosome IDs
+    # and initialize the DensityData objects. This is specific to the naming of
+    # your chromosomes in the HDF5 files.
+    # Please consult the docstring of from_list_gene_data_and_hdf5_dir in
+    # density_data.py for more information, typically you will only need to
+    # edit the part of the string before the underscore. Here this was specific
+    # For example I was working on a genome with the name DN, so my regex rule
+    # was "DN_(.*?).h5"
+
+    parser.add_argument(
         "-v", "--verbose", action="store_true", help="set debugging level to DEBUG"
     )
     args = parser.parse_args()
@@ -95,16 +110,6 @@ if __name__ == "__main__":
     # Read cleaned genes for the given genome as pandas
     cleaned_genes = import_filtered_genes(args.cleaned_gene_annotation, logger)
 
-    # NOTE users will need to edit this as needed!
-    # This is the regular expression that is used to extract the chromosome IDs
-    # and initialize the DensityData objects. This is specific to the naming of
-    # your chromosomes in the HDF5 files.
-    # Please consult the docstring of from_list_gene_data_and_hdf5_dir in
-    # density_data.py for more information, typically you will only need to
-    # edit the part of the string before the underscore. Here this was specific
-    # to a naming convention of "DN_(chromosome_id).h5"
-    chromosome_string = "DN_(.*?).h5"
-
     # Get list of GeneData for each genome to enable initialization of
     # DensityData
     genedata_list = get_gene_data_as_list(cleaned_genes)
@@ -112,7 +117,7 @@ if __name__ == "__main__":
     # Initialize DensityData for each genome
     # NOTE this object is a list of DensityData instances
     processed_dd_data = DensityData.from_list_gene_data_and_hdf5_dir(
-        genedata_list, args.density_data_dir, chromosome_string, logger
+        genedata_list, args.density_data_dir, args.chromosome_string, logger
     )
 
     gene_frame_with_indices = add_hdf5_indices_to_gene_data_from_list_hdf5(
