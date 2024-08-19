@@ -172,21 +172,22 @@ def add_te_vals_to_gene_info_pandas(
     # We don't want to raise an error here and force a crash but we do want to
     # communicate to the user that they are asking for a TE that is not
     # available. Since this function will often be used to generate one big
-    # table for the entire genome, we will add a column of NaNs to the table
+    # table for the entire genome, we will add a column of 0 to the table
     try:
         dd_instance._verify_te_name(te_category, te_name)
     except ValueError:
         logger.warning(
             f"""
+            Logging warning to user:
+
             User has asked for a TE name: ({te_category} {te_name}) that is
             not in the HDF5 for {dd_instance.unique_chromosome_id}.
             Window: {window_val}, Direction: {direction}.
 
-            Logging warning to user.
-            Adding a column of np.NaNs to the pandas dataframe.
+            Setting that column's TE Density to 0 for those genes on that scaffold.
             """
         )
-        gene_info_pandas[te_column_string] = np.nan
+        gene_info_pandas[te_column_string] = 0
         return gene_info_pandas
 
     # Add the column of TE values for each gene to the pandas dataframe
