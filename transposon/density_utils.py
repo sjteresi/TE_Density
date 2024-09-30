@@ -124,11 +124,12 @@ def add_te_vals_to_gene_info_pandas(
             that is in the HDF5.
 
         direction (str): A string representing whether the user wants TE
-            Density data for 'Upstream' or 'Downstream'. Must be either
-            'Upstream' or 'Downstream'.
+            Density data for 'Upstream', 'Downstream', or 'Intra'.
+            Must be one of those values
 
         window_val (int): An integer representing a valid window value that
-            the user wants the TE Density data for
+            the user wants the TE Density data for. If you are after the
+            'Intra' values, set window_val to None
 
     OPTIONAL Args:
         gene_name_col (str): Column ID for the genes in the user's pandas
@@ -148,8 +149,12 @@ def add_te_vals_to_gene_info_pandas(
             The column contains floats of TE Density values for that gene
             (row).
     """
-    # Set our new column name
-    te_string_iterable = [te_name, str(window_val), direction]
+    if window_val is None:
+        # Produce a column name, e.g LTR_Intra
+        te_string_iterable = [te_name, direction]
+    else:
+        # E.g LTR_5000_Upstream
+        te_string_iterable = [te_name, str(window_val), direction]
     te_column_string = "_".join(te_string_iterable)
 
     # NB get around setting with copy warning by creating a deep copy,
