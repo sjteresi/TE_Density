@@ -30,30 +30,25 @@ The datasets can be accessed on Dryad at the following [link](https://datadryad.
 
 ## Installation:
 
-We have developed on `Ubuntu 22.04` with `cpython` `3.10` and `3.11`, and with `pip`.
-Other distributions / package managers are available.
+[`uv`](https://docs.astral.sh/uv/guides/projects/) can manage `cpython 3.11` and install TE Density and its dependencies.
+Other Python distributions and package managers are available.
 
-We suggest using `pip` and a virtual environment to properly manage your installation.
-See [venv](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) or [virtualenvwrapper](https://virtualenvwrapper.readthedocs.io/en/latest/)
-for directions on how to use a virtual environment in conjunction with `pip`.
+For example:
 
-You may install as a package, see `setup.py` for list of general requirements.
-
-(Note that this will install the module and `process_genome.py` but not the test data and `Makefile` etc.)
+Install as a dependency to an existing project:
 ```
-$ pip install 'te-density @ git+https://github.com/sjteresi/TE_Density.git@master'
-$ process_genome.py -h  # the main entry point
-$ python
->>> import transposon   # the module
+uv add --python 3.11 "te-density @ git+https://github.com/sjteresi/TE_Density.git"
+uv run process_genome --help                                      # show command line help
+uv run python -c "import transposon; print(transposon.__file__)"  # import TE Density
 ```
 
-You may clone directly, see `./requirements.txt` for an exact requirements list.
+Install for development:
 ```
-$ git clone https://github.com/sjteresi/TE_Density.git && cd TE_Density
-$ pip install -r requirements.txt
-$ ./process_genome.py -h  # the main entry point
-$ python
->>> import transposon     # the module
+git clone https://github.com/sjteresi/TE_Density.git
+cd TE_Density
+uv sync
+uv run process_genome --help  # show command line help
+uv run pytest                 # run the tests
 ```
 
 See [Troubleshooting](#troubleshooting) for further system installation.

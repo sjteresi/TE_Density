@@ -66,7 +66,6 @@ from multiprocessing import Pool, Manager
 from threading import Thread, Event
 from queue import Empty
 
-
 MergeJob = namedtuple(
     "MergeJob",
     [
@@ -188,7 +187,7 @@ def result_to_job(result, windows, output_dir, pbar_callback):
     return _job
 
 
-if __name__ == "__main__":
+def main():
     """Command line interface to calculate density."""
 
     path_main = os.path.abspath(__file__)
@@ -349,3 +348,7 @@ if __name__ == "__main__":
                         raise keybr
 
     logger.info("process density... complete")
+
+
+if __name__ == "__main__":
+    main()
