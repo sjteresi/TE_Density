@@ -1,7 +1,11 @@
+.venv/
+
 **/*.swp
 **/*.swo
 **/*.orig
 **/*.pyc
+**.egg-info
+
 tmp
 tags
 cumtime
